@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Smart Durian Farm</title>
+  <desc id="description">ใบไม้และตำแหน่งต้นแบบเรียบง่าย</desc>
+  <rect width="512" height="512" rx="112" fill="#17562f"/>
+  <path d="M116 296c0-111 71-191 236-199-7 164-89 236-199 236-13 0-25-1-37-4v-33Z" fill="#8de4a5"/>
+  <path d="M130 366c57-108 123-170 221-242" fill="none" stroke="#f4f7f3" stroke-linecap="round" stroke-width="28"/>
+  <circle cx="335" cy="148" r="28" fill="#f4c95d"/>
+</svg>

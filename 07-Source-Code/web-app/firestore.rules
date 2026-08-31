@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Phase 1 baseline is deny-by-default. Phase 2 adds tested farm-scoped rules.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

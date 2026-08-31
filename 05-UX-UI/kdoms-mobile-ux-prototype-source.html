@@ -1,0 +1,2406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Kdoms Mobile Ux Preview</title>
+<style>:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive > .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align="right"]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align="center"]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  display: flex;
+  height: 6px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 6px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed="true"],
+  [aria-selected="true"],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type="file"]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type="color"] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type="date"],
+    [type="datetime-local"],
+    [type="month"],
+    [type="time"],
+    [type="week"]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: "";
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html>body{padding:0}</style>
+</head>
+<body>
+<div id="kdoms-prototype" lang="th">
+  <section class="kdoms-device" aria-label="ตัวอย่างแอป Smart Durian Farm บนมือถือ">
+    <div class="kdoms-demo-note">ต้นแบบข้อมูลจำลอง · ยังไม่เชื่อมฐานข้อมูล</div>
+
+    <header class="kdoms-header">
+      <div class="kdoms-brand-row">
+        <div class="kdoms-mark" aria-hidden="true">ท</div>
+        <div class="kdoms-brand-copy">
+          <strong>Smart Durian Farm</strong>
+          <span>จัดการสวนให้ถูกต้น</span>
+        </div>
+        <button class="kdoms-icon-button" type="button" aria-label="การแจ้งเตือน">
+          <span aria-hidden="true">♢</span><span class="kdoms-dot"></span>
+        </button>
+      </div>
+
+      <div class="kdoms-context-row">
+        <button class="kdoms-farm-button" type="button" data-action="open-farms" aria-expanded="false">
+          <span>
+            <small>สวนปัจจุบัน</small>
+            <strong data-farm-name>สวนก้องลักษณ์</strong>
+          </span>
+          <span class="kdoms-farm-code" data-farm-code>KGL-F01</span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+        <button class="kdoms-sync-button" type="button" data-action="toggle-sync" aria-pressed="false">
+          <span class="kdoms-sync-dot"></span>
+          <span data-sync-label>ซิงก์แล้ว</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="kdoms-main">
+      <section class="kdoms-page is-active" data-page="home" aria-labelledby="kdoms-home-title">
+        <div class="kdoms-greeting">
+          <div>
+            <p>สวัสดี คุณก้อง</p>
+            <h1 id="kdoms-home-title">วันนี้มีอะไรต้องดูแล</h1>
+          </div>
+          <span class="kdoms-role" data-role>เจ้าของสวน</span>
+        </div>
+
+        <div class="kdoms-alert" role="status">
+          <span class="kdoms-alert-icon" aria-hidden="true">!</span>
+          <div>
+            <strong><span data-urgent-count>2</span> เรื่องเร่งด่วน</strong>
+            <span>มีต้นป่วยที่ต้องติดตามภายในวันนี้</span>
+          </div>
+          <button type="button" data-go="tasks" aria-label="เปิดงานเร่งด่วน">›</button>
+        </div>
+
+        <div class="kdoms-metrics" aria-label="สรุปสวน">
+          <article>
+            <span class="kdoms-metric-icon kdoms-green" aria-hidden="true">♧</span>
+            <strong data-tree-count>612</strong>
+            <span>ต้นทั้งหมด</span>
+          </article>
+          <article>
+            <span class="kdoms-metric-icon kdoms-amber" aria-hidden="true">✓</span>
+            <strong data-task-count>7</strong>
+            <span>งานวันนี้</span>
+          </article>
+          <article>
+            <span class="kdoms-metric-icon kdoms-red" aria-hidden="true">+</span>
+            <strong data-watch-count>5</strong>
+            <span>เฝ้าระวัง</span>
+          </article>
+        </div>
+
+        <div class="kdoms-section-heading">
+          <h2>ทางลัดสำหรับงานในสวน</h2>
+        </div>
+        <div class="kdoms-quick-actions">
+          <button class="kdoms-primary-action" type="button" data-action="open-scan">
+            <span class="kdoms-action-icon" aria-hidden="true">⌗</span>
+            <span><strong>สแกน QR</strong><small>ยืนยันต้นและบันทึกงาน</small></span>
+          </button>
+          <button class="kdoms-secondary-action" type="button" data-go="tasks">
+            <span class="kdoms-action-icon" aria-hidden="true">☑</span>
+            <span><strong>งานของฉัน</strong><small>ดูงานที่ได้รับมอบหมาย</small></span>
+          </button>
+        </div>
+
+        <div class="kdoms-section-heading">
+          <h2>งานถัดไป</h2>
+          <button type="button" data-go="tasks">ดูทั้งหมด</button>
+        </div>
+        <article class="kdoms-task-card">
+          <div class="kdoms-task-topline">
+            <span class="kdoms-priority">เร่งด่วน</span>
+            <span>ภายใน 10:30 น.</span>
+          </div>
+          <h3>ติดตามอาการโคนเน่า</h3>
+          <p><code data-task-tree>KGL-F01-Z01-R03-T017</code></p>
+          <div class="kdoms-task-bottom">
+            <span>โซน 01 · แถว 03 · ต้น 017</span>
+            <button type="button" data-action="scan-for-task">สแกนยืนยัน</button>
+          </div>
+        </article>
+
+        <article class="kdoms-harvest-card">
+          <div>
+            <small>ผลก่อนขาย · รอบ 2569</small>
+            <strong><span data-fruit-count>4,280</span> ผล</strong>
+            <span>อัปเดตล่าสุดเมื่อวาน 16:40 น.</span>
+          </div>
+          <div class="kdoms-fruit-visual" aria-hidden="true">◉</div>
+        </article>
+      </section>
+
+      <section class="kdoms-page" data-page="tasks" aria-labelledby="kdoms-tasks-title" hidden>
+        <div class="kdoms-page-title">
+          <div><small>งานภาคสนาม</small><h1 id="kdoms-tasks-title">งานของฉัน</h1></div>
+          <span class="kdoms-count-bubble" data-task-count>7</span>
+        </div>
+        <div class="kdoms-filter-row" aria-label="กรองงาน">
+          <button class="is-selected" type="button">วันนี้</button>
+          <button type="button">เร่งด่วน</button>
+          <button type="button">รอตรวจ</button>
+        </div>
+        <div class="kdoms-offline-banner" data-offline-banner hidden>
+          <strong>ออฟไลน์</strong>
+          <span>งานที่เคยเปิดยังดูได้ และรายงานจะเก็บไว้ในเครื่อง</span>
+        </div>
+        <div class="kdoms-task-list">
+          <article class="kdoms-list-task is-urgent">
+            <div class="kdoms-list-time"><strong>10:30</strong><span>วันนี้</span></div>
+            <div>
+              <span class="kdoms-list-type">ติดตามโรค</span>
+              <h2>ตรวจอาการโคนเน่า</h2>
+              <p><code data-task-tree>KGL-F01-Z01-R03-T017</code></p>
+              <button type="button" data-action="scan-for-task">นำทางและสแกน</button>
+            </div>
+          </article>
+          <article class="kdoms-list-task">
+            <div class="kdoms-list-time"><strong>13:00</strong><span>วันนี้</span></div>
+            <div>
+              <span class="kdoms-list-type">งานกลุ่ม · 24 ต้น</span>
+              <h2>ใส่ปุ๋ยตามแผนรอบเดือน</h2>
+              <p>โซน 02 · แถว 01–02</p>
+              <button type="button">เปิดรายการต้น</button>
+            </div>
+          </article>
+          <article class="kdoms-list-task">
+            <div class="kdoms-list-time"><strong>16:00</strong><span>วันนี้</span></div>
+            <div>
+              <span class="kdoms-list-type">นับผล</span>
+              <h2>บันทึกจำนวนผลกลางรุ่น</h2>
+              <p>โซน 01 · แถว 05</p>
+              <button type="button">เริ่มงาน</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="kdoms-page" data-page="trees" aria-labelledby="kdoms-trees-title" hidden>
+        <div class="kdoms-page-title">
+          <div><small>ทะเบียนประจำสวน</small><h1 id="kdoms-trees-title">ต้นทุเรียน</h1></div>
+          <button class="kdoms-round-action" type="button" data-action="open-scan" aria-label="สแกนค้นหาต้น">⌗</button>
+        </div>
+        <label class="kdoms-search">
+          <span aria-hidden="true">⌕</span>
+          <span class="kdoms-visually-hidden">ค้นหารหัสต้นหรือพันธุ์</span>
+          <input type="search" placeholder="ค้นหารหัสต้นหรือพันธุ์">
+        </label>
+        <div class="kdoms-tree-summary">
+          <span><strong data-tree-count>612</strong> ต้นทั้งหมด</span>
+          <span><strong data-watch-count>5</strong> ต้องดูแล</span>
+        </div>
+        <div class="kdoms-tree-list">
+          <button type="button" data-action="show-tree">
+            <span class="kdoms-tree-avatar">017</span>
+            <span><strong>T017 · หมอนทอง</strong><small>Z01 · R03 · ป่วย — รอติดตาม</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button type="button">
+            <span class="kdoms-tree-avatar is-normal">018</span>
+            <span><strong>T018 · หมอนทอง</strong><small>Z01 · R03 · ปกติ</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button type="button">
+            <span class="kdoms-tree-avatar is-normal">019</span>
+            <span><strong>T019 · ชะนี</strong><small>Z01 · R03 · ปกติ</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button type="button">
+            <span class="kdoms-tree-avatar is-watch">020</span>
+            <span><strong>T020 · หมอนทอง</strong><small>Z01 · R03 · เฝ้าระวัง</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="kdoms-page" data-page="tree-detail" aria-labelledby="kdoms-tree-title" hidden>
+        <button class="kdoms-back" type="button" data-go="trees">‹ กลับไปทะเบียนต้น</button>
+        <div class="kdoms-tree-hero">
+          <div class="kdoms-tree-photo" aria-label="พื้นที่แสดงรูปต้นทุเรียนจำลอง">♣</div>
+          <div>
+            <span class="kdoms-status-warning">ป่วย · รอติดตาม</span>
+            <h1 id="kdoms-tree-title">ต้น T017</h1>
+            <code data-tree-code>KGL-F01-Z01-R03-T017</code>
+          </div>
+        </div>
+        <div class="kdoms-confirmed-row">
+          <span aria-hidden="true">✓</span>
+          <div><strong>ยืนยันด้วย QR แล้ว</strong><small>โซน 01 · แถว 03 · ตำแหน่ง 017</small></div>
+        </div>
+        <div class="kdoms-detail-grid">
+          <div><small>พันธุ์</small><strong>หมอนทอง</strong></div>
+          <div><small>รุ่นปลูก</small><strong>รุ่นที่ 1</strong></div>
+          <div><small>อายุโดยประมาณ</small><strong>5 ปี</strong></div>
+          <div><small>ตรวจล่าสุด</small><strong>วันนี้ 09:12</strong></div>
+        </div>
+        <article class="kdoms-incident-card">
+          <div class="kdoms-incident-title"><span aria-hidden="true">!</span><h2>ติดตามอาการโคนเน่า</h2></div>
+          <p>ตรวจความชื้นบริเวณโคน ถ่ายภาพมุมเดิม และบันทึกการเปลี่ยนแปลง</p>
+          <div><span>ผู้รับผิดชอบ: สมชาย</span><span>ครบกำหนด 10:30</span></div>
+        </article>
+        <button class="kdoms-full-primary" type="button" data-action="start-report">เริ่มงานและถ่ายภาพ</button>
+        <div class="kdoms-timeline">
+          <h2>ประวัติล่าสุด</h2>
+          <div><span></span><p><strong>เปิดเคสเฝ้าระวัง</strong><small>วันนี้ 09:12 · ผู้จัดการสวน</small></p></div>
+          <div><span></span><p><strong>บันทึกการให้น้ำ</strong><small>เมื่อวาน 17:35 · งานกลุ่ม R03</small></p></div>
+          <div><span></span><p><strong>นับผลกลางรุ่น 9 ผล</strong><small>28 ส.ค. 2569 · คนสวนสมชาย</small></p></div>
+        </div>
+      </section>
+
+      <section class="kdoms-page" data-page="worker-report" aria-labelledby="kdoms-report-title" hidden>
+        <button class="kdoms-back" type="button" data-go="tree-detail">‹ กลับไปข้อมูลต้น</button>
+        <div class="kdoms-page-title">
+          <div><small>ข้อมูลจำลอง · Worker Report</small><h1 id="kdoms-report-title">รายงานผลการตรวจต้น</h1></div>
+          <span class="kdoms-status-warning">กำลังทำ</span>
+        </div>
+        <article class="kdoms-work-target">
+          <small>ยืนยันเป้าหมายด้วย QR แล้ว</small>
+          <strong data-report-tree-code>KGL-F01-Z01-R03-T017</strong>
+          <span>งาน: ติดตามอาการโคนเน่า · ข้อมูลจำลอง</span>
+        </article>
+        <form class="kdoms-report-form" data-worker-form>
+          <label><span>ผลการตรวจ</span><select data-report-result><option value="stable">อาการคงที่</option><option value="better">ดีขึ้น</option><option value="worse">แย่ลง</option></select></label>
+          <div class="kdoms-form-grid">
+            <label><span>ปริมาณที่ใช้</span><input type="number" inputmode="decimal" value="1" min="0" step="0.1" data-report-quantity></label>
+            <label><span>หน่วย</span><select data-report-unit><option>ลิตร</option><option>มิลลิลิตร</option></select></label>
+          </div>
+          <label><span>วัสดุ/ผลิตภัณฑ์</span><input type="text" value="ตัวอย่างวัสดุ — ไม่ใช่ข้อมูลจริง" data-report-material></label>
+          <label><span>หมายเหตุ</span><textarea rows="3" data-report-note>ถ่ายภาพมุมเดิมแล้ว — ข้อมูลจำลอง</textarea></label>
+          <button class="kdoms-photo-button" type="button" data-action="mock-photo">＋ เพิ่มภาพจำลอง</button>
+          <p class="kdoms-inline-status" data-photo-state role="status">ยังไม่มีภาพจำลอง</p>
+          <button class="kdoms-full-primary" type="button" data-action="submit-report">ส่งรายงานเพื่อตรวจรับ</button>
+          <p class="kdoms-form-note">หากออฟไลน์ รายงานจะคง Farm scope เดิมและแสดง “บันทึกในเครื่อง”</p>
+        </form>
+      </section>
+
+      <section class="kdoms-page" data-page="manager-verify" aria-labelledby="kdoms-verify-title" hidden>
+        <button class="kdoms-back" type="button" data-go="tasks">‹ กลับไปงาน</button>
+        <div class="kdoms-page-title">
+          <div><small>ข้อมูลจำลอง · Manager Verification</small><h1 id="kdoms-verify-title">ตรวจรับรายงานงาน</h1></div>
+          <span class="kdoms-status-warning" data-verify-status>รอตรวจ</span>
+        </div>
+        <article class="kdoms-work-target">
+          <small>Worker ยืนยันด้วย QR</small>
+          <strong data-verify-tree-code>KGL-F01-Z01-R03-T017</strong>
+          <span data-submit-state>ส่งรายงานแล้ว · ข้อมูลจำลอง</span>
+        </article>
+        <div class="kdoms-evidence-grid">
+          <article><small>ผลการตรวจ</small><strong data-verify-result>อาการคงที่</strong></article>
+          <article><small>วัสดุ</small><strong data-verify-material>ตัวอย่างวัสดุ</strong></article>
+          <article><small>ปริมาณ</small><strong data-verify-quantity>1 ลิตร</strong></article>
+          <article><small>หลักฐาน</small><strong data-verify-photo>ภาพจำลอง 1 ภาพ</strong></article>
+        </div>
+        <div class="kdoms-verify-actions" data-verify-actions>
+          <button type="button" data-action="request-rework">ขอให้แก้ไข</button>
+          <button type="button" data-action="approve-report">อนุมัติและปิดงาน</button>
+        </div>
+        <div class="kdoms-rework-form" data-rework-form hidden>
+          <label><span>เหตุผลที่ต้องแก้ไข</span><textarea rows="3" data-rework-reason placeholder="ระบุสิ่งที่ต้องแก้ไข"></textarea></label>
+          <p data-rework-error role="alert" hidden>กรุณาระบุเหตุผลก่อนส่งกลับ</p>
+          <div><button type="button" data-action="cancel-rework">ยกเลิก</button><button type="button" data-action="confirm-rework">ส่งกลับให้แก้ไข</button></div>
+        </div>
+        <article class="kdoms-verification-result" data-verification-result hidden aria-live="polite">
+          <strong data-verification-title></strong>
+          <span data-verification-message></span>
+          <button type="button" data-go="tasks">กลับไปงาน</button>
+        </article>
+      </section>
+
+      <section class="kdoms-page" data-page="more" aria-labelledby="kdoms-more-title" hidden>
+        <div class="kdoms-page-title">
+          <div><small>เครื่องมือและการจัดการ</small><h1 id="kdoms-more-title">เพิ่มเติม</h1></div>
+        </div>
+        <div class="kdoms-profile-strip">
+          <span>ก</span>
+          <div><strong>คุณก้อง</strong><small data-role>เจ้าของสวน</small></div>
+          <button type="button" aria-label="เปิดโปรไฟล์">›</button>
+        </div>
+        <div class="kdoms-menu-group">
+          <h2>การจัดการสวน</h2>
+          <button type="button" data-action="open-farms"><span aria-hidden="true">⌘</span><span><strong>สวนของฉัน</strong><small>สลับสวนและดูข้อมูลสวน</small></span><b>›</b></button>
+          <button type="button"><span aria-hidden="true">♙</span><span><strong>สมาชิกและสิทธิ์</strong><small>กำหนดบทบาทแยกแต่ละสวน</small></span><b>›</b></button>
+          <button type="button"><span aria-hidden="true">▦</span><span><strong>โซนและแถว</strong><small>โครงสร้างตำแหน่งต้น</small></span><b>›</b></button>
+        </div>
+        <div class="kdoms-menu-group">
+          <h2>ผลผลิตและทรัพยากร</h2>
+          <button type="button"><span aria-hidden="true">◉</span><span><strong>ผลผลิตและเก็บเกี่ยว</strong><small>รอบผล จำนวนผล และล็อต</small></span><b>›</b></button>
+          <button type="button"><span aria-hidden="true">▣</span><span><strong>คลังปุ๋ย–ยา</strong><small>คงเหลือ ล็อต และวันหมดอายุ</small></span><b>›</b></button>
+          <button type="button"><span aria-hidden="true">฿</span><span><strong>การขาย</strong><small>ลูกค้า ราคา และยอดค้าง</small></span><b>›</b></button>
+        </div>
+        <div class="kdoms-menu-group">
+          <h2>การแสดงผล</h2>
+          <button type="button" data-action="toggle-theme"><span aria-hidden="true">◐</span><span><strong>โหมดสี</strong><small data-theme-label>Light mode</small></span><b>›</b></button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="kdoms-nav" aria-label="เมนูหลัก">
+      <button class="is-active" type="button" data-go="home"><span aria-hidden="true">⌂</span><strong>หน้าหลัก</strong></button>
+      <button type="button" data-go="tasks"><span aria-hidden="true">☑</span><strong>งาน</strong></button>
+      <button class="kdoms-scan-nav" type="button" data-action="open-scan"><span aria-hidden="true">⌗</span><strong>สแกน</strong></button>
+      <button type="button" data-go="trees"><span aria-hidden="true">♧</span><strong>ต้นไม้</strong></button>
+      <button type="button" data-go="more"><span aria-hidden="true">•••</span><strong>เพิ่มเติม</strong></button>
+    </nav>
+
+    <div class="kdoms-overlay" data-farm-overlay hidden>
+      <div class="kdoms-sheet" role="dialog" aria-modal="true" aria-labelledby="kdoms-farm-title">
+        <div class="kdoms-sheet-handle"></div>
+        <div class="kdoms-sheet-title">
+          <div><small>Multi-Farm</small><h2 id="kdoms-farm-title">เลือกสวนที่ต้องการจัดการ</h2></div>
+          <button type="button" data-action="close-farms" aria-label="ปิด">×</button>
+        </div>
+        <button class="kdoms-farm-option is-selected" type="button" data-select-farm="farm1">
+          <span class="kdoms-farm-letter">ก</span>
+          <span><strong>สวนก้องลักษณ์</strong><small>KGL-F01 · เจ้าของสวน · ซิงก์แล้ว</small></span>
+          <span class="kdoms-check" aria-hidden="true">✓</span>
+        </button>
+        <button class="kdoms-farm-option" type="button" data-select-farm="farm2">
+          <span class="kdoms-farm-letter is-gold">น</span>
+          <span><strong>สวนเนินทอง</strong><small>KGL-F02 · ผู้จัดการ · ข้อมูลจำลอง</small></span>
+          <span class="kdoms-check" aria-hidden="true"></span>
+        </button>
+        <p class="kdoms-sheet-note">แต่ละสวนมีต้น งาน วัสดุ และสิทธิ์แยกจากกัน</p>
+      </div>
+    </div>
+
+    <div class="kdoms-overlay kdoms-confirm-overlay" data-switch-overlay hidden>
+      <div class="kdoms-sheet" role="dialog" aria-modal="true" aria-labelledby="kdoms-switch-title">
+        <div class="kdoms-sheet-handle"></div>
+        <div class="kdoms-confirm-mark" aria-hidden="true">!</div>
+        <h2 id="kdoms-switch-title">มีรายการรอซิงก์ในสวนปัจจุบัน</h2>
+        <p>รายการ <span data-pending-count>2</span> รายการจะยังคงผูกกับ <strong data-pending-source>KGL-F01</strong> และจะไม่ย้ายไป <strong data-pending-target>KGL-F02</strong></p>
+        <div class="kdoms-confirm-actions">
+          <button type="button" data-action="cancel-farm-switch">ยกเลิก</button>
+          <button type="button" data-action="confirm-farm-switch">ยืนยันเปลี่ยนสวน</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kdoms-overlay" data-scan-overlay hidden>
+      <div class="kdoms-scan-sheet" role="dialog" aria-modal="true" aria-labelledby="kdoms-scan-title">
+        <div class="kdoms-scan-heading">
+          <button type="button" data-action="close-scan" aria-label="ปิดการสแกน">×</button>
+          <div><small>สวน <span data-scan-farm-code>KGL-F01</span></small><h2 id="kdoms-scan-title">สแกนป้ายประจำต้น</h2></div>
+        </div>
+        <div data-scan-camera>
+          <div class="kdoms-camera">
+            <div class="kdoms-scan-frame"><span></span><span></span><span></span><span></span><b></b></div>
+            <p>วาง QR ให้อยู่ในกรอบ</p>
+          </div>
+          <button class="kdoms-full-primary" type="button" data-action="simulate-scan">จำลองพบแท็ก T017</button>
+          <div class="kdoms-manual-entry">
+            <span>หรือกรอกรหัสเมื่อป้ายสแกนไม่ได้</span>
+            <div><input type="text" data-manual-code aria-label="รหัสบนป้าย" placeholder="เช่น KGL-F01-Z01-R03-T017"><button type="button" data-action="manual-scan">ตรวจรหัส</button></div>
+            <p data-scan-error role="alert" hidden></p>
+          </div>
+        </div>
+        <div class="kdoms-scan-result" data-scan-result hidden aria-live="polite">
+          <div class="kdoms-result-mark" data-result-mark>✓</div>
+          <small data-result-kicker>พบต้นที่ตรงกับใบงาน</small>
+          <h3 data-result-title>ต้น T017 · หมอนทอง</h3>
+          <code data-result-code>KGL-F01-Z01-R03-T017</code>
+          <div class="kdoms-result-location"><span data-result-farm>สวน KGL-F01</span><span data-result-zone>โซน Z01</span><span data-result-row>แถว R03</span><span data-result-tree>ตำแหน่ง T017</span></div>
+          <div class="kdoms-expected-actual" data-expected-actual hidden><span>ใบงาน: <code data-expected-code></code></span><span>สแกนจริง: <code data-actual-code></code></span></div>
+          <p data-result-message>ตรวจรหัสและสวนแล้ว สามารถเปิดข้อมูลต้นหรือเริ่มงานได้</p>
+          <button class="kdoms-full-primary" type="button" data-action="open-scanned-tree">เปิดข้อมูลต้น</button>
+          <button class="kdoms-text-action" type="button" data-action="scan-again">สแกนอีกครั้ง</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="kdoms-toast" data-toast role="status" aria-live="polite" hidden></div>
+  </section>
+</div>
+
+<style>
+#kdoms-prototype {
+  color-scheme: light dark;
+  --kdoms-page: light-dark(#f4f7f3, #101712);
+  --kdoms-surface: light-dark(#ffffff, #19231c);
+  --kdoms-surface-soft: light-dark(#edf4ed, #223027);
+  --kdoms-text: light-dark(#172019, #edf5ef);
+  --kdoms-muted: light-dark(#68756c, #9fb0a4);
+  --kdoms-border: light-dark(#dfe7e0, #334238);
+  --kdoms-green: light-dark(#1f6b3b, #6fd08b);
+  --kdoms-green-strong: light-dark(#17562f, #8de4a5);
+  --kdoms-green-soft: light-dark(#e3f2e7, #203f2b);
+  --kdoms-amber: light-dark(#a85f00, #ffc66d);
+  --kdoms-amber-soft: light-dark(#fff1d9, #47331b);
+  --kdoms-red: light-dark(#b13a32, #ff9a91);
+  --kdoms-red-soft: light-dark(#fde9e7, #482725);
+  --kdoms-gold: light-dark(#806100, #e3c85e);
+  --kdoms-overlay: light-dark(rgba(12, 25, 16, .44), rgba(0, 0, 0, .68));
+  --kdoms-shadow: light-dark(0 24px 70px rgba(22, 48, 30, .18), 0 24px 70px rgba(0, 0, 0, .42));
+  width: 100%;
+  display: grid;
+  place-items: start center;
+  background: transparent;
+  color: var(--kdoms-text);
+  font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+}
+
+#kdoms-prototype * { box-sizing: border-box; }
+#kdoms-prototype button,
+#kdoms-prototype input { font: inherit; }
+#kdoms-prototype button { cursor: pointer; }
+#kdoms-prototype code { font-family: "Cascadia Mono", Consolas, monospace; }
+
+.kdoms-device {
+  position: relative;
+  width: min(100%, 430px);
+  min-height: 760px;
+  overflow: hidden;
+  background: var(--kdoms-page);
+  border: 1px solid var(--kdoms-border);
+  border-radius: 28px;
+  box-shadow: var(--kdoms-shadow);
+}
+
+.kdoms-demo-note {
+  padding: 7px 16px;
+  background: var(--kdoms-amber-soft);
+  color: var(--kdoms-amber);
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.kdoms-header {
+  position: relative;
+  z-index: 3;
+  padding: 14px 18px 12px;
+  background: var(--kdoms-surface);
+  border-bottom: 1px solid var(--kdoms-border);
+}
+
+.kdoms-brand-row,
+.kdoms-context-row,
+.kdoms-greeting,
+.kdoms-section-heading,
+.kdoms-task-topline,
+.kdoms-task-bottom,
+.kdoms-page-title,
+.kdoms-tree-summary,
+.kdoms-scan-heading,
+.kdoms-sheet-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.kdoms-mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--kdoms-green);
+  color: light-dark(#ffffff, #0b2112);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.kdoms-brand-copy { flex: 1; display: grid; }
+.kdoms-brand-copy strong { font-size: .95rem; }
+.kdoms-brand-copy span { color: var(--kdoms-muted); font-size: .74rem; }
+.kdoms-icon-button,
+.kdoms-round-action {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 13px;
+  background: var(--kdoms-surface-soft);
+  color: var(--kdoms-text);
+  font-size: 1.25rem;
+}
+.kdoms-dot { position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--kdoms-red); }
+
+.kdoms-context-row { margin-top: 12px; align-items: stretch; }
+.kdoms-farm-button {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--kdoms-border);
+  border-radius: 13px;
+  background: var(--kdoms-surface);
+  color: var(--kdoms-text);
+  text-align: left;
+}
+.kdoms-farm-button > span:first-child { min-width: 0; display: grid; }
+.kdoms-farm-button small { color: var(--kdoms-muted); font-size: .67rem; }
+.kdoms-farm-button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; }
+.kdoms-farm-code { padding: 3px 6px; border-radius: 7px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font: 700 .67rem "Cascadia Mono", Consolas, monospace; }
+.kdoms-sync-button {
+  width: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--kdoms-green-soft);
+  color: var(--kdoms-green-strong);
+  font-size: .72rem;
+  font-weight: 700;
+}
+.kdoms-sync-button[aria-pressed="true"] { background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+.kdoms-sync-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+.kdoms-main { padding-bottom: 84px; }
+.kdoms-page { padding: 20px 18px 26px; }
+.kdoms-page[hidden] { display: none; }
+.kdoms-greeting p { margin: 0 0 2px; color: var(--kdoms-muted); font-size: .76rem; }
+.kdoms-greeting h1,
+.kdoms-page-title h1 { margin: 0; font-size: 1.28rem; line-height: 1.25; }
+.kdoms-role,
+.kdoms-count-bubble { padding: 5px 9px; border-radius: 999px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-size: .7rem; font-weight: 700; }
+
+.kdoms-alert {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  border-radius: 16px;
+  background: var(--kdoms-red-soft);
+  color: var(--kdoms-red);
+}
+.kdoms-alert-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-red); color: light-dark(#ffffff, #22100f); font-weight: 800; }
+.kdoms-alert div { display: grid; }
+.kdoms-alert strong { font-size: .86rem; }
+.kdoms-alert span:last-child { font-size: .73rem; }
+.kdoms-alert button { width: 44px; height: 44px; border: 0; background: transparent; color: inherit; font-size: 1.6rem; }
+
+.kdoms-metrics { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.kdoms-metrics article { padding: 12px 8px; display: grid; justify-items: center; gap: 2px; border-radius: 15px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-metrics strong { font-size: 1.16rem; }
+.kdoms-metrics article > span:last-child { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-metric-icon { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; font-weight: 800; }
+.kdoms-metric-icon.kdoms-green { background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-metric-icon.kdoms-amber { background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+.kdoms-metric-icon.kdoms-red { background: var(--kdoms-red-soft); color: var(--kdoms-red); }
+
+.kdoms-section-heading { margin: 21px 0 9px; }
+.kdoms-section-heading h2 { margin: 0; font-size: .93rem; }
+.kdoms-section-heading button { min-width: 44px; min-height: 44px; padding: 8px; border: 0; background: transparent; color: var(--kdoms-green-strong); font-size: .75rem; font-weight: 700; }
+.kdoms-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kdoms-primary-action,
+.kdoms-secondary-action { min-height: 76px; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 16px; text-align: left; }
+.kdoms-primary-action { border: 0; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+.kdoms-secondary-action { border: 1px solid var(--kdoms-border); background: var(--kdoms-surface); color: var(--kdoms-text); }
+.kdoms-action-icon { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; background: light-dark(rgba(255,255,255,.18), rgba(0,0,0,.2)); font-size: 1.2rem; }
+.kdoms-secondary-action .kdoms-action-icon { background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-quick-actions button > span:last-child { display: grid; gap: 1px; }
+.kdoms-quick-actions strong { font-size: .82rem; }
+.kdoms-quick-actions small { font-size: .66rem; opacity: .86; }
+
+.kdoms-task-card { padding: 14px; border-radius: 17px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-task-topline { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-priority { padding: 3px 7px; border-radius: 7px; background: var(--kdoms-red-soft); color: var(--kdoms-red); font-weight: 700; }
+.kdoms-task-card h3 { margin: 10px 0 3px; font-size: .93rem; }
+.kdoms-task-card p { margin: 0 0 12px; color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-task-bottom { padding-top: 10px; border-top: 1px solid var(--kdoms-border); color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-task-bottom button,
+.kdoms-list-task button { min-height: 44px; padding: 7px 10px; border: 0; border-radius: 10px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-size: .72rem; font-weight: 700; }
+
+.kdoms-harvest-card { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; padding: 15px; border-radius: 17px; background: var(--kdoms-amber-soft); color: var(--kdoms-text); }
+.kdoms-harvest-card > div:first-child { display: grid; }
+.kdoms-harvest-card small,
+.kdoms-harvest-card span { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-harvest-card strong { margin: 3px 0; font-size: 1.08rem; }
+.kdoms-fruit-visual { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50% 45% 50% 43%; background: var(--kdoms-gold); color: var(--kdoms-amber-soft); font-size: 1.5rem; }
+
+.kdoms-page-title small { color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-filter-row { margin: 16px 0 14px; display: flex; gap: 8px; overflow: auto; }
+.kdoms-filter-row button { min-height: 44px; padding: 7px 13px; border: 1px solid var(--kdoms-border); border-radius: 999px; background: var(--kdoms-surface); color: var(--kdoms-muted); font-size: .74rem; white-space: nowrap; }
+.kdoms-filter-row button.is-selected { border-color: var(--kdoms-green); background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+.kdoms-offline-banner { margin-bottom: 12px; padding: 10px 12px; display: grid; border-radius: 12px; background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+.kdoms-offline-banner strong { font-size: .78rem; }
+.kdoms-offline-banner span { font-size: .7rem; }
+.kdoms-task-list { display: grid; gap: 10px; }
+.kdoms-list-task { display: grid; grid-template-columns: 58px 1fr; gap: 12px; padding: 14px; border-radius: 16px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-list-task.is-urgent { border-left: 4px solid var(--kdoms-red); }
+.kdoms-list-time { display: grid; align-content: start; justify-items: center; padding-top: 2px; }
+.kdoms-list-time strong { font-size: .95rem; }
+.kdoms-list-time span { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-list-type { color: var(--kdoms-green-strong); font-size: .68rem; font-weight: 700; }
+.kdoms-list-task h2 { margin: 3px 0; font-size: .88rem; }
+.kdoms-list-task p { margin: 0 0 9px; color: var(--kdoms-muted); font-size: .7rem; }
+
+.kdoms-search { margin: 15px 0 10px; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--kdoms-border); border-radius: 13px; background: var(--kdoms-surface); }
+.kdoms-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--kdoms-text); font-size: 1rem; }
+.kdoms-tree-summary { margin-bottom: 12px; color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-tree-list { display: grid; gap: 8px; }
+.kdoms-tree-list button { min-height: 66px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--kdoms-border); border-radius: 15px; background: var(--kdoms-surface); color: var(--kdoms-text); text-align: left; }
+.kdoms-tree-list button > span:nth-child(2) { display: grid; }
+.kdoms-tree-list small { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-tree-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--kdoms-red-soft); color: var(--kdoms-red); font: 700 .72rem "Cascadia Mono", Consolas, monospace; }
+.kdoms-tree-avatar.is-normal { background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-tree-avatar.is-watch { background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+
+.kdoms-back { min-height: 44px; margin: -4px 0 9px; padding: 0 4px; border: 0; background: transparent; color: var(--kdoms-green-strong); font-size: .76rem; font-weight: 700; }
+.kdoms-tree-hero { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 14px; }
+.kdoms-tree-photo { height: 92px; display: grid; place-items: center; border-radius: 20px; background: var(--kdoms-green-soft); color: var(--kdoms-green); font-size: 2.6rem; }
+.kdoms-status-warning { display: inline-block; padding: 4px 7px; border-radius: 7px; background: var(--kdoms-red-soft); color: var(--kdoms-red); font-size: .68rem; font-weight: 700; }
+.kdoms-tree-hero h1 { margin: 6px 0 1px; font-size: 1.35rem; }
+.kdoms-tree-hero code { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-confirmed-row { margin: 14px 0; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 13px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-confirmed-row > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-confirmed-row div { display: grid; }
+.kdoms-confirmed-row strong { font-size: .78rem; }
+.kdoms-confirmed-row small { font-size: .68rem; }
+.kdoms-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kdoms-detail-grid div { padding: 11px; display: grid; border-radius: 13px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-detail-grid small { color: var(--kdoms-muted); font-size: .67rem; }
+.kdoms-detail-grid strong { font-size: .82rem; }
+.kdoms-incident-card { margin: 12px 0; padding: 14px; border-radius: 16px; background: var(--kdoms-red-soft); }
+.kdoms-incident-title { display: flex; align-items: center; gap: 8px; color: var(--kdoms-red); }
+.kdoms-incident-title span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-red); color: light-dark(#ffffff, #22100f); font-weight: 800; }
+.kdoms-incident-title h2 { margin: 0; font-size: .87rem; }
+.kdoms-incident-card p { margin: 8px 0; font-size: .75rem; }
+.kdoms-incident-card > div:last-child { display: flex; justify-content: space-between; gap: 8px; color: var(--kdoms-muted); font-size: .66rem; }
+.kdoms-full-primary { width: 100%; min-height: 46px; padding: 10px 14px; border: 0; border-radius: 13px; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-work-target { margin: 14px 0; display: grid; gap: 5px; padding: 13px; border: 1px solid var(--kdoms-border); border-radius: 15px; background: var(--kdoms-green-soft); }
+.kdoms-work-target small,
+.kdoms-work-target span { color: var(--kdoms-muted); font-size: .7rem; }
+.kdoms-work-target strong { overflow-wrap: anywhere; font: 700 .75rem "Cascadia Mono", Consolas, monospace; }
+.kdoms-report-form { display: grid; gap: 12px; }
+.kdoms-report-form label,
+.kdoms-rework-form label { display: grid; gap: 5px; color: var(--kdoms-muted); font-size: .72rem; font-weight: 700; }
+.kdoms-report-form input,
+.kdoms-report-form select,
+.kdoms-report-form textarea,
+.kdoms-rework-form textarea { width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 11px; border: 1px solid var(--kdoms-border); border-radius: 11px; background: var(--kdoms-surface); color: var(--kdoms-text); font: 400 1rem "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif; }
+.kdoms-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-photo-button { min-height: 44px; border: 1px dashed var(--kdoms-green); border-radius: 12px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-weight: 700; }
+.kdoms-inline-status,
+.kdoms-form-note { margin: -4px 0 0; color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-evidence-grid article { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--kdoms-border); border-radius: 13px; background: var(--kdoms-surface); }
+.kdoms-evidence-grid small { color: var(--kdoms-muted); font-size: .66rem; }
+.kdoms-evidence-grid strong { font-size: .75rem; overflow-wrap: anywhere; }
+.kdoms-verify-actions { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-verify-actions button,
+.kdoms-rework-form button,
+.kdoms-verification-result button { min-height: 44px; padding: 9px 10px; border: 0; border-radius: 12px; font-weight: 800; }
+.kdoms-verify-actions button:first-child,
+.kdoms-rework-form button:first-child { background: var(--kdoms-red-soft); color: var(--kdoms-red); }
+.kdoms-verify-actions button:last-child,
+.kdoms-rework-form button:last-child,
+.kdoms-verification-result button { background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+.kdoms-rework-form { margin-top: 14px; padding: 13px; border-radius: 15px; background: var(--kdoms-red-soft); }
+.kdoms-rework-form > p { margin: 6px 0; color: var(--kdoms-red); font-size: .7rem; }
+.kdoms-rework-form > div { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-verification-result { margin-top: 14px; display: grid; gap: 8px; padding: 14px; border-radius: 15px; background: var(--kdoms-green-soft); }
+.kdoms-verification-result span { color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-rework-form[hidden],
+.kdoms-verification-result[hidden],
+.kdoms-expected-actual[hidden] { display: none; }
+.kdoms-verify-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.kdoms-timeline { margin-top: 18px; }
+.kdoms-timeline h2 { margin: 0 0 10px; font-size: .9rem; }
+.kdoms-timeline > div { display: grid; grid-template-columns: 12px 1fr; gap: 9px; }
+.kdoms-timeline > div > span { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--kdoms-green); box-shadow: 0 15px 0 -4px var(--kdoms-border); }
+.kdoms-timeline p { margin: 0 0 12px; display: grid; }
+.kdoms-timeline strong { font-size: .76rem; }
+.kdoms-timeline small { color: var(--kdoms-muted); font-size: .67rem; }
+
+.kdoms-profile-strip { margin: 16px 0 20px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 13px; border-radius: 16px; background: var(--kdoms-green-soft); }
+.kdoms-profile-strip > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-profile-strip div { display: grid; }
+.kdoms-profile-strip small { color: var(--kdoms-muted); font-size: .7rem; }
+.kdoms-profile-strip button { width: 44px; height: 44px; border: 0; background: transparent; color: var(--kdoms-text); font-size: 1.4rem; }
+.kdoms-menu-group { margin-top: 17px; }
+.kdoms-menu-group h2 { margin: 0 0 8px; color: var(--kdoms-muted); font-size: .72rem; text-transform: uppercase; }
+.kdoms-menu-group > button { width: 100%; min-height: 62px; display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--kdoms-border); background: transparent; color: var(--kdoms-text); text-align: left; }
+.kdoms-menu-group > button > span:first-child { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--kdoms-surface-soft); color: var(--kdoms-green-strong); font-weight: 800; }
+.kdoms-menu-group > button > span:nth-child(2) { display: grid; }
+.kdoms-menu-group small { color: var(--kdoms-muted); font-size: .68rem; }
+
+.kdoms-nav { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: 73px; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; padding: 7px 7px 9px; border-top: 1px solid var(--kdoms-border); background: var(--kdoms-surface); }
+.kdoms-nav button { min-width: 0; min-height: 50px; display: grid; place-items: center; align-content: center; gap: 2px; border: 0; background: transparent; color: var(--kdoms-muted); }
+.kdoms-nav button > span { font-size: 1.15rem; line-height: 1; }
+.kdoms-nav button > strong { font-size: .63rem; }
+.kdoms-nav button.is-active { color: var(--kdoms-green-strong); }
+.kdoms-nav .kdoms-scan-nav { align-self: center; width: 64px; height: 64px; justify-self: center; margin-top: -25px; border-radius: 21px; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); box-shadow: 0 9px 20px light-dark(rgba(31,107,59,.25), rgba(0,0,0,.32)); }
+
+.kdoms-overlay { position: absolute; z-index: 20; inset: 0; display: flex; align-items: flex-end; background: var(--kdoms-overlay); }
+.kdoms-overlay[hidden] { display: none; }
+.kdoms-sheet,
+.kdoms-scan-sheet { width: 100%; padding: 10px 18px 22px; border-radius: 24px 24px 0 0; background: var(--kdoms-surface); color: var(--kdoms-text); }
+.kdoms-sheet-handle { width: 42px; height: 4px; margin: 0 auto 13px; border-radius: 4px; background: var(--kdoms-border); }
+.kdoms-sheet-title small,
+.kdoms-scan-heading small { color: var(--kdoms-green-strong); font-size: .68rem; font-weight: 700; }
+.kdoms-sheet-title h2,
+.kdoms-scan-heading h2 { margin: 2px 0 0; font-size: 1.02rem; }
+.kdoms-sheet-title button,
+.kdoms-scan-heading > button { width: 44px; height: 44px; border: 0; border-radius: 13px; background: var(--kdoms-surface-soft); color: var(--kdoms-text); font-size: 1.4rem; }
+.kdoms-farm-option { width: 100%; min-height: 68px; margin-top: 10px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 10px; border: 1px solid var(--kdoms-border); border-radius: 15px; background: var(--kdoms-surface); color: var(--kdoms-text); text-align: left; }
+.kdoms-farm-option.is-selected { border-color: var(--kdoms-green); background: var(--kdoms-green-soft); }
+.kdoms-farm-letter { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-farm-letter.is-gold { background: var(--kdoms-gold); color: light-dark(#ffffff, #2d2200); }
+.kdoms-farm-option > span:nth-child(2) { display: grid; }
+.kdoms-farm-option small { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-check { color: var(--kdoms-green-strong); font-weight: 800; }
+.kdoms-sheet-note { margin: 14px 0 0; color: var(--kdoms-muted); text-align: center; font-size: .68rem; }
+.kdoms-confirm-overlay { z-index: 24; }
+.kdoms-confirm-overlay .kdoms-sheet { text-align: center; }
+.kdoms-confirm-overlay h2 { margin: 8px 0; font-size: 1.05rem; }
+.kdoms-confirm-overlay p { margin: 0; color: var(--kdoms-muted); font-size: .74rem; }
+.kdoms-confirm-mark { width: 52px; height: 52px; margin: 4px auto; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-amber-soft); color: var(--kdoms-amber); font-size: 1.4rem; font-weight: 800; }
+.kdoms-confirm-actions { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-confirm-actions button { min-height: 44px; border: 0; border-radius: 12px; font-weight: 800; }
+.kdoms-confirm-actions button:first-child { background: var(--kdoms-surface-soft); color: var(--kdoms-text); }
+.kdoms-confirm-actions button:last-child { background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+
+.kdoms-scan-sheet { min-height: 620px; }
+.kdoms-scan-heading { justify-content: flex-start; margin-bottom: 14px; }
+.kdoms-camera { height: 310px; display: grid; place-items: center; align-content: center; gap: 20px; border-radius: 21px; background: light-dark(#243c2b, #0a0f0c); color: light-dark(#ffffff, #e9f5ec); }
+.kdoms-camera p { margin: 0; font-size: .75rem; opacity: .84; }
+.kdoms-scan-frame { position: relative; width: 190px; height: 190px; }
+.kdoms-scan-frame > span { position: absolute; width: 42px; height: 42px; border-color: light-dark(#9ee4ad, #75d28a); border-style: solid; }
+.kdoms-scan-frame > span:nth-child(1) { top: 0; left: 0; border-width: 4px 0 0 4px; border-radius: 12px 0 0; }
+.kdoms-scan-frame > span:nth-child(2) { top: 0; right: 0; border-width: 4px 4px 0 0; border-radius: 0 12px 0 0; }
+.kdoms-scan-frame > span:nth-child(3) { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-radius: 0 0 12px; }
+.kdoms-scan-frame > span:nth-child(4) { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-radius: 0 0 0 12px; }
+.kdoms-scan-frame b { position: absolute; top: 50%; left: 10px; right: 10px; height: 2px; background: light-dark(#9ee4ad, #75d28a); box-shadow: 0 0 12px light-dark(rgba(158,228,173,.8), rgba(117,210,138,.7)); }
+.kdoms-scan-sheet .kdoms-full-primary { margin-top: 12px; }
+.kdoms-manual-entry { margin-top: 13px; }
+.kdoms-manual-entry > span { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-manual-entry > div { margin-top: 6px; display: flex; gap: 7px; }
+.kdoms-manual-entry input { min-width: 0; flex: 1; min-height: 44px; padding: 9px 10px; border: 1px solid var(--kdoms-border); border-radius: 11px; background: var(--kdoms-page); color: var(--kdoms-text); font-size: 1rem; }
+.kdoms-manual-entry button { min-height: 44px; padding: 8px 11px; border: 0; border-radius: 11px; background: var(--kdoms-surface-soft); color: var(--kdoms-green-strong); font-size: .74rem; font-weight: 700; }
+.kdoms-manual-entry p { margin: 6px 0 0; color: var(--kdoms-red); font-size: .7rem; }
+.kdoms-scan-result { padding-top: 35px; text-align: center; }
+.kdoms-result-mark { width: 72px; height: 72px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-size: 2rem; font-weight: 800; }
+.kdoms-scan-result.is-mismatch .kdoms-result-mark { background: var(--kdoms-red-soft); color: var(--kdoms-red); }
+.kdoms-scan-result > small { color: var(--kdoms-green-strong); font-size: .72rem; font-weight: 700; }
+.kdoms-scan-result.is-mismatch > small { color: var(--kdoms-red); }
+.kdoms-scan-result h3 { margin: 5px 0; font-size: 1.25rem; }
+.kdoms-scan-result code { color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-result-location { margin: 17px 0 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.kdoms-result-location span { padding: 10px 5px; border-radius: 11px; background: var(--kdoms-surface-soft); font-size: .72rem; font-weight: 700; }
+.kdoms-scan-result p { color: var(--kdoms-muted); font-size: .75rem; }
+.kdoms-expected-actual { display: grid; gap: 5px; margin: 10px 0; padding: 10px; border-radius: 11px; background: var(--kdoms-red-soft); text-align: left; font-size: .68rem; }
+.kdoms-expected-actual code { overflow-wrap: anywhere; color: var(--kdoms-red); }
+.kdoms-text-action { min-height: 44px; margin-top: 7px; border: 0; background: transparent; color: var(--kdoms-green-strong); font-weight: 700; }
+
+.kdoms-toast { position: absolute; z-index: 30; left: 18px; right: 18px; bottom: 88px; padding: 11px 13px; border-radius: 13px; background: var(--kdoms-text); color: var(--kdoms-page); text-align: center; font-size: .74rem; box-shadow: var(--kdoms-shadow); }
+.kdoms-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+@media (max-width: 460px) {
+  .kdoms-device { width: 100%; min-height: 740px; border-radius: 22px; }
+}
+
+@media (max-width: 360px) {
+  .kdoms-header,
+  .kdoms-page { padding-left: 13px; padding-right: 13px; }
+  .kdoms-sync-button { width: 82px; }
+  .kdoms-farm-code { display: none; }
+  .kdoms-quick-actions { grid-template-columns: 1fr; }
+  .kdoms-task-bottom { align-items: flex-start; }
+  .kdoms-task-bottom > span { max-width: 45%; }
+  .kdoms-tree-hero { grid-template-columns: 78px 1fr; }
+  .kdoms-tree-photo { height: 78px; }
+  .kdoms-manual-entry > div { flex-direction: column; }
+  .kdoms-form-grid,
+  .kdoms-verify-actions,
+  .kdoms-rework-form > div { grid-template-columns: 1fr; }
+}
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('kdoms-prototype');
+  if (!root) return;
+  root.ownerDocument.documentElement.dataset.theme = 'light';
+  root.style.colorScheme = 'light';
+
+  const farms = {
+    farm1: { name: 'สวนก้องลักษณ์', code: 'KGL-F01', role: 'เจ้าของสวน', trees: '612', tasks: '7', watch: '5', urgent: '2', fruit: '4,280' },
+    farm2: { name: 'สวนเนินทอง', code: 'KGL-F02', role: 'ผู้จัดการ', trees: '286', tasks: '4', watch: '2', urgent: '1', fruit: '1,940' }
+  };
+
+  let currentFarm = 'farm1';
+  let currentPage = 'home';
+  let offline = false;
+  let pendingFarmKey = null;
+  let photoAdded = false;
+  let darkMode = false;
+  const pendingByFarm = { farm1: 0, farm2: 0 };
+  let toastTimer;
+
+  const pages = [...root.querySelectorAll('[data-page]')];
+  const navButtons = [...root.querySelectorAll('.kdoms-nav [data-go]')];
+  const farmOverlay = root.querySelector('[data-farm-overlay]');
+  const switchOverlay = root.querySelector('[data-switch-overlay]');
+  const scanOverlay = root.querySelector('[data-scan-overlay]');
+  const scanCamera = root.querySelector('[data-scan-camera]');
+  const scanResult = root.querySelector('[data-scan-result]');
+  const scanError = root.querySelector('[data-scan-error]');
+  const toast = root.querySelector('[data-toast]');
+
+  function setText(selector, value) {
+    root.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
+  }
+
+  function showToast(message) {
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.hidden = false;
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 2400);
+  }
+
+  function goTo(pageName) {
+    currentPage = pageName;
+    pages.forEach((page) => {
+      const active = page.dataset.page === pageName;
+      page.hidden = !active;
+      page.classList.toggle('is-active', active);
+    });
+    navButtons.forEach((button) => {
+      const target = button.dataset.go;
+      const navPage = pageName === 'tree-detail' ? 'trees' :
+        (['worker-report', 'manager-verify'].includes(pageName) ? 'tasks' : pageName);
+      button.classList.toggle('is-active', target === navPage);
+    });
+    root.querySelector('.kdoms-main').scrollTop = 0;
+  }
+
+  function updateSyncIndicator() {
+    const count = pendingByFarm[currentFarm];
+    const label = offline ? `ออฟไลน์ · ${count}` : (count > 0 ? `รอซิงก์ · ${count}` : 'ซิงก์แล้ว');
+    setText('[data-sync-label]', label);
+    root.querySelector('[data-action="toggle-sync"]').setAttribute('aria-pressed', String(offline));
+  }
+
+  function applyFarm(farmKey) {
+    currentFarm = farmKey;
+    const farm = farms[farmKey];
+    setText('[data-farm-name]', farm.name);
+    setText('[data-farm-code]', farm.code);
+    setText('[data-scan-farm-code]', farm.code);
+    setText('[data-role]', farm.role);
+    setText('[data-tree-count]', farm.trees);
+    setText('[data-task-count]', farm.tasks);
+    setText('[data-watch-count]', farm.watch);
+    setText('[data-urgent-count]', farm.urgent);
+    setText('[data-fruit-count]', farm.fruit);
+    const treeCode = `${farm.code}-Z01-R03-T017`;
+    setText('[data-task-tree]', treeCode);
+    setText('[data-tree-code]', treeCode);
+    setText('[data-report-tree-code]', treeCode);
+    setText('[data-verify-tree-code]', treeCode);
+    root.querySelector('[data-manual-code]').placeholder = `เช่น ${treeCode}`;
+    root.querySelectorAll('[data-select-farm]').forEach((button) => {
+      const selected = button.dataset.selectFarm === farmKey;
+      button.classList.toggle('is-selected', selected);
+      button.querySelector('.kdoms-check').textContent = selected ? '✓' : '';
+    });
+    updateSyncIndicator();
+  }
+
+  function openFarmPicker() {
+    farmOverlay.hidden = false;
+    root.querySelector('[data-action="open-farms"]').setAttribute('aria-expanded', 'true');
+    root.querySelector('[data-action="close-farms"]').focus();
+  }
+
+  function closeFarmPicker() {
+    farmOverlay.hidden = true;
+    root.querySelector('[data-action="open-farms"]').setAttribute('aria-expanded', 'false');
+  }
+
+  function applyFarmSwitch(selected, hadPending) {
+    const sourceCode = farms[currentFarm].code;
+    applyFarm(selected);
+    closeFarmPicker();
+    switchOverlay.hidden = true;
+    pendingFarmKey = null;
+    goTo('home');
+    showToast(hadPending
+      ? `เปลี่ยนสวนแล้ว — รายการรอซิงก์ยังคงอยู่ที่ ${sourceCode}`
+      : `เปลี่ยนเป็น ${farms[selected].name} แล้ว`);
+  }
+
+  function requestFarmSwitch(selected) {
+    if (selected === currentFarm) {
+      closeFarmPicker();
+      return;
+    }
+    const pendingCount = pendingByFarm[currentFarm];
+    if (offline || pendingCount > 0) {
+      pendingFarmKey = selected;
+      setText('[data-pending-source]', farms[currentFarm].code);
+      setText('[data-pending-target]', farms[selected].code);
+      setText('[data-pending-count]', String(pendingCount));
+      closeFarmPicker();
+      switchOverlay.hidden = false;
+      root.querySelector('[data-action="cancel-farm-switch"]').focus();
+      return;
+    }
+    applyFarmSwitch(selected, false);
+  }
+
+  function resetScan() {
+    scanCamera.hidden = false;
+    scanResult.hidden = true;
+    scanResult.classList.remove('is-mismatch');
+    scanError.hidden = true;
+    root.querySelector('[data-manual-code]').value = '';
+  }
+
+  function openScan() {
+    resetScan();
+    scanOverlay.hidden = false;
+  }
+
+  function closeScan() { scanOverlay.hidden = true; }
+
+  function parseTagCode(code) {
+    const match = /^([A-Z0-9]+)-(F\d+)-(Z\d+)-(R\d+)-(T\d+)$/.exec(code);
+    if (!match) return null;
+    return {
+      organizationCode: match[1],
+      farmSequence: match[2],
+      farmCode: `${match[1]}-${match[2]}`,
+      zone: match[3],
+      row: match[4],
+      tree: match[5]
+    };
+  }
+
+  function showScanResult(code) {
+    const farm = farms[currentFarm];
+    const parsed = parseTagCode(code);
+    const expected = `${farm.code}-Z01-R03-T017`;
+    const matches = code === expected;
+    scanCamera.hidden = true;
+    scanResult.hidden = false;
+    scanResult.classList.toggle('is-mismatch', !matches);
+    root.querySelector('[data-result-mark]').textContent = matches ? '✓' : '!';
+    root.querySelector('[data-result-kicker]').textContent = matches ? 'พบต้นที่ตรงกับใบงาน' : 'ป้ายนี้ไม่ตรงกับใบงาน';
+    root.querySelector('[data-result-title]').textContent = matches ? `ต้น ${parsed.tree} · หมอนทอง` : `ตรวจพบต้น ${parsed.tree}`;
+    root.querySelector('[data-result-code]').textContent = code;
+    setText('[data-result-farm]', `สวน ${parsed.farmCode}`);
+    setText('[data-result-zone]', `โซน ${parsed.zone}`);
+    setText('[data-result-row]', `แถว ${parsed.row}`);
+    setText('[data-result-tree]', `ตำแหน่ง ${parsed.tree}`);
+    const comparison = root.querySelector('[data-expected-actual]');
+    comparison.hidden = matches;
+    setText('[data-expected-code]', expected);
+    setText('[data-actual-code]', code);
+    root.querySelector('[data-result-message]').textContent = matches
+      ? 'ตรวจรหัสและสวนแล้ว สามารถเปิดข้อมูลต้นหรือเริ่มงานได้'
+      : `ใบงานต้องทำ ${expected} แต่สแกนจริง ${code} ระบบหยุดงานเดิมแล้ว`;
+    root.querySelector('[data-action="open-scanned-tree"]').hidden = !matches;
+  }
+
+  function runManualScan() {
+    const input = root.querySelector('[data-manual-code]');
+    const code = input.value.trim().toUpperCase();
+    const parsed = parseTagCode(code);
+    if (!code) {
+      scanError.textContent = 'กรุณากรอกรหัสบนป้าย';
+      scanError.hidden = false;
+      return;
+    }
+    if (!parsed) {
+      scanError.textContent = 'รูปแบบรหัสไม่ถูกต้อง ตัวอย่าง KGL-F01-Z01-R03-T017';
+      scanError.hidden = false;
+      return;
+    }
+    scanError.hidden = true;
+    showScanResult(code);
+  }
+
+  function resetVerification() {
+    root.querySelector('[data-verify-actions]').hidden = false;
+    root.querySelector('[data-rework-form]').hidden = true;
+    root.querySelector('[data-verification-result]').hidden = true;
+    root.querySelector('[data-rework-error]').hidden = true;
+    root.querySelector('[data-rework-reason]').value = '';
+    setText('[data-verify-status]', offline ? 'รอซิงก์' : 'รอตรวจ');
+  }
+
+  function submitWorkerReport() {
+    const resultLabels = { stable: 'อาการคงที่', better: 'ดีขึ้น', worse: 'แย่ลง' };
+    const result = root.querySelector('[data-report-result]').value;
+    const quantity = root.querySelector('[data-report-quantity]').value || '0';
+    const unit = root.querySelector('[data-report-unit]').value;
+    const material = root.querySelector('[data-report-material]').value || 'ไม่ได้ระบุ';
+    setText('[data-verify-result]', resultLabels[result]);
+    setText('[data-verify-quantity]', `${quantity} ${unit}`);
+    setText('[data-verify-material]', material);
+    setText('[data-verify-photo]', photoAdded ? 'ภาพจำลอง 1 ภาพ' : 'ไม่มีภาพ');
+    if (offline) pendingByFarm[currentFarm] += 1;
+    setText('[data-submit-state]', offline
+      ? `บันทึกในเครื่องแล้ว · รอซิงก์ใน ${farms[currentFarm].code}`
+      : 'ส่งรายงานแล้ว · รอตรวจ · ข้อมูลจำลอง');
+    resetVerification();
+    root.querySelectorAll('[data-verify-actions] button').forEach((item) => { item.disabled = offline; });
+    updateSyncIndicator();
+    goTo('manager-verify');
+    showToast(offline ? 'บันทึกในเครื่องแล้ว — จะซิงก์เมื่อมีสัญญาณ' : 'ส่งรายงานแล้ว — รอผู้จัดการตรวจรับ');
+  }
+
+  function finishVerification(kind, reason = '') {
+    root.querySelector('[data-verify-actions]').hidden = true;
+    root.querySelector('[data-rework-form]').hidden = true;
+    const result = root.querySelector('[data-verification-result]');
+    result.hidden = false;
+    if (kind === 'approved') {
+      setText('[data-verify-status]', 'เสร็จแล้ว');
+      setText('[data-verification-title]', 'อนุมัติรายงานแล้ว');
+      setText('[data-verification-message]', 'บันทึกผลตรวจรับและ audit event แบบจำลองแล้ว');
+    } else {
+      setText('[data-verify-status]', 'ให้แก้');
+      setText('[data-verification-title]', 'ส่งกลับให้ Worker แก้ไขแล้ว');
+      setText('[data-verification-message]', `เหตุผล: ${reason} · ข้อมูลจำลอง`);
+    }
+  }
+
+  root.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+
+    if (button.dataset.go) goTo(button.dataset.go);
+
+    const action = button.dataset.action;
+    if (action === 'open-farms') openFarmPicker();
+    if (action === 'close-farms') closeFarmPicker();
+    if (action === 'open-scan' || action === 'scan-for-task') openScan();
+    if (action === 'close-scan') closeScan();
+    if (action === 'scan-again') resetScan();
+    if (action === 'show-tree') goTo('tree-detail');
+    if (action === 'simulate-scan') showScanResult(`${farms[currentFarm].code}-Z01-R03-T017`);
+    if (action === 'open-scanned-tree') { closeScan(); goTo('tree-detail'); showToast('ยืนยันต้นด้วย QR แล้ว'); }
+    if (action === 'start-report') { photoAdded = false; setText('[data-photo-state]', 'ยังไม่มีภาพจำลอง'); goTo('worker-report'); }
+    if (action === 'mock-photo') { photoAdded = true; setText('[data-photo-state]', 'เพิ่มภาพจำลองแล้ว 1 ภาพ'); showToast('เพิ่มภาพจำลองแล้ว'); }
+    if (action === 'submit-report') submitWorkerReport();
+    if (action === 'approve-report') finishVerification('approved');
+    if (action === 'request-rework') {
+      root.querySelector('[data-rework-form]').hidden = false;
+      root.querySelector('[data-rework-reason]').focus();
+    }
+    if (action === 'cancel-rework') {
+      root.querySelector('[data-rework-form]').hidden = true;
+      root.querySelector('[data-rework-error]').hidden = true;
+    }
+    if (action === 'confirm-rework') {
+      const reason = root.querySelector('[data-rework-reason]').value.trim();
+      if (!reason) {
+        root.querySelector('[data-rework-error]').hidden = false;
+      } else {
+        root.querySelector('[data-rework-error]').hidden = true;
+        finishVerification('rework', reason);
+      }
+    }
+    if (action === 'cancel-farm-switch') {
+      switchOverlay.hidden = true;
+      pendingFarmKey = null;
+      showToast('ยกเลิกการเปลี่ยนสวน — รายการรอซิงก์ยังปลอดภัย');
+    }
+    if (action === 'confirm-farm-switch' && pendingFarmKey) applyFarmSwitch(pendingFarmKey, true);
+
+    if (action === 'manual-scan') {
+      runManualScan();
+    }
+
+    if (action === 'toggle-sync') {
+      offline = !offline;
+      pendingByFarm[currentFarm] = offline ? Math.max(2, pendingByFarm[currentFarm]) : 0;
+      root.querySelectorAll('[data-offline-banner]').forEach((banner) => { banner.hidden = !offline; });
+      if (!offline && currentPage === 'manager-verify') {
+        root.querySelectorAll('[data-verify-actions] button').forEach((item) => { item.disabled = false; });
+        setText('[data-verify-status]', 'รอตรวจ');
+        setText('[data-submit-state]', `ซิงก์แล้วใน ${farms[currentFarm].code} · รอตรวจ`);
+      }
+      updateSyncIndicator();
+      showToast(offline ? 'โหมดจำลองออฟไลน์ — ข้อมูลใหม่จะรอซิงก์' : 'กลับมาออนไลน์และซิงก์ข้อมูลแล้ว');
+    }
+
+    if (action === 'toggle-theme') {
+      darkMode = !darkMode;
+      root.ownerDocument.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+      root.style.colorScheme = darkMode ? 'dark' : 'light';
+      setText('[data-theme-label]', darkMode ? 'Dark mode' : 'Light mode');
+      showToast(darkMode ? 'เปิด Dark mode' : 'เปิด Light mode');
+    }
+
+    if (button.dataset.selectFarm) {
+      requestFarmSwitch(button.dataset.selectFarm);
+    }
+  });
+
+  farmOverlay.addEventListener('click', (event) => { if (event.target === farmOverlay) closeFarmPicker(); });
+  scanOverlay.addEventListener('click', (event) => { if (event.target === scanOverlay) closeScan(); });
+  switchOverlay.addEventListener('click', (event) => {
+    if (event.target === switchOverlay) {
+      switchOverlay.hidden = true;
+      pendingFarmKey = null;
+    }
+  });
+  root.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && event.target.matches('[data-manual-code]')) {
+      event.preventDefault();
+      runManualScan();
+    }
+    if (event.key === 'Escape') {
+      if (!switchOverlay.hidden) { switchOverlay.hidden = true; pendingFarmKey = null; return; }
+      if (!scanOverlay.hidden) { closeScan(); return; }
+      if (!farmOverlay.hidden) closeFarmPicker();
+    }
+  });
+  applyFarm(currentFarm);
+  goTo(currentPage);
+})();
+</script>
+
+<script src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"></script>
+<script src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"></script>
+<script>
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) => {
+    lastPointerWasTouch =
+      event.type === "pointerdown" && event.pointerType === "touch";
+  };
+  const handleTouchClick = (event) => {
+    const isTouch = event.pointerType === "touch" || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch && activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() => {
+      if (activeTrigger === trigger && !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) => {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerdown", handlePointer);
+    document.removeEventListener("pointercancel", handlePointer);
+    document.removeEventListener("click", handleTouchClick);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerdown", handlePointer);
+  document.addEventListener("pointercancel", handlePointer);
+  document.addEventListener("click", handleTouchClick);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+<script id="codex-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
+<script>
+(() => {
+  const initialize = () => {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+</script>
+
+</body>
+</html>

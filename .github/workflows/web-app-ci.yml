@@ -1,0 +1,38 @@
+name: Web App CI
+
+on:
+  pull_request:
+    paths:
+      - '07-Source-Code/web-app/**'
+      - '.github/workflows/web-app-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - '07-Source-Code/web-app/**'
+      - '.github/workflows/web-app-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 07-Source-Code/web-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: 07-Source-Code/web-app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm smoke:offline

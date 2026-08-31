@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Phase 1 baseline is deny-by-default. Phase 2 adds tested farm-scoped rules.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

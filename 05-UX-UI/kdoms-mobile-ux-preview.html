@@ -1,0 +1,2420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Kdoms Mobile Ux Preview</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Kdoms Mobile Ux Preview" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39; &#39;unsafe-eval&#39; &#39;wasm-unsafe-eval&#39; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#39;unsafe-inline&#39; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#39;none&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;&quot;&gt;
+&lt;title&gt;Kdoms Mobile Ux Preview&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#39;http://www.w3.org/2000/svg&#39; viewBox=&#39;0 0 17 17&#39;%3E%3Cpath d=&#39;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#39;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  display: flex;
+  height: 6px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 6px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;kdoms-prototype&quot; lang=&quot;th&quot;&gt;
+  &lt;section class=&quot;kdoms-device&quot; aria-label=&quot;ตัวอย่างแอป Smart Durian Farm บนมือถือ&quot;&gt;
+    &lt;div class=&quot;kdoms-demo-note&quot;&gt;ต้นแบบข้อมูลจำลอง &#183; ยังไม่เชื่อมฐานข้อมูล&lt;/div&gt;
+
+    &lt;header class=&quot;kdoms-header&quot;&gt;
+      &lt;div class=&quot;kdoms-brand-row&quot;&gt;
+        &lt;div class=&quot;kdoms-mark&quot; aria-hidden=&quot;true&quot;&gt;ท&lt;/div&gt;
+        &lt;div class=&quot;kdoms-brand-copy&quot;&gt;
+          &lt;strong&gt;Smart Durian Farm&lt;/strong&gt;
+          &lt;span&gt;จัดการสวนให้ถูกต้น&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;button class=&quot;kdoms-icon-button&quot; type=&quot;button&quot; aria-label=&quot;การแจ้งเตือน&quot;&gt;
+          &lt;span aria-hidden=&quot;true&quot;&gt;♢&lt;/span&gt;&lt;span class=&quot;kdoms-dot&quot;&gt;&lt;/span&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;kdoms-context-row&quot;&gt;
+        &lt;button class=&quot;kdoms-farm-button&quot; type=&quot;button&quot; data-action=&quot;open-farms&quot; aria-expanded=&quot;false&quot;&gt;
+          &lt;span&gt;
+            &lt;small&gt;สวนปัจจุบัน&lt;/small&gt;
+            &lt;strong data-farm-name&gt;สวนก้องลักษณ์&lt;/strong&gt;
+          &lt;/span&gt;
+          &lt;span class=&quot;kdoms-farm-code&quot; data-farm-code&gt;KGL-F01&lt;/span&gt;
+          &lt;span aria-hidden=&quot;true&quot;&gt;⌄&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button class=&quot;kdoms-sync-button&quot; type=&quot;button&quot; data-action=&quot;toggle-sync&quot; aria-pressed=&quot;false&quot;&gt;
+          &lt;span class=&quot;kdoms-sync-dot&quot;&gt;&lt;/span&gt;
+          &lt;span data-sync-label&gt;ซิงก์แล้ว&lt;/span&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/header&gt;
+
+    &lt;main class=&quot;kdoms-main&quot;&gt;
+      &lt;section class=&quot;kdoms-page is-active&quot; data-page=&quot;home&quot; aria-labelledby=&quot;kdoms-home-title&quot;&gt;
+        &lt;div class=&quot;kdoms-greeting&quot;&gt;
+          &lt;div&gt;
+            &lt;p&gt;สวัสดี คุณก้อง&lt;/p&gt;
+            &lt;h1 id=&quot;kdoms-home-title&quot;&gt;วันนี้มีอะไรต้องดูแล&lt;/h1&gt;
+          &lt;/div&gt;
+          &lt;span class=&quot;kdoms-role&quot; data-role&gt;เจ้าของสวน&lt;/span&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;kdoms-alert&quot; role=&quot;status&quot;&gt;
+          &lt;span class=&quot;kdoms-alert-icon&quot; aria-hidden=&quot;true&quot;&gt;!&lt;/span&gt;
+          &lt;div&gt;
+            &lt;strong&gt;&lt;span data-urgent-count&gt;2&lt;/span&gt; เรื่องเร่งด่วน&lt;/strong&gt;
+            &lt;span&gt;มีต้นป่วยที่ต้องติดตามภายในวันนี้&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;button type=&quot;button&quot; data-go=&quot;tasks&quot; aria-label=&quot;เปิดงานเร่งด่วน&quot;&gt;›&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;kdoms-metrics&quot; aria-label=&quot;สรุปสวน&quot;&gt;
+          &lt;article&gt;
+            &lt;span class=&quot;kdoms-metric-icon kdoms-green&quot; aria-hidden=&quot;true&quot;&gt;♧&lt;/span&gt;
+            &lt;strong data-tree-count&gt;612&lt;/strong&gt;
+            &lt;span&gt;ต้นทั้งหมด&lt;/span&gt;
+          &lt;/article&gt;
+          &lt;article&gt;
+            &lt;span class=&quot;kdoms-metric-icon kdoms-amber&quot; aria-hidden=&quot;true&quot;&gt;✓&lt;/span&gt;
+            &lt;strong data-task-count&gt;7&lt;/strong&gt;
+            &lt;span&gt;งานวันนี้&lt;/span&gt;
+          &lt;/article&gt;
+          &lt;article&gt;
+            &lt;span class=&quot;kdoms-metric-icon kdoms-red&quot; aria-hidden=&quot;true&quot;&gt;+&lt;/span&gt;
+            &lt;strong data-watch-count&gt;5&lt;/strong&gt;
+            &lt;span&gt;เฝ้าระวัง&lt;/span&gt;
+          &lt;/article&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;kdoms-section-heading&quot;&gt;
+          &lt;h2&gt;ทางลัดสำหรับงานในสวน&lt;/h2&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-quick-actions&quot;&gt;
+          &lt;button class=&quot;kdoms-primary-action&quot; type=&quot;button&quot; data-action=&quot;open-scan&quot;&gt;
+            &lt;span class=&quot;kdoms-action-icon&quot; aria-hidden=&quot;true&quot;&gt;⌗&lt;/span&gt;
+            &lt;span&gt;&lt;strong&gt;สแกน QR&lt;/strong&gt;&lt;small&gt;ยืนยันต้นและบันทึกงาน&lt;/small&gt;&lt;/span&gt;
+          &lt;/button&gt;
+          &lt;button class=&quot;kdoms-secondary-action&quot; type=&quot;button&quot; data-go=&quot;tasks&quot;&gt;
+            &lt;span class=&quot;kdoms-action-icon&quot; aria-hidden=&quot;true&quot;&gt;☑&lt;/span&gt;
+            &lt;span&gt;&lt;strong&gt;งานของฉัน&lt;/strong&gt;&lt;small&gt;ดูงานที่ได้รับมอบหมาย&lt;/small&gt;&lt;/span&gt;
+          &lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;kdoms-section-heading&quot;&gt;
+          &lt;h2&gt;งานถัดไป&lt;/h2&gt;
+          &lt;button type=&quot;button&quot; data-go=&quot;tasks&quot;&gt;ดูทั้งหมด&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;article class=&quot;kdoms-task-card&quot;&gt;
+          &lt;div class=&quot;kdoms-task-topline&quot;&gt;
+            &lt;span class=&quot;kdoms-priority&quot;&gt;เร่งด่วน&lt;/span&gt;
+            &lt;span&gt;ภายใน 10:30 น.&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;h3&gt;ติดตามอาการโคนเน่า&lt;/h3&gt;
+          &lt;p&gt;&lt;code data-task-tree&gt;KGL-F01-Z01-R03-T017&lt;/code&gt;&lt;/p&gt;
+          &lt;div class=&quot;kdoms-task-bottom&quot;&gt;
+            &lt;span&gt;โซน 01 &#183; แถว 03 &#183; ต้น 017&lt;/span&gt;
+            &lt;button type=&quot;button&quot; data-action=&quot;scan-for-task&quot;&gt;สแกนยืนยัน&lt;/button&gt;
+          &lt;/div&gt;
+        &lt;/article&gt;
+
+        &lt;article class=&quot;kdoms-harvest-card&quot;&gt;
+          &lt;div&gt;
+            &lt;small&gt;ผลก่อนขาย &#183; รอบ 2569&lt;/small&gt;
+            &lt;strong&gt;&lt;span data-fruit-count&gt;4,280&lt;/span&gt; ผล&lt;/strong&gt;
+            &lt;span&gt;อัปเดตล่าสุดเมื่อวาน 16:40 น.&lt;/span&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;kdoms-fruit-visual&quot; aria-hidden=&quot;true&quot;&gt;◉&lt;/div&gt;
+        &lt;/article&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;kdoms-page&quot; data-page=&quot;tasks&quot; aria-labelledby=&quot;kdoms-tasks-title&quot; hidden&gt;
+        &lt;div class=&quot;kdoms-page-title&quot;&gt;
+          &lt;div&gt;&lt;small&gt;งานภาคสนาม&lt;/small&gt;&lt;h1 id=&quot;kdoms-tasks-title&quot;&gt;งานของฉัน&lt;/h1&gt;&lt;/div&gt;
+          &lt;span class=&quot;kdoms-count-bubble&quot; data-task-count&gt;7&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-filter-row&quot; aria-label=&quot;กรองงาน&quot;&gt;
+          &lt;button class=&quot;is-selected&quot; type=&quot;button&quot;&gt;วันนี้&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;เร่งด่วน&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;รอตรวจ&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-offline-banner&quot; data-offline-banner hidden&gt;
+          &lt;strong&gt;ออฟไลน์&lt;/strong&gt;
+          &lt;span&gt;งานที่เคยเปิดยังดูได้ และรายงานจะเก็บไว้ในเครื่อง&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-task-list&quot;&gt;
+          &lt;article class=&quot;kdoms-list-task is-urgent&quot;&gt;
+            &lt;div class=&quot;kdoms-list-time&quot;&gt;&lt;strong&gt;10:30&lt;/strong&gt;&lt;span&gt;วันนี้&lt;/span&gt;&lt;/div&gt;
+            &lt;div&gt;
+              &lt;span class=&quot;kdoms-list-type&quot;&gt;ติดตามโรค&lt;/span&gt;
+              &lt;h2&gt;ตรวจอาการโคนเน่า&lt;/h2&gt;
+              &lt;p&gt;&lt;code data-task-tree&gt;KGL-F01-Z01-R03-T017&lt;/code&gt;&lt;/p&gt;
+              &lt;button type=&quot;button&quot; data-action=&quot;scan-for-task&quot;&gt;นำทางและสแกน&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/article&gt;
+          &lt;article class=&quot;kdoms-list-task&quot;&gt;
+            &lt;div class=&quot;kdoms-list-time&quot;&gt;&lt;strong&gt;13:00&lt;/strong&gt;&lt;span&gt;วันนี้&lt;/span&gt;&lt;/div&gt;
+            &lt;div&gt;
+              &lt;span class=&quot;kdoms-list-type&quot;&gt;งานกลุ่ม &#183; 24 ต้น&lt;/span&gt;
+              &lt;h2&gt;ใส่ปุ๋ยตามแผนรอบเดือน&lt;/h2&gt;
+              &lt;p&gt;โซน 02 &#183; แถว 01–02&lt;/p&gt;
+              &lt;button type=&quot;button&quot;&gt;เปิดรายการต้น&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/article&gt;
+          &lt;article class=&quot;kdoms-list-task&quot;&gt;
+            &lt;div class=&quot;kdoms-list-time&quot;&gt;&lt;strong&gt;16:00&lt;/strong&gt;&lt;span&gt;วันนี้&lt;/span&gt;&lt;/div&gt;
+            &lt;div&gt;
+              &lt;span class=&quot;kdoms-list-type&quot;&gt;นับผล&lt;/span&gt;
+              &lt;h2&gt;บันทึกจำนวนผลกลางรุ่น&lt;/h2&gt;
+              &lt;p&gt;โซน 01 &#183; แถว 05&lt;/p&gt;
+              &lt;button type=&quot;button&quot;&gt;เริ่มงาน&lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/article&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;kdoms-page&quot; data-page=&quot;trees&quot; aria-labelledby=&quot;kdoms-trees-title&quot; hidden&gt;
+        &lt;div class=&quot;kdoms-page-title&quot;&gt;
+          &lt;div&gt;&lt;small&gt;ทะเบียนประจำสวน&lt;/small&gt;&lt;h1 id=&quot;kdoms-trees-title&quot;&gt;ต้นทุเรียน&lt;/h1&gt;&lt;/div&gt;
+          &lt;button class=&quot;kdoms-round-action&quot; type=&quot;button&quot; data-action=&quot;open-scan&quot; aria-label=&quot;สแกนค้นหาต้น&quot;&gt;⌗&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;label class=&quot;kdoms-search&quot;&gt;
+          &lt;span aria-hidden=&quot;true&quot;&gt;⌕&lt;/span&gt;
+          &lt;span class=&quot;kdoms-visually-hidden&quot;&gt;ค้นหารหัสต้นหรือพันธุ์&lt;/span&gt;
+          &lt;input type=&quot;search&quot; placeholder=&quot;ค้นหารหัสต้นหรือพันธุ์&quot;&gt;
+        &lt;/label&gt;
+        &lt;div class=&quot;kdoms-tree-summary&quot;&gt;
+          &lt;span&gt;&lt;strong data-tree-count&gt;612&lt;/strong&gt; ต้นทั้งหมด&lt;/span&gt;
+          &lt;span&gt;&lt;strong data-watch-count&gt;5&lt;/strong&gt; ต้องดูแล&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-tree-list&quot;&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;show-tree&quot;&gt;
+            &lt;span class=&quot;kdoms-tree-avatar&quot;&gt;017&lt;/span&gt;
+            &lt;span&gt;&lt;strong&gt;T017 &#183; หมอนทอง&lt;/strong&gt;&lt;small&gt;Z01 &#183; R03 &#183; ป่วย — รอติดตาม&lt;/small&gt;&lt;/span&gt;
+            &lt;span aria-hidden=&quot;true&quot;&gt;›&lt;/span&gt;
+          &lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;
+            &lt;span class=&quot;kdoms-tree-avatar is-normal&quot;&gt;018&lt;/span&gt;
+            &lt;span&gt;&lt;strong&gt;T018 &#183; หมอนทอง&lt;/strong&gt;&lt;small&gt;Z01 &#183; R03 &#183; ปกติ&lt;/small&gt;&lt;/span&gt;
+            &lt;span aria-hidden=&quot;true&quot;&gt;›&lt;/span&gt;
+          &lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;
+            &lt;span class=&quot;kdoms-tree-avatar is-normal&quot;&gt;019&lt;/span&gt;
+            &lt;span&gt;&lt;strong&gt;T019 &#183; ชะนี&lt;/strong&gt;&lt;small&gt;Z01 &#183; R03 &#183; ปกติ&lt;/small&gt;&lt;/span&gt;
+            &lt;span aria-hidden=&quot;true&quot;&gt;›&lt;/span&gt;
+          &lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;
+            &lt;span class=&quot;kdoms-tree-avatar is-watch&quot;&gt;020&lt;/span&gt;
+            &lt;span&gt;&lt;strong&gt;T020 &#183; หมอนทอง&lt;/strong&gt;&lt;small&gt;Z01 &#183; R03 &#183; เฝ้าระวัง&lt;/small&gt;&lt;/span&gt;
+            &lt;span aria-hidden=&quot;true&quot;&gt;›&lt;/span&gt;
+          &lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;kdoms-page&quot; data-page=&quot;tree-detail&quot; aria-labelledby=&quot;kdoms-tree-title&quot; hidden&gt;
+        &lt;button class=&quot;kdoms-back&quot; type=&quot;button&quot; data-go=&quot;trees&quot;&gt;‹ กลับไปทะเบียนต้น&lt;/button&gt;
+        &lt;div class=&quot;kdoms-tree-hero&quot;&gt;
+          &lt;div class=&quot;kdoms-tree-photo&quot; aria-label=&quot;พื้นที่แสดงรูปต้นทุเรียนจำลอง&quot;&gt;♣&lt;/div&gt;
+          &lt;div&gt;
+            &lt;span class=&quot;kdoms-status-warning&quot;&gt;ป่วย &#183; รอติดตาม&lt;/span&gt;
+            &lt;h1 id=&quot;kdoms-tree-title&quot;&gt;ต้น T017&lt;/h1&gt;
+            &lt;code data-tree-code&gt;KGL-F01-Z01-R03-T017&lt;/code&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-confirmed-row&quot;&gt;
+          &lt;span aria-hidden=&quot;true&quot;&gt;✓&lt;/span&gt;
+          &lt;div&gt;&lt;strong&gt;ยืนยันด้วย QR แล้ว&lt;/strong&gt;&lt;small&gt;โซน 01 &#183; แถว 03 &#183; ตำแหน่ง 017&lt;/small&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-detail-grid&quot;&gt;
+          &lt;div&gt;&lt;small&gt;พันธุ์&lt;/small&gt;&lt;strong&gt;หมอนทอง&lt;/strong&gt;&lt;/div&gt;
+          &lt;div&gt;&lt;small&gt;รุ่นปลูก&lt;/small&gt;&lt;strong&gt;รุ่นที่ 1&lt;/strong&gt;&lt;/div&gt;
+          &lt;div&gt;&lt;small&gt;อายุโดยประมาณ&lt;/small&gt;&lt;strong&gt;5 ปี&lt;/strong&gt;&lt;/div&gt;
+          &lt;div&gt;&lt;small&gt;ตรวจล่าสุด&lt;/small&gt;&lt;strong&gt;วันนี้ 09:12&lt;/strong&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;article class=&quot;kdoms-incident-card&quot;&gt;
+          &lt;div class=&quot;kdoms-incident-title&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;!&lt;/span&gt;&lt;h2&gt;ติดตามอาการโคนเน่า&lt;/h2&gt;&lt;/div&gt;
+          &lt;p&gt;ตรวจความชื้นบริเวณโคน ถ่ายภาพมุมเดิม และบันทึกการเปลี่ยนแปลง&lt;/p&gt;
+          &lt;div&gt;&lt;span&gt;ผู้รับผิดชอบ: สมชาย&lt;/span&gt;&lt;span&gt;ครบกำหนด 10:30&lt;/span&gt;&lt;/div&gt;
+        &lt;/article&gt;
+        &lt;button class=&quot;kdoms-full-primary&quot; type=&quot;button&quot; data-action=&quot;start-report&quot;&gt;เริ่มงานและถ่ายภาพ&lt;/button&gt;
+        &lt;div class=&quot;kdoms-timeline&quot;&gt;
+          &lt;h2&gt;ประวัติล่าสุด&lt;/h2&gt;
+          &lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;p&gt;&lt;strong&gt;เปิดเคสเฝ้าระวัง&lt;/strong&gt;&lt;small&gt;วันนี้ 09:12 &#183; ผู้จัดการสวน&lt;/small&gt;&lt;/p&gt;&lt;/div&gt;
+          &lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;p&gt;&lt;strong&gt;บันทึกการให้น้ำ&lt;/strong&gt;&lt;small&gt;เมื่อวาน 17:35 &#183; งานกลุ่ม R03&lt;/small&gt;&lt;/p&gt;&lt;/div&gt;
+          &lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;p&gt;&lt;strong&gt;นับผลกลางรุ่น 9 ผล&lt;/strong&gt;&lt;small&gt;28 ส.ค. 2569 &#183; คนสวนสมชาย&lt;/small&gt;&lt;/p&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;kdoms-page&quot; data-page=&quot;worker-report&quot; aria-labelledby=&quot;kdoms-report-title&quot; hidden&gt;
+        &lt;button class=&quot;kdoms-back&quot; type=&quot;button&quot; data-go=&quot;tree-detail&quot;&gt;‹ กลับไปข้อมูลต้น&lt;/button&gt;
+        &lt;div class=&quot;kdoms-page-title&quot;&gt;
+          &lt;div&gt;&lt;small&gt;ข้อมูลจำลอง &#183; Worker Report&lt;/small&gt;&lt;h1 id=&quot;kdoms-report-title&quot;&gt;รายงานผลการตรวจต้น&lt;/h1&gt;&lt;/div&gt;
+          &lt;span class=&quot;kdoms-status-warning&quot;&gt;กำลังทำ&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;article class=&quot;kdoms-work-target&quot;&gt;
+          &lt;small&gt;ยืนยันเป้าหมายด้วย QR แล้ว&lt;/small&gt;
+          &lt;strong data-report-tree-code&gt;KGL-F01-Z01-R03-T017&lt;/strong&gt;
+          &lt;span&gt;งาน: ติดตามอาการโคนเน่า &#183; ข้อมูลจำลอง&lt;/span&gt;
+        &lt;/article&gt;
+        &lt;form class=&quot;kdoms-report-form&quot; data-worker-form&gt;
+          &lt;label&gt;&lt;span&gt;ผลการตรวจ&lt;/span&gt;&lt;select data-report-result&gt;&lt;option value=&quot;stable&quot;&gt;อาการคงที่&lt;/option&gt;&lt;option value=&quot;better&quot;&gt;ดีขึ้น&lt;/option&gt;&lt;option value=&quot;worse&quot;&gt;แย่ลง&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+          &lt;div class=&quot;kdoms-form-grid&quot;&gt;
+            &lt;label&gt;&lt;span&gt;ปริมาณที่ใช้&lt;/span&gt;&lt;input type=&quot;number&quot; inputmode=&quot;decimal&quot; value=&quot;1&quot; min=&quot;0&quot; step=&quot;0.1&quot; data-report-quantity&gt;&lt;/label&gt;
+            &lt;label&gt;&lt;span&gt;หน่วย&lt;/span&gt;&lt;select data-report-unit&gt;&lt;option&gt;ลิตร&lt;/option&gt;&lt;option&gt;มิลลิลิตร&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+          &lt;/div&gt;
+          &lt;label&gt;&lt;span&gt;วัสดุ/ผลิตภัณฑ์&lt;/span&gt;&lt;input type=&quot;text&quot; value=&quot;ตัวอย่างวัสดุ — ไม่ใช่ข้อมูลจริง&quot; data-report-material&gt;&lt;/label&gt;
+          &lt;label&gt;&lt;span&gt;หมายเหตุ&lt;/span&gt;&lt;textarea rows=&quot;3&quot; data-report-note&gt;ถ่ายภาพมุมเดิมแล้ว — ข้อมูลจำลอง&lt;/textarea&gt;&lt;/label&gt;
+          &lt;button class=&quot;kdoms-photo-button&quot; type=&quot;button&quot; data-action=&quot;mock-photo&quot;&gt;＋ เพิ่มภาพจำลอง&lt;/button&gt;
+          &lt;p class=&quot;kdoms-inline-status&quot; data-photo-state role=&quot;status&quot;&gt;ยังไม่มีภาพจำลอง&lt;/p&gt;
+          &lt;button class=&quot;kdoms-full-primary&quot; type=&quot;button&quot; data-action=&quot;submit-report&quot;&gt;ส่งรายงานเพื่อตรวจรับ&lt;/button&gt;
+          &lt;p class=&quot;kdoms-form-note&quot;&gt;หากออฟไลน์ รายงานจะคง Farm scope เดิมและแสดง “บันทึกในเครื่อง”&lt;/p&gt;
+        &lt;/form&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;kdoms-page&quot; data-page=&quot;manager-verify&quot; aria-labelledby=&quot;kdoms-verify-title&quot; hidden&gt;
+        &lt;button class=&quot;kdoms-back&quot; type=&quot;button&quot; data-go=&quot;tasks&quot;&gt;‹ กลับไปงาน&lt;/button&gt;
+        &lt;div class=&quot;kdoms-page-title&quot;&gt;
+          &lt;div&gt;&lt;small&gt;ข้อมูลจำลอง &#183; Manager Verification&lt;/small&gt;&lt;h1 id=&quot;kdoms-verify-title&quot;&gt;ตรวจรับรายงานงาน&lt;/h1&gt;&lt;/div&gt;
+          &lt;span class=&quot;kdoms-status-warning&quot; data-verify-status&gt;รอตรวจ&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;article class=&quot;kdoms-work-target&quot;&gt;
+          &lt;small&gt;Worker ยืนยันด้วย QR&lt;/small&gt;
+          &lt;strong data-verify-tree-code&gt;KGL-F01-Z01-R03-T017&lt;/strong&gt;
+          &lt;span data-submit-state&gt;ส่งรายงานแล้ว &#183; ข้อมูลจำลอง&lt;/span&gt;
+        &lt;/article&gt;
+        &lt;div class=&quot;kdoms-evidence-grid&quot;&gt;
+          &lt;article&gt;&lt;small&gt;ผลการตรวจ&lt;/small&gt;&lt;strong data-verify-result&gt;อาการคงที่&lt;/strong&gt;&lt;/article&gt;
+          &lt;article&gt;&lt;small&gt;วัสดุ&lt;/small&gt;&lt;strong data-verify-material&gt;ตัวอย่างวัสดุ&lt;/strong&gt;&lt;/article&gt;
+          &lt;article&gt;&lt;small&gt;ปริมาณ&lt;/small&gt;&lt;strong data-verify-quantity&gt;1 ลิตร&lt;/strong&gt;&lt;/article&gt;
+          &lt;article&gt;&lt;small&gt;หลักฐาน&lt;/small&gt;&lt;strong data-verify-photo&gt;ภาพจำลอง 1 ภาพ&lt;/strong&gt;&lt;/article&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-verify-actions&quot; data-verify-actions&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;request-rework&quot;&gt;ขอให้แก้ไข&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;approve-report&quot;&gt;อนุมัติและปิดงาน&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-rework-form&quot; data-rework-form hidden&gt;
+          &lt;label&gt;&lt;span&gt;เหตุผลที่ต้องแก้ไข&lt;/span&gt;&lt;textarea rows=&quot;3&quot; data-rework-reason placeholder=&quot;ระบุสิ่งที่ต้องแก้ไข&quot;&gt;&lt;/textarea&gt;&lt;/label&gt;
+          &lt;p data-rework-error role=&quot;alert&quot; hidden&gt;กรุณาระบุเหตุผลก่อนส่งกลับ&lt;/p&gt;
+          &lt;div&gt;&lt;button type=&quot;button&quot; data-action=&quot;cancel-rework&quot;&gt;ยกเลิก&lt;/button&gt;&lt;button type=&quot;button&quot; data-action=&quot;confirm-rework&quot;&gt;ส่งกลับให้แก้ไข&lt;/button&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;article class=&quot;kdoms-verification-result&quot; data-verification-result hidden aria-live=&quot;polite&quot;&gt;
+          &lt;strong data-verification-title&gt;&lt;/strong&gt;
+          &lt;span data-verification-message&gt;&lt;/span&gt;
+          &lt;button type=&quot;button&quot; data-go=&quot;tasks&quot;&gt;กลับไปงาน&lt;/button&gt;
+        &lt;/article&gt;
+      &lt;/section&gt;
+
+      &lt;section class=&quot;kdoms-page&quot; data-page=&quot;more&quot; aria-labelledby=&quot;kdoms-more-title&quot; hidden&gt;
+        &lt;div class=&quot;kdoms-page-title&quot;&gt;
+          &lt;div&gt;&lt;small&gt;เครื่องมือและการจัดการ&lt;/small&gt;&lt;h1 id=&quot;kdoms-more-title&quot;&gt;เพิ่มเติม&lt;/h1&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-profile-strip&quot;&gt;
+          &lt;span&gt;ก&lt;/span&gt;
+          &lt;div&gt;&lt;strong&gt;คุณก้อง&lt;/strong&gt;&lt;small data-role&gt;เจ้าของสวน&lt;/small&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; aria-label=&quot;เปิดโปรไฟล์&quot;&gt;›&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-menu-group&quot;&gt;
+          &lt;h2&gt;การจัดการสวน&lt;/h2&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;open-farms&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;⌘&lt;/span&gt;&lt;span&gt;&lt;strong&gt;สวนของฉัน&lt;/strong&gt;&lt;small&gt;สลับสวนและดูข้อมูลสวน&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;♙&lt;/span&gt;&lt;span&gt;&lt;strong&gt;สมาชิกและสิทธิ์&lt;/strong&gt;&lt;small&gt;กำหนดบทบาทแยกแต่ละสวน&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;▦&lt;/span&gt;&lt;span&gt;&lt;strong&gt;โซนและแถว&lt;/strong&gt;&lt;small&gt;โครงสร้างตำแหน่งต้น&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-menu-group&quot;&gt;
+          &lt;h2&gt;ผลผลิตและทรัพยากร&lt;/h2&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;◉&lt;/span&gt;&lt;span&gt;&lt;strong&gt;ผลผลิตและเก็บเกี่ยว&lt;/strong&gt;&lt;small&gt;รอบผล จำนวนผล และล็อต&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;▣&lt;/span&gt;&lt;span&gt;&lt;strong&gt;คลังปุ๋ย–ยา&lt;/strong&gt;&lt;small&gt;คงเหลือ ล็อต และวันหมดอายุ&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+          &lt;button type=&quot;button&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;฿&lt;/span&gt;&lt;span&gt;&lt;strong&gt;การขาย&lt;/strong&gt;&lt;small&gt;ลูกค้า ราคา และยอดค้าง&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-menu-group&quot;&gt;
+          &lt;h2&gt;การแสดงผล&lt;/h2&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;toggle-theme&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;◐&lt;/span&gt;&lt;span&gt;&lt;strong&gt;โหมดสี&lt;/strong&gt;&lt;small data-theme-label&gt;Light mode&lt;/small&gt;&lt;/span&gt;&lt;b&gt;›&lt;/b&gt;&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/section&gt;
+    &lt;/main&gt;
+
+    &lt;nav class=&quot;kdoms-nav&quot; aria-label=&quot;เมนูหลัก&quot;&gt;
+      &lt;button class=&quot;is-active&quot; type=&quot;button&quot; data-go=&quot;home&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;⌂&lt;/span&gt;&lt;strong&gt;หน้าหลัก&lt;/strong&gt;&lt;/button&gt;
+      &lt;button type=&quot;button&quot; data-go=&quot;tasks&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;☑&lt;/span&gt;&lt;strong&gt;งาน&lt;/strong&gt;&lt;/button&gt;
+      &lt;button class=&quot;kdoms-scan-nav&quot; type=&quot;button&quot; data-action=&quot;open-scan&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;⌗&lt;/span&gt;&lt;strong&gt;สแกน&lt;/strong&gt;&lt;/button&gt;
+      &lt;button type=&quot;button&quot; data-go=&quot;trees&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;♧&lt;/span&gt;&lt;strong&gt;ต้นไม้&lt;/strong&gt;&lt;/button&gt;
+      &lt;button type=&quot;button&quot; data-go=&quot;more&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;•••&lt;/span&gt;&lt;strong&gt;เพิ่มเติม&lt;/strong&gt;&lt;/button&gt;
+    &lt;/nav&gt;
+
+    &lt;div class=&quot;kdoms-overlay&quot; data-farm-overlay hidden&gt;
+      &lt;div class=&quot;kdoms-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;kdoms-farm-title&quot;&gt;
+        &lt;div class=&quot;kdoms-sheet-handle&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;kdoms-sheet-title&quot;&gt;
+          &lt;div&gt;&lt;small&gt;Multi-Farm&lt;/small&gt;&lt;h2 id=&quot;kdoms-farm-title&quot;&gt;เลือกสวนที่ต้องการจัดการ&lt;/h2&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;close-farms&quot; aria-label=&quot;ปิด&quot;&gt;&#215;&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;button class=&quot;kdoms-farm-option is-selected&quot; type=&quot;button&quot; data-select-farm=&quot;farm1&quot;&gt;
+          &lt;span class=&quot;kdoms-farm-letter&quot;&gt;ก&lt;/span&gt;
+          &lt;span&gt;&lt;strong&gt;สวนก้องลักษณ์&lt;/strong&gt;&lt;small&gt;KGL-F01 &#183; เจ้าของสวน &#183; ซิงก์แล้ว&lt;/small&gt;&lt;/span&gt;
+          &lt;span class=&quot;kdoms-check&quot; aria-hidden=&quot;true&quot;&gt;✓&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button class=&quot;kdoms-farm-option&quot; type=&quot;button&quot; data-select-farm=&quot;farm2&quot;&gt;
+          &lt;span class=&quot;kdoms-farm-letter is-gold&quot;&gt;น&lt;/span&gt;
+          &lt;span&gt;&lt;strong&gt;สวนเนินทอง&lt;/strong&gt;&lt;small&gt;KGL-F02 &#183; ผู้จัดการ &#183; ข้อมูลจำลอง&lt;/small&gt;&lt;/span&gt;
+          &lt;span class=&quot;kdoms-check&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;p class=&quot;kdoms-sheet-note&quot;&gt;แต่ละสวนมีต้น งาน วัสดุ และสิทธิ์แยกจากกัน&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;kdoms-overlay kdoms-confirm-overlay&quot; data-switch-overlay hidden&gt;
+      &lt;div class=&quot;kdoms-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;kdoms-switch-title&quot;&gt;
+        &lt;div class=&quot;kdoms-sheet-handle&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;kdoms-confirm-mark&quot; aria-hidden=&quot;true&quot;&gt;!&lt;/div&gt;
+        &lt;h2 id=&quot;kdoms-switch-title&quot;&gt;มีรายการรอซิงก์ในสวนปัจจุบัน&lt;/h2&gt;
+        &lt;p&gt;รายการ &lt;span data-pending-count&gt;2&lt;/span&gt; รายการจะยังคงผูกกับ &lt;strong data-pending-source&gt;KGL-F01&lt;/strong&gt; และจะไม่ย้ายไป &lt;strong data-pending-target&gt;KGL-F02&lt;/strong&gt;&lt;/p&gt;
+        &lt;div class=&quot;kdoms-confirm-actions&quot;&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;cancel-farm-switch&quot;&gt;ยกเลิก&lt;/button&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;confirm-farm-switch&quot;&gt;ยืนยันเปลี่ยนสวน&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;kdoms-overlay&quot; data-scan-overlay hidden&gt;
+      &lt;div class=&quot;kdoms-scan-sheet&quot; role=&quot;dialog&quot; aria-modal=&quot;true&quot; aria-labelledby=&quot;kdoms-scan-title&quot;&gt;
+        &lt;div class=&quot;kdoms-scan-heading&quot;&gt;
+          &lt;button type=&quot;button&quot; data-action=&quot;close-scan&quot; aria-label=&quot;ปิดการสแกน&quot;&gt;&#215;&lt;/button&gt;
+          &lt;div&gt;&lt;small&gt;สวน &lt;span data-scan-farm-code&gt;KGL-F01&lt;/span&gt;&lt;/small&gt;&lt;h2 id=&quot;kdoms-scan-title&quot;&gt;สแกนป้ายประจำต้น&lt;/h2&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div data-scan-camera&gt;
+          &lt;div class=&quot;kdoms-camera&quot;&gt;
+            &lt;div class=&quot;kdoms-scan-frame&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;b&gt;&lt;/b&gt;&lt;/div&gt;
+            &lt;p&gt;วาง QR ให้อยู่ในกรอบ&lt;/p&gt;
+          &lt;/div&gt;
+          &lt;button class=&quot;kdoms-full-primary&quot; type=&quot;button&quot; data-action=&quot;simulate-scan&quot;&gt;จำลองพบแท็ก T017&lt;/button&gt;
+          &lt;div class=&quot;kdoms-manual-entry&quot;&gt;
+            &lt;span&gt;หรือกรอกรหัสเมื่อป้ายสแกนไม่ได้&lt;/span&gt;
+            &lt;div&gt;&lt;input type=&quot;text&quot; data-manual-code aria-label=&quot;รหัสบนป้าย&quot; placeholder=&quot;เช่น KGL-F01-Z01-R03-T017&quot;&gt;&lt;button type=&quot;button&quot; data-action=&quot;manual-scan&quot;&gt;ตรวจรหัส&lt;/button&gt;&lt;/div&gt;
+            &lt;p data-scan-error role=&quot;alert&quot; hidden&gt;&lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;kdoms-scan-result&quot; data-scan-result hidden aria-live=&quot;polite&quot;&gt;
+          &lt;div class=&quot;kdoms-result-mark&quot; data-result-mark&gt;✓&lt;/div&gt;
+          &lt;small data-result-kicker&gt;พบต้นที่ตรงกับใบงาน&lt;/small&gt;
+          &lt;h3 data-result-title&gt;ต้น T017 &#183; หมอนทอง&lt;/h3&gt;
+          &lt;code data-result-code&gt;KGL-F01-Z01-R03-T017&lt;/code&gt;
+          &lt;div class=&quot;kdoms-result-location&quot;&gt;&lt;span data-result-farm&gt;สวน KGL-F01&lt;/span&gt;&lt;span data-result-zone&gt;โซน Z01&lt;/span&gt;&lt;span data-result-row&gt;แถว R03&lt;/span&gt;&lt;span data-result-tree&gt;ตำแหน่ง T017&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;kdoms-expected-actual&quot; data-expected-actual hidden&gt;&lt;span&gt;ใบงาน: &lt;code data-expected-code&gt;&lt;/code&gt;&lt;/span&gt;&lt;span&gt;สแกนจริง: &lt;code data-actual-code&gt;&lt;/code&gt;&lt;/span&gt;&lt;/div&gt;
+          &lt;p data-result-message&gt;ตรวจรหัสและสวนแล้ว สามารถเปิดข้อมูลต้นหรือเริ่มงานได้&lt;/p&gt;
+          &lt;button class=&quot;kdoms-full-primary&quot; type=&quot;button&quot; data-action=&quot;open-scanned-tree&quot;&gt;เปิดข้อมูลต้น&lt;/button&gt;
+          &lt;button class=&quot;kdoms-text-action&quot; type=&quot;button&quot; data-action=&quot;scan-again&quot;&gt;สแกนอีกครั้ง&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;kdoms-toast&quot; data-toast role=&quot;status&quot; aria-live=&quot;polite&quot; hidden&gt;&lt;/div&gt;
+  &lt;/section&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+#kdoms-prototype {
+  color-scheme: light dark;
+  --kdoms-page: light-dark(#f4f7f3, #101712);
+  --kdoms-surface: light-dark(#ffffff, #19231c);
+  --kdoms-surface-soft: light-dark(#edf4ed, #223027);
+  --kdoms-text: light-dark(#172019, #edf5ef);
+  --kdoms-muted: light-dark(#68756c, #9fb0a4);
+  --kdoms-border: light-dark(#dfe7e0, #334238);
+  --kdoms-green: light-dark(#1f6b3b, #6fd08b);
+  --kdoms-green-strong: light-dark(#17562f, #8de4a5);
+  --kdoms-green-soft: light-dark(#e3f2e7, #203f2b);
+  --kdoms-amber: light-dark(#a85f00, #ffc66d);
+  --kdoms-amber-soft: light-dark(#fff1d9, #47331b);
+  --kdoms-red: light-dark(#b13a32, #ff9a91);
+  --kdoms-red-soft: light-dark(#fde9e7, #482725);
+  --kdoms-gold: light-dark(#806100, #e3c85e);
+  --kdoms-overlay: light-dark(rgba(12, 25, 16, .44), rgba(0, 0, 0, .68));
+  --kdoms-shadow: light-dark(0 24px 70px rgba(22, 48, 30, .18), 0 24px 70px rgba(0, 0, 0, .42));
+  width: 100%;
+  display: grid;
+  place-items: start center;
+  background: transparent;
+  color: var(--kdoms-text);
+  font-family: &quot;Noto Sans Thai&quot;, &quot;Leelawadee UI&quot;, Tahoma, sans-serif;
+}
+
+#kdoms-prototype * { box-sizing: border-box; }
+#kdoms-prototype button,
+#kdoms-prototype input { font: inherit; }
+#kdoms-prototype button { cursor: pointer; }
+#kdoms-prototype code { font-family: &quot;Cascadia Mono&quot;, Consolas, monospace; }
+
+.kdoms-device {
+  position: relative;
+  width: min(100%, 430px);
+  min-height: 760px;
+  overflow: hidden;
+  background: var(--kdoms-page);
+  border: 1px solid var(--kdoms-border);
+  border-radius: 28px;
+  box-shadow: var(--kdoms-shadow);
+}
+
+.kdoms-demo-note {
+  padding: 7px 16px;
+  background: var(--kdoms-amber-soft);
+  color: var(--kdoms-amber);
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.kdoms-header {
+  position: relative;
+  z-index: 3;
+  padding: 14px 18px 12px;
+  background: var(--kdoms-surface);
+  border-bottom: 1px solid var(--kdoms-border);
+}
+
+.kdoms-brand-row,
+.kdoms-context-row,
+.kdoms-greeting,
+.kdoms-section-heading,
+.kdoms-task-topline,
+.kdoms-task-bottom,
+.kdoms-page-title,
+.kdoms-tree-summary,
+.kdoms-scan-heading,
+.kdoms-sheet-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.kdoms-mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--kdoms-green);
+  color: light-dark(#ffffff, #0b2112);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.kdoms-brand-copy { flex: 1; display: grid; }
+.kdoms-brand-copy strong { font-size: .95rem; }
+.kdoms-brand-copy span { color: var(--kdoms-muted); font-size: .74rem; }
+.kdoms-icon-button,
+.kdoms-round-action {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 13px;
+  background: var(--kdoms-surface-soft);
+  color: var(--kdoms-text);
+  font-size: 1.25rem;
+}
+.kdoms-dot { position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--kdoms-red); }
+
+.kdoms-context-row { margin-top: 12px; align-items: stretch; }
+.kdoms-farm-button {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--kdoms-border);
+  border-radius: 13px;
+  background: var(--kdoms-surface);
+  color: var(--kdoms-text);
+  text-align: left;
+}
+.kdoms-farm-button &gt; span:first-child { min-width: 0; display: grid; }
+.kdoms-farm-button small { color: var(--kdoms-muted); font-size: .67rem; }
+.kdoms-farm-button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .84rem; }
+.kdoms-farm-code { padding: 3px 6px; border-radius: 7px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font: 700 .67rem &quot;Cascadia Mono&quot;, Consolas, monospace; }
+.kdoms-sync-button {
+  width: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--kdoms-green-soft);
+  color: var(--kdoms-green-strong);
+  font-size: .72rem;
+  font-weight: 700;
+}
+.kdoms-sync-button[aria-pressed=&quot;true&quot;] { background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+.kdoms-sync-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+.kdoms-main { padding-bottom: 84px; }
+.kdoms-page { padding: 20px 18px 26px; }
+.kdoms-page[hidden] { display: none; }
+.kdoms-greeting p { margin: 0 0 2px; color: var(--kdoms-muted); font-size: .76rem; }
+.kdoms-greeting h1,
+.kdoms-page-title h1 { margin: 0; font-size: 1.28rem; line-height: 1.25; }
+.kdoms-role,
+.kdoms-count-bubble { padding: 5px 9px; border-radius: 999px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-size: .7rem; font-weight: 700; }
+
+.kdoms-alert {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  border-radius: 16px;
+  background: var(--kdoms-red-soft);
+  color: var(--kdoms-red);
+}
+.kdoms-alert-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-red); color: light-dark(#ffffff, #22100f); font-weight: 800; }
+.kdoms-alert div { display: grid; }
+.kdoms-alert strong { font-size: .86rem; }
+.kdoms-alert span:last-child { font-size: .73rem; }
+.kdoms-alert button { width: 44px; height: 44px; border: 0; background: transparent; color: inherit; font-size: 1.6rem; }
+
+.kdoms-metrics { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.kdoms-metrics article { padding: 12px 8px; display: grid; justify-items: center; gap: 2px; border-radius: 15px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-metrics strong { font-size: 1.16rem; }
+.kdoms-metrics article &gt; span:last-child { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-metric-icon { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; font-weight: 800; }
+.kdoms-metric-icon.kdoms-green { background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-metric-icon.kdoms-amber { background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+.kdoms-metric-icon.kdoms-red { background: var(--kdoms-red-soft); color: var(--kdoms-red); }
+
+.kdoms-section-heading { margin: 21px 0 9px; }
+.kdoms-section-heading h2 { margin: 0; font-size: .93rem; }
+.kdoms-section-heading button { min-width: 44px; min-height: 44px; padding: 8px; border: 0; background: transparent; color: var(--kdoms-green-strong); font-size: .75rem; font-weight: 700; }
+.kdoms-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kdoms-primary-action,
+.kdoms-secondary-action { min-height: 76px; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 16px; text-align: left; }
+.kdoms-primary-action { border: 0; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+.kdoms-secondary-action { border: 1px solid var(--kdoms-border); background: var(--kdoms-surface); color: var(--kdoms-text); }
+.kdoms-action-icon { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 10px; background: light-dark(rgba(255,255,255,.18), rgba(0,0,0,.2)); font-size: 1.2rem; }
+.kdoms-secondary-action .kdoms-action-icon { background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-quick-actions button &gt; span:last-child { display: grid; gap: 1px; }
+.kdoms-quick-actions strong { font-size: .82rem; }
+.kdoms-quick-actions small { font-size: .66rem; opacity: .86; }
+
+.kdoms-task-card { padding: 14px; border-radius: 17px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-task-topline { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-priority { padding: 3px 7px; border-radius: 7px; background: var(--kdoms-red-soft); color: var(--kdoms-red); font-weight: 700; }
+.kdoms-task-card h3 { margin: 10px 0 3px; font-size: .93rem; }
+.kdoms-task-card p { margin: 0 0 12px; color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-task-bottom { padding-top: 10px; border-top: 1px solid var(--kdoms-border); color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-task-bottom button,
+.kdoms-list-task button { min-height: 44px; padding: 7px 10px; border: 0; border-radius: 10px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-size: .72rem; font-weight: 700; }
+
+.kdoms-harvest-card { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; padding: 15px; border-radius: 17px; background: var(--kdoms-amber-soft); color: var(--kdoms-text); }
+.kdoms-harvest-card &gt; div:first-child { display: grid; }
+.kdoms-harvest-card small,
+.kdoms-harvest-card span { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-harvest-card strong { margin: 3px 0; font-size: 1.08rem; }
+.kdoms-fruit-visual { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50% 45% 50% 43%; background: var(--kdoms-gold); color: var(--kdoms-amber-soft); font-size: 1.5rem; }
+
+.kdoms-page-title small { color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-filter-row { margin: 16px 0 14px; display: flex; gap: 8px; overflow: auto; }
+.kdoms-filter-row button { min-height: 44px; padding: 7px 13px; border: 1px solid var(--kdoms-border); border-radius: 999px; background: var(--kdoms-surface); color: var(--kdoms-muted); font-size: .74rem; white-space: nowrap; }
+.kdoms-filter-row button.is-selected { border-color: var(--kdoms-green); background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+.kdoms-offline-banner { margin-bottom: 12px; padding: 10px 12px; display: grid; border-radius: 12px; background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+.kdoms-offline-banner strong { font-size: .78rem; }
+.kdoms-offline-banner span { font-size: .7rem; }
+.kdoms-task-list { display: grid; gap: 10px; }
+.kdoms-list-task { display: grid; grid-template-columns: 58px 1fr; gap: 12px; padding: 14px; border-radius: 16px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-list-task.is-urgent { border-left: 4px solid var(--kdoms-red); }
+.kdoms-list-time { display: grid; align-content: start; justify-items: center; padding-top: 2px; }
+.kdoms-list-time strong { font-size: .95rem; }
+.kdoms-list-time span { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-list-type { color: var(--kdoms-green-strong); font-size: .68rem; font-weight: 700; }
+.kdoms-list-task h2 { margin: 3px 0; font-size: .88rem; }
+.kdoms-list-task p { margin: 0 0 9px; color: var(--kdoms-muted); font-size: .7rem; }
+
+.kdoms-search { margin: 15px 0 10px; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--kdoms-border); border-radius: 13px; background: var(--kdoms-surface); }
+.kdoms-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--kdoms-text); font-size: 1rem; }
+.kdoms-tree-summary { margin-bottom: 12px; color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-tree-list { display: grid; gap: 8px; }
+.kdoms-tree-list button { min-height: 66px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--kdoms-border); border-radius: 15px; background: var(--kdoms-surface); color: var(--kdoms-text); text-align: left; }
+.kdoms-tree-list button &gt; span:nth-child(2) { display: grid; }
+.kdoms-tree-list small { color: var(--kdoms-muted); font-size: .69rem; }
+.kdoms-tree-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--kdoms-red-soft); color: var(--kdoms-red); font: 700 .72rem &quot;Cascadia Mono&quot;, Consolas, monospace; }
+.kdoms-tree-avatar.is-normal { background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-tree-avatar.is-watch { background: var(--kdoms-amber-soft); color: var(--kdoms-amber); }
+
+.kdoms-back { min-height: 44px; margin: -4px 0 9px; padding: 0 4px; border: 0; background: transparent; color: var(--kdoms-green-strong); font-size: .76rem; font-weight: 700; }
+.kdoms-tree-hero { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 14px; }
+.kdoms-tree-photo { height: 92px; display: grid; place-items: center; border-radius: 20px; background: var(--kdoms-green-soft); color: var(--kdoms-green); font-size: 2.6rem; }
+.kdoms-status-warning { display: inline-block; padding: 4px 7px; border-radius: 7px; background: var(--kdoms-red-soft); color: var(--kdoms-red); font-size: .68rem; font-weight: 700; }
+.kdoms-tree-hero h1 { margin: 6px 0 1px; font-size: 1.35rem; }
+.kdoms-tree-hero code { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-confirmed-row { margin: 14px 0; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 13px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); }
+.kdoms-confirmed-row &gt; span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-confirmed-row div { display: grid; }
+.kdoms-confirmed-row strong { font-size: .78rem; }
+.kdoms-confirmed-row small { font-size: .68rem; }
+.kdoms-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kdoms-detail-grid div { padding: 11px; display: grid; border-radius: 13px; background: var(--kdoms-surface); border: 1px solid var(--kdoms-border); }
+.kdoms-detail-grid small { color: var(--kdoms-muted); font-size: .67rem; }
+.kdoms-detail-grid strong { font-size: .82rem; }
+.kdoms-incident-card { margin: 12px 0; padding: 14px; border-radius: 16px; background: var(--kdoms-red-soft); }
+.kdoms-incident-title { display: flex; align-items: center; gap: 8px; color: var(--kdoms-red); }
+.kdoms-incident-title span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-red); color: light-dark(#ffffff, #22100f); font-weight: 800; }
+.kdoms-incident-title h2 { margin: 0; font-size: .87rem; }
+.kdoms-incident-card p { margin: 8px 0; font-size: .75rem; }
+.kdoms-incident-card &gt; div:last-child { display: flex; justify-content: space-between; gap: 8px; color: var(--kdoms-muted); font-size: .66rem; }
+.kdoms-full-primary { width: 100%; min-height: 46px; padding: 10px 14px; border: 0; border-radius: 13px; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-work-target { margin: 14px 0; display: grid; gap: 5px; padding: 13px; border: 1px solid var(--kdoms-border); border-radius: 15px; background: var(--kdoms-green-soft); }
+.kdoms-work-target small,
+.kdoms-work-target span { color: var(--kdoms-muted); font-size: .7rem; }
+.kdoms-work-target strong { overflow-wrap: anywhere; font: 700 .75rem &quot;Cascadia Mono&quot;, Consolas, monospace; }
+.kdoms-report-form { display: grid; gap: 12px; }
+.kdoms-report-form label,
+.kdoms-rework-form label { display: grid; gap: 5px; color: var(--kdoms-muted); font-size: .72rem; font-weight: 700; }
+.kdoms-report-form input,
+.kdoms-report-form select,
+.kdoms-report-form textarea,
+.kdoms-rework-form textarea { width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 11px; border: 1px solid var(--kdoms-border); border-radius: 11px; background: var(--kdoms-surface); color: var(--kdoms-text); font: 400 1rem &quot;Noto Sans Thai&quot;, &quot;Leelawadee UI&quot;, Tahoma, sans-serif; }
+.kdoms-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-photo-button { min-height: 44px; border: 1px dashed var(--kdoms-green); border-radius: 12px; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-weight: 700; }
+.kdoms-inline-status,
+.kdoms-form-note { margin: -4px 0 0; color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-evidence-grid article { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--kdoms-border); border-radius: 13px; background: var(--kdoms-surface); }
+.kdoms-evidence-grid small { color: var(--kdoms-muted); font-size: .66rem; }
+.kdoms-evidence-grid strong { font-size: .75rem; overflow-wrap: anywhere; }
+.kdoms-verify-actions { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-verify-actions button,
+.kdoms-rework-form button,
+.kdoms-verification-result button { min-height: 44px; padding: 9px 10px; border: 0; border-radius: 12px; font-weight: 800; }
+.kdoms-verify-actions button:first-child,
+.kdoms-rework-form button:first-child { background: var(--kdoms-red-soft); color: var(--kdoms-red); }
+.kdoms-verify-actions button:last-child,
+.kdoms-rework-form button:last-child,
+.kdoms-verification-result button { background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+.kdoms-rework-form { margin-top: 14px; padding: 13px; border-radius: 15px; background: var(--kdoms-red-soft); }
+.kdoms-rework-form &gt; p { margin: 6px 0; color: var(--kdoms-red); font-size: .7rem; }
+.kdoms-rework-form &gt; div { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-verification-result { margin-top: 14px; display: grid; gap: 8px; padding: 14px; border-radius: 15px; background: var(--kdoms-green-soft); }
+.kdoms-verification-result span { color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-rework-form[hidden],
+.kdoms-verification-result[hidden],
+.kdoms-expected-actual[hidden] { display: none; }
+.kdoms-verify-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.kdoms-timeline { margin-top: 18px; }
+.kdoms-timeline h2 { margin: 0 0 10px; font-size: .9rem; }
+.kdoms-timeline &gt; div { display: grid; grid-template-columns: 12px 1fr; gap: 9px; }
+.kdoms-timeline &gt; div &gt; span { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--kdoms-green); box-shadow: 0 15px 0 -4px var(--kdoms-border); }
+.kdoms-timeline p { margin: 0 0 12px; display: grid; }
+.kdoms-timeline strong { font-size: .76rem; }
+.kdoms-timeline small { color: var(--kdoms-muted); font-size: .67rem; }
+
+.kdoms-profile-strip { margin: 16px 0 20px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 13px; border-radius: 16px; background: var(--kdoms-green-soft); }
+.kdoms-profile-strip &gt; span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-profile-strip div { display: grid; }
+.kdoms-profile-strip small { color: var(--kdoms-muted); font-size: .7rem; }
+.kdoms-profile-strip button { width: 44px; height: 44px; border: 0; background: transparent; color: var(--kdoms-text); font-size: 1.4rem; }
+.kdoms-menu-group { margin-top: 17px; }
+.kdoms-menu-group h2 { margin: 0 0 8px; color: var(--kdoms-muted); font-size: .72rem; text-transform: uppercase; }
+.kdoms-menu-group &gt; button { width: 100%; min-height: 62px; display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 10px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--kdoms-border); background: transparent; color: var(--kdoms-text); text-align: left; }
+.kdoms-menu-group &gt; button &gt; span:first-child { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--kdoms-surface-soft); color: var(--kdoms-green-strong); font-weight: 800; }
+.kdoms-menu-group &gt; button &gt; span:nth-child(2) { display: grid; }
+.kdoms-menu-group small { color: var(--kdoms-muted); font-size: .68rem; }
+
+.kdoms-nav { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: 73px; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; padding: 7px 7px 9px; border-top: 1px solid var(--kdoms-border); background: var(--kdoms-surface); }
+.kdoms-nav button { min-width: 0; min-height: 50px; display: grid; place-items: center; align-content: center; gap: 2px; border: 0; background: transparent; color: var(--kdoms-muted); }
+.kdoms-nav button &gt; span { font-size: 1.15rem; line-height: 1; }
+.kdoms-nav button &gt; strong { font-size: .63rem; }
+.kdoms-nav button.is-active { color: var(--kdoms-green-strong); }
+.kdoms-nav .kdoms-scan-nav { align-self: center; width: 64px; height: 64px; justify-self: center; margin-top: -25px; border-radius: 21px; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); box-shadow: 0 9px 20px light-dark(rgba(31,107,59,.25), rgba(0,0,0,.32)); }
+
+.kdoms-overlay { position: absolute; z-index: 20; inset: 0; display: flex; align-items: flex-end; background: var(--kdoms-overlay); }
+.kdoms-overlay[hidden] { display: none; }
+.kdoms-sheet,
+.kdoms-scan-sheet { width: 100%; padding: 10px 18px 22px; border-radius: 24px 24px 0 0; background: var(--kdoms-surface); color: var(--kdoms-text); }
+.kdoms-sheet-handle { width: 42px; height: 4px; margin: 0 auto 13px; border-radius: 4px; background: var(--kdoms-border); }
+.kdoms-sheet-title small,
+.kdoms-scan-heading small { color: var(--kdoms-green-strong); font-size: .68rem; font-weight: 700; }
+.kdoms-sheet-title h2,
+.kdoms-scan-heading h2 { margin: 2px 0 0; font-size: 1.02rem; }
+.kdoms-sheet-title button,
+.kdoms-scan-heading &gt; button { width: 44px; height: 44px; border: 0; border-radius: 13px; background: var(--kdoms-surface-soft); color: var(--kdoms-text); font-size: 1.4rem; }
+.kdoms-farm-option { width: 100%; min-height: 68px; margin-top: 10px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 10px; border: 1px solid var(--kdoms-border); border-radius: 15px; background: var(--kdoms-surface); color: var(--kdoms-text); text-align: left; }
+.kdoms-farm-option.is-selected { border-color: var(--kdoms-green); background: var(--kdoms-green-soft); }
+.kdoms-farm-letter { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); font-weight: 800; }
+.kdoms-farm-letter.is-gold { background: var(--kdoms-gold); color: light-dark(#ffffff, #2d2200); }
+.kdoms-farm-option &gt; span:nth-child(2) { display: grid; }
+.kdoms-farm-option small { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-check { color: var(--kdoms-green-strong); font-weight: 800; }
+.kdoms-sheet-note { margin: 14px 0 0; color: var(--kdoms-muted); text-align: center; font-size: .68rem; }
+.kdoms-confirm-overlay { z-index: 24; }
+.kdoms-confirm-overlay .kdoms-sheet { text-align: center; }
+.kdoms-confirm-overlay h2 { margin: 8px 0; font-size: 1.05rem; }
+.kdoms-confirm-overlay p { margin: 0; color: var(--kdoms-muted); font-size: .74rem; }
+.kdoms-confirm-mark { width: 52px; height: 52px; margin: 4px auto; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-amber-soft); color: var(--kdoms-amber); font-size: 1.4rem; font-weight: 800; }
+.kdoms-confirm-actions { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.kdoms-confirm-actions button { min-height: 44px; border: 0; border-radius: 12px; font-weight: 800; }
+.kdoms-confirm-actions button:first-child { background: var(--kdoms-surface-soft); color: var(--kdoms-text); }
+.kdoms-confirm-actions button:last-child { background: var(--kdoms-green); color: light-dark(#ffffff, #0c2413); }
+
+.kdoms-scan-sheet { min-height: 620px; }
+.kdoms-scan-heading { justify-content: flex-start; margin-bottom: 14px; }
+.kdoms-camera { height: 310px; display: grid; place-items: center; align-content: center; gap: 20px; border-radius: 21px; background: light-dark(#243c2b, #0a0f0c); color: light-dark(#ffffff, #e9f5ec); }
+.kdoms-camera p { margin: 0; font-size: .75rem; opacity: .84; }
+.kdoms-scan-frame { position: relative; width: 190px; height: 190px; }
+.kdoms-scan-frame &gt; span { position: absolute; width: 42px; height: 42px; border-color: light-dark(#9ee4ad, #75d28a); border-style: solid; }
+.kdoms-scan-frame &gt; span:nth-child(1) { top: 0; left: 0; border-width: 4px 0 0 4px; border-radius: 12px 0 0; }
+.kdoms-scan-frame &gt; span:nth-child(2) { top: 0; right: 0; border-width: 4px 4px 0 0; border-radius: 0 12px 0 0; }
+.kdoms-scan-frame &gt; span:nth-child(3) { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-radius: 0 0 12px; }
+.kdoms-scan-frame &gt; span:nth-child(4) { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-radius: 0 0 0 12px; }
+.kdoms-scan-frame b { position: absolute; top: 50%; left: 10px; right: 10px; height: 2px; background: light-dark(#9ee4ad, #75d28a); box-shadow: 0 0 12px light-dark(rgba(158,228,173,.8), rgba(117,210,138,.7)); }
+.kdoms-scan-sheet .kdoms-full-primary { margin-top: 12px; }
+.kdoms-manual-entry { margin-top: 13px; }
+.kdoms-manual-entry &gt; span { color: var(--kdoms-muted); font-size: .68rem; }
+.kdoms-manual-entry &gt; div { margin-top: 6px; display: flex; gap: 7px; }
+.kdoms-manual-entry input { min-width: 0; flex: 1; min-height: 44px; padding: 9px 10px; border: 1px solid var(--kdoms-border); border-radius: 11px; background: var(--kdoms-page); color: var(--kdoms-text); font-size: 1rem; }
+.kdoms-manual-entry button { min-height: 44px; padding: 8px 11px; border: 0; border-radius: 11px; background: var(--kdoms-surface-soft); color: var(--kdoms-green-strong); font-size: .74rem; font-weight: 700; }
+.kdoms-manual-entry p { margin: 6px 0 0; color: var(--kdoms-red); font-size: .7rem; }
+.kdoms-scan-result { padding-top: 35px; text-align: center; }
+.kdoms-result-mark { width: 72px; height: 72px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 50%; background: var(--kdoms-green-soft); color: var(--kdoms-green-strong); font-size: 2rem; font-weight: 800; }
+.kdoms-scan-result.is-mismatch .kdoms-result-mark { background: var(--kdoms-red-soft); color: var(--kdoms-red); }
+.kdoms-scan-result &gt; small { color: var(--kdoms-green-strong); font-size: .72rem; font-weight: 700; }
+.kdoms-scan-result.is-mismatch &gt; small { color: var(--kdoms-red); }
+.kdoms-scan-result h3 { margin: 5px 0; font-size: 1.25rem; }
+.kdoms-scan-result code { color: var(--kdoms-muted); font-size: .72rem; }
+.kdoms-result-location { margin: 17px 0 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.kdoms-result-location span { padding: 10px 5px; border-radius: 11px; background: var(--kdoms-surface-soft); font-size: .72rem; font-weight: 700; }
+.kdoms-scan-result p { color: var(--kdoms-muted); font-size: .75rem; }
+.kdoms-expected-actual { display: grid; gap: 5px; margin: 10px 0; padding: 10px; border-radius: 11px; background: var(--kdoms-red-soft); text-align: left; font-size: .68rem; }
+.kdoms-expected-actual code { overflow-wrap: anywhere; color: var(--kdoms-red); }
+.kdoms-text-action { min-height: 44px; margin-top: 7px; border: 0; background: transparent; color: var(--kdoms-green-strong); font-weight: 700; }
+
+.kdoms-toast { position: absolute; z-index: 30; left: 18px; right: 18px; bottom: 88px; padding: 11px 13px; border-radius: 13px; background: var(--kdoms-text); color: var(--kdoms-page); text-align: center; font-size: .74rem; box-shadow: var(--kdoms-shadow); }
+.kdoms-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+@media (max-width: 460px) {
+  .kdoms-device { width: 100%; min-height: 740px; border-radius: 22px; }
+}
+
+@media (max-width: 360px) {
+  .kdoms-header,
+  .kdoms-page { padding-left: 13px; padding-right: 13px; }
+  .kdoms-sync-button { width: 82px; }
+  .kdoms-farm-code { display: none; }
+  .kdoms-quick-actions { grid-template-columns: 1fr; }
+  .kdoms-task-bottom { align-items: flex-start; }
+  .kdoms-task-bottom &gt; span { max-width: 45%; }
+  .kdoms-tree-hero { grid-template-columns: 78px 1fr; }
+  .kdoms-tree-photo { height: 78px; }
+  .kdoms-manual-entry &gt; div { flex-direction: column; }
+  .kdoms-form-grid,
+  .kdoms-verify-actions,
+  .kdoms-rework-form &gt; div { grid-template-columns: 1fr; }
+}
+&lt;/style&gt;
+
+&lt;script&gt;
+(() =&gt; {
+  const root = document.getElementById(&#39;kdoms-prototype&#39;);
+  if (!root) return;
+  root.ownerDocument.documentElement.dataset.theme = &#39;light&#39;;
+  root.style.colorScheme = &#39;light&#39;;
+
+  const farms = {
+    farm1: { name: &#39;สวนก้องลักษณ์&#39;, code: &#39;KGL-F01&#39;, role: &#39;เจ้าของสวน&#39;, trees: &#39;612&#39;, tasks: &#39;7&#39;, watch: &#39;5&#39;, urgent: &#39;2&#39;, fruit: &#39;4,280&#39; },
+    farm2: { name: &#39;สวนเนินทอง&#39;, code: &#39;KGL-F02&#39;, role: &#39;ผู้จัดการ&#39;, trees: &#39;286&#39;, tasks: &#39;4&#39;, watch: &#39;2&#39;, urgent: &#39;1&#39;, fruit: &#39;1,940&#39; }
+  };
+
+  let currentFarm = &#39;farm1&#39;;
+  let currentPage = &#39;home&#39;;
+  let offline = false;
+  let pendingFarmKey = null;
+  let photoAdded = false;
+  let darkMode = false;
+  const pendingByFarm = { farm1: 0, farm2: 0 };
+  let toastTimer;
+
+  const pages = [...root.querySelectorAll(&#39;[data-page]&#39;)];
+  const navButtons = [...root.querySelectorAll(&#39;.kdoms-nav [data-go]&#39;)];
+  const farmOverlay = root.querySelector(&#39;[data-farm-overlay]&#39;);
+  const switchOverlay = root.querySelector(&#39;[data-switch-overlay]&#39;);
+  const scanOverlay = root.querySelector(&#39;[data-scan-overlay]&#39;);
+  const scanCamera = root.querySelector(&#39;[data-scan-camera]&#39;);
+  const scanResult = root.querySelector(&#39;[data-scan-result]&#39;);
+  const scanError = root.querySelector(&#39;[data-scan-error]&#39;);
+  const toast = root.querySelector(&#39;[data-toast]&#39;);
+
+  function setText(selector, value) {
+    root.querySelectorAll(selector).forEach((node) =&gt; { node.textContent = value; });
+  }
+
+  function showToast(message) {
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.hidden = false;
+    toastTimer = setTimeout(() =&gt; { toast.hidden = true; }, 2400);
+  }
+
+  function goTo(pageName) {
+    currentPage = pageName;
+    pages.forEach((page) =&gt; {
+      const active = page.dataset.page === pageName;
+      page.hidden = !active;
+      page.classList.toggle(&#39;is-active&#39;, active);
+    });
+    navButtons.forEach((button) =&gt; {
+      const target = button.dataset.go;
+      const navPage = pageName === &#39;tree-detail&#39; ? &#39;trees&#39; :
+        ([&#39;worker-report&#39;, &#39;manager-verify&#39;].includes(pageName) ? &#39;tasks&#39; : pageName);
+      button.classList.toggle(&#39;is-active&#39;, target === navPage);
+    });
+    root.querySelector(&#39;.kdoms-main&#39;).scrollTop = 0;
+  }
+
+  function updateSyncIndicator() {
+    const count = pendingByFarm[currentFarm];
+    const label = offline ? `ออฟไลน์ &#183; ${count}` : (count &gt; 0 ? `รอซิงก์ &#183; ${count}` : &#39;ซิงก์แล้ว&#39;);
+    setText(&#39;[data-sync-label]&#39;, label);
+    root.querySelector(&#39;[data-action=&quot;toggle-sync&quot;]&#39;).setAttribute(&#39;aria-pressed&#39;, String(offline));
+  }
+
+  function applyFarm(farmKey) {
+    currentFarm = farmKey;
+    const farm = farms[farmKey];
+    setText(&#39;[data-farm-name]&#39;, farm.name);
+    setText(&#39;[data-farm-code]&#39;, farm.code);
+    setText(&#39;[data-scan-farm-code]&#39;, farm.code);
+    setText(&#39;[data-role]&#39;, farm.role);
+    setText(&#39;[data-tree-count]&#39;, farm.trees);
+    setText(&#39;[data-task-count]&#39;, farm.tasks);
+    setText(&#39;[data-watch-count]&#39;, farm.watch);
+    setText(&#39;[data-urgent-count]&#39;, farm.urgent);
+    setText(&#39;[data-fruit-count]&#39;, farm.fruit);
+    const treeCode = `${farm.code}-Z01-R03-T017`;
+    setText(&#39;[data-task-tree]&#39;, treeCode);
+    setText(&#39;[data-tree-code]&#39;, treeCode);
+    setText(&#39;[data-report-tree-code]&#39;, treeCode);
+    setText(&#39;[data-verify-tree-code]&#39;, treeCode);
+    root.querySelector(&#39;[data-manual-code]&#39;).placeholder = `เช่น ${treeCode}`;
+    root.querySelectorAll(&#39;[data-select-farm]&#39;).forEach((button) =&gt; {
+      const selected = button.dataset.selectFarm === farmKey;
+      button.classList.toggle(&#39;is-selected&#39;, selected);
+      button.querySelector(&#39;.kdoms-check&#39;).textContent = selected ? &#39;✓&#39; : &#39;&#39;;
+    });
+    updateSyncIndicator();
+  }
+
+  function openFarmPicker() {
+    farmOverlay.hidden = false;
+    root.querySelector(&#39;[data-action=&quot;open-farms&quot;]&#39;).setAttribute(&#39;aria-expanded&#39;, &#39;true&#39;);
+    root.querySelector(&#39;[data-action=&quot;close-farms&quot;]&#39;).focus();
+  }
+
+  function closeFarmPicker() {
+    farmOverlay.hidden = true;
+    root.querySelector(&#39;[data-action=&quot;open-farms&quot;]&#39;).setAttribute(&#39;aria-expanded&#39;, &#39;false&#39;);
+  }
+
+  function applyFarmSwitch(selected, hadPending) {
+    const sourceCode = farms[currentFarm].code;
+    applyFarm(selected);
+    closeFarmPicker();
+    switchOverlay.hidden = true;
+    pendingFarmKey = null;
+    goTo(&#39;home&#39;);
+    showToast(hadPending
+      ? `เปลี่ยนสวนแล้ว — รายการรอซิงก์ยังคงอยู่ที่ ${sourceCode}`
+      : `เปลี่ยนเป็น ${farms[selected].name} แล้ว`);
+  }
+
+  function requestFarmSwitch(selected) {
+    if (selected === currentFarm) {
+      closeFarmPicker();
+      return;
+    }
+    const pendingCount = pendingByFarm[currentFarm];
+    if (offline || pendingCount &gt; 0) {
+      pendingFarmKey = selected;
+      setText(&#39;[data-pending-source]&#39;, farms[currentFarm].code);
+      setText(&#39;[data-pending-target]&#39;, farms[selected].code);
+      setText(&#39;[data-pending-count]&#39;, String(pendingCount));
+      closeFarmPicker();
+      switchOverlay.hidden = false;
+      root.querySelector(&#39;[data-action=&quot;cancel-farm-switch&quot;]&#39;).focus();
+      return;
+    }
+    applyFarmSwitch(selected, false);
+  }
+
+  function resetScan() {
+    scanCamera.hidden = false;
+    scanResult.hidden = true;
+    scanResult.classList.remove(&#39;is-mismatch&#39;);
+    scanError.hidden = true;
+    root.querySelector(&#39;[data-manual-code]&#39;).value = &#39;&#39;;
+  }
+
+  function openScan() {
+    resetScan();
+    scanOverlay.hidden = false;
+  }
+
+  function closeScan() { scanOverlay.hidden = true; }
+
+  function parseTagCode(code) {
+    const match = /^([A-Z0-9]+)-(F\d+)-(Z\d+)-(R\d+)-(T\d+)$/.exec(code);
+    if (!match) return null;
+    return {
+      organizationCode: match[1],
+      farmSequence: match[2],
+      farmCode: `${match[1]}-${match[2]}`,
+      zone: match[3],
+      row: match[4],
+      tree: match[5]
+    };
+  }
+
+  function showScanResult(code) {
+    const farm = farms[currentFarm];
+    const parsed = parseTagCode(code);
+    const expected = `${farm.code}-Z01-R03-T017`;
+    const matches = code === expected;
+    scanCamera.hidden = true;
+    scanResult.hidden = false;
+    scanResult.classList.toggle(&#39;is-mismatch&#39;, !matches);
+    root.querySelector(&#39;[data-result-mark]&#39;).textContent = matches ? &#39;✓&#39; : &#39;!&#39;;
+    root.querySelector(&#39;[data-result-kicker]&#39;).textContent = matches ? &#39;พบต้นที่ตรงกับใบงาน&#39; : &#39;ป้ายนี้ไม่ตรงกับใบงาน&#39;;
+    root.querySelector(&#39;[data-result-title]&#39;).textContent = matches ? `ต้น ${parsed.tree} &#183; หมอนทอง` : `ตรวจพบต้น ${parsed.tree}`;
+    root.querySelector(&#39;[data-result-code]&#39;).textContent = code;
+    setText(&#39;[data-result-farm]&#39;, `สวน ${parsed.farmCode}`);
+    setText(&#39;[data-result-zone]&#39;, `โซน ${parsed.zone}`);
+    setText(&#39;[data-result-row]&#39;, `แถว ${parsed.row}`);
+    setText(&#39;[data-result-tree]&#39;, `ตำแหน่ง ${parsed.tree}`);
+    const comparison = root.querySelector(&#39;[data-expected-actual]&#39;);
+    comparison.hidden = matches;
+    setText(&#39;[data-expected-code]&#39;, expected);
+    setText(&#39;[data-actual-code]&#39;, code);
+    root.querySelector(&#39;[data-result-message]&#39;).textContent = matches
+      ? &#39;ตรวจรหัสและสวนแล้ว สามารถเปิดข้อมูลต้นหรือเริ่มงานได้&#39;
+      : `ใบงานต้องทำ ${expected} แต่สแกนจริง ${code} ระบบหยุดงานเดิมแล้ว`;
+    root.querySelector(&#39;[data-action=&quot;open-scanned-tree&quot;]&#39;).hidden = !matches;
+  }
+
+  function runManualScan() {
+    const input = root.querySelector(&#39;[data-manual-code]&#39;);
+    const code = input.value.trim().toUpperCase();
+    const parsed = parseTagCode(code);
+    if (!code) {
+      scanError.textContent = &#39;กรุณากรอกรหัสบนป้าย&#39;;
+      scanError.hidden = false;
+      return;
+    }
+    if (!parsed) {
+      scanError.textContent = &#39;รูปแบบรหัสไม่ถูกต้อง ตัวอย่าง KGL-F01-Z01-R03-T017&#39;;
+      scanError.hidden = false;
+      return;
+    }
+    scanError.hidden = true;
+    showScanResult(code);
+  }
+
+  function resetVerification() {
+    root.querySelector(&#39;[data-verify-actions]&#39;).hidden = false;
+    root.querySelector(&#39;[data-rework-form]&#39;).hidden = true;
+    root.querySelector(&#39;[data-verification-result]&#39;).hidden = true;
+    root.querySelector(&#39;[data-rework-error]&#39;).hidden = true;
+    root.querySelector(&#39;[data-rework-reason]&#39;).value = &#39;&#39;;
+    setText(&#39;[data-verify-status]&#39;, offline ? &#39;รอซิงก์&#39; : &#39;รอตรวจ&#39;);
+  }
+
+  function submitWorkerReport() {
+    const resultLabels = { stable: &#39;อาการคงที่&#39;, better: &#39;ดีขึ้น&#39;, worse: &#39;แย่ลง&#39; };
+    const result = root.querySelector(&#39;[data-report-result]&#39;).value;
+    const quantity = root.querySelector(&#39;[data-report-quantity]&#39;).value || &#39;0&#39;;
+    const unit = root.querySelector(&#39;[data-report-unit]&#39;).value;
+    const material = root.querySelector(&#39;[data-report-material]&#39;).value || &#39;ไม่ได้ระบุ&#39;;
+    setText(&#39;[data-verify-result]&#39;, resultLabels[result]);
+    setText(&#39;[data-verify-quantity]&#39;, `${quantity} ${unit}`);
+    setText(&#39;[data-verify-material]&#39;, material);
+    setText(&#39;[data-verify-photo]&#39;, photoAdded ? &#39;ภาพจำลอง 1 ภาพ&#39; : &#39;ไม่มีภาพ&#39;);
+    if (offline) pendingByFarm[currentFarm] += 1;
+    setText(&#39;[data-submit-state]&#39;, offline
+      ? `บันทึกในเครื่องแล้ว &#183; รอซิงก์ใน ${farms[currentFarm].code}`
+      : &#39;ส่งรายงานแล้ว &#183; รอตรวจ &#183; ข้อมูลจำลอง&#39;);
+    resetVerification();
+    root.querySelectorAll(&#39;[data-verify-actions] button&#39;).forEach((item) =&gt; { item.disabled = offline; });
+    updateSyncIndicator();
+    goTo(&#39;manager-verify&#39;);
+    showToast(offline ? &#39;บันทึกในเครื่องแล้ว — จะซิงก์เมื่อมีสัญญาณ&#39; : &#39;ส่งรายงานแล้ว — รอผู้จัดการตรวจรับ&#39;);
+  }
+
+  function finishVerification(kind, reason = &#39;&#39;) {
+    root.querySelector(&#39;[data-verify-actions]&#39;).hidden = true;
+    root.querySelector(&#39;[data-rework-form]&#39;).hidden = true;
+    const result = root.querySelector(&#39;[data-verification-result]&#39;);
+    result.hidden = false;
+    if (kind === &#39;approved&#39;) {
+      setText(&#39;[data-verify-status]&#39;, &#39;เสร็จแล้ว&#39;);
+      setText(&#39;[data-verification-title]&#39;, &#39;อนุมัติรายงานแล้ว&#39;);
+      setText(&#39;[data-verification-message]&#39;, &#39;บันทึกผลตรวจรับและ audit event แบบจำลองแล้ว&#39;);
+    } else {
+      setText(&#39;[data-verify-status]&#39;, &#39;ให้แก้&#39;);
+      setText(&#39;[data-verification-title]&#39;, &#39;ส่งกลับให้ Worker แก้ไขแล้ว&#39;);
+      setText(&#39;[data-verification-message]&#39;, `เหตุผล: ${reason} &#183; ข้อมูลจำลอง`);
+    }
+  }
+
+  root.addEventListener(&#39;click&#39;, (event) =&gt; {
+    const button = event.target.closest(&#39;button&#39;);
+    if (!button) return;
+
+    if (button.dataset.go) goTo(button.dataset.go);
+
+    const action = button.dataset.action;
+    if (action === &#39;open-farms&#39;) openFarmPicker();
+    if (action === &#39;close-farms&#39;) closeFarmPicker();
+    if (action === &#39;open-scan&#39; || action === &#39;scan-for-task&#39;) openScan();
+    if (action === &#39;close-scan&#39;) closeScan();
+    if (action === &#39;scan-again&#39;) resetScan();
+    if (action === &#39;show-tree&#39;) goTo(&#39;tree-detail&#39;);
+    if (action === &#39;simulate-scan&#39;) showScanResult(`${farms[currentFarm].code}-Z01-R03-T017`);
+    if (action === &#39;open-scanned-tree&#39;) { closeScan(); goTo(&#39;tree-detail&#39;); showToast(&#39;ยืนยันต้นด้วย QR แล้ว&#39;); }
+    if (action === &#39;start-report&#39;) { photoAdded = false; setText(&#39;[data-photo-state]&#39;, &#39;ยังไม่มีภาพจำลอง&#39;); goTo(&#39;worker-report&#39;); }
+    if (action === &#39;mock-photo&#39;) { photoAdded = true; setText(&#39;[data-photo-state]&#39;, &#39;เพิ่มภาพจำลองแล้ว 1 ภาพ&#39;); showToast(&#39;เพิ่มภาพจำลองแล้ว&#39;); }
+    if (action === &#39;submit-report&#39;) submitWorkerReport();
+    if (action === &#39;approve-report&#39;) finishVerification(&#39;approved&#39;);
+    if (action === &#39;request-rework&#39;) {
+      root.querySelector(&#39;[data-rework-form]&#39;).hidden = false;
+      root.querySelector(&#39;[data-rework-reason]&#39;).focus();
+    }
+    if (action === &#39;cancel-rework&#39;) {
+      root.querySelector(&#39;[data-rework-form]&#39;).hidden = true;
+      root.querySelector(&#39;[data-rework-error]&#39;).hidden = true;
+    }
+    if (action === &#39;confirm-rework&#39;) {
+      const reason = root.querySelector(&#39;[data-rework-reason]&#39;).value.trim();
+      if (!reason) {
+        root.querySelector(&#39;[data-rework-error]&#39;).hidden = false;
+      } else {
+        root.querySelector(&#39;[data-rework-error]&#39;).hidden = true;
+        finishVerification(&#39;rework&#39;, reason);
+      }
+    }
+    if (action === &#39;cancel-farm-switch&#39;) {
+      switchOverlay.hidden = true;
+      pendingFarmKey = null;
+      showToast(&#39;ยกเลิกการเปลี่ยนสวน — รายการรอซิงก์ยังปลอดภัย&#39;);
+    }
+    if (action === &#39;confirm-farm-switch&#39; &amp;&amp; pendingFarmKey) applyFarmSwitch(pendingFarmKey, true);
+
+    if (action === &#39;manual-scan&#39;) {
+      runManualScan();
+    }
+
+    if (action === &#39;toggle-sync&#39;) {
+      offline = !offline;
+      pendingByFarm[currentFarm] = offline ? Math.max(2, pendingByFarm[currentFarm]) : 0;
+      root.querySelectorAll(&#39;[data-offline-banner]&#39;).forEach((banner) =&gt; { banner.hidden = !offline; });
+      if (!offline &amp;&amp; currentPage === &#39;manager-verify&#39;) {
+        root.querySelectorAll(&#39;[data-verify-actions] button&#39;).forEach((item) =&gt; { item.disabled = false; });
+        setText(&#39;[data-verify-status]&#39;, &#39;รอตรวจ&#39;);
+        setText(&#39;[data-submit-state]&#39;, `ซิงก์แล้วใน ${farms[currentFarm].code} &#183; รอตรวจ`);
+      }
+      updateSyncIndicator();
+      showToast(offline ? &#39;โหมดจำลองออฟไลน์ — ข้อมูลใหม่จะรอซิงก์&#39; : &#39;กลับมาออนไลน์และซิงก์ข้อมูลแล้ว&#39;);
+    }
+
+    if (action === &#39;toggle-theme&#39;) {
+      darkMode = !darkMode;
+      root.ownerDocument.documentElement.dataset.theme = darkMode ? &#39;dark&#39; : &#39;light&#39;;
+      root.style.colorScheme = darkMode ? &#39;dark&#39; : &#39;light&#39;;
+      setText(&#39;[data-theme-label]&#39;, darkMode ? &#39;Dark mode&#39; : &#39;Light mode&#39;);
+      showToast(darkMode ? &#39;เปิด Dark mode&#39; : &#39;เปิด Light mode&#39;);
+    }
+
+    if (button.dataset.selectFarm) {
+      requestFarmSwitch(button.dataset.selectFarm);
+    }
+  });
+
+  farmOverlay.addEventListener(&#39;click&#39;, (event) =&gt; { if (event.target === farmOverlay) closeFarmPicker(); });
+  scanOverlay.addEventListener(&#39;click&#39;, (event) =&gt; { if (event.target === scanOverlay) closeScan(); });
+  switchOverlay.addEventListener(&#39;click&#39;, (event) =&gt; {
+    if (event.target === switchOverlay) {
+      switchOverlay.hidden = true;
+      pendingFarmKey = null;
+    }
+  });
+  root.addEventListener(&#39;keydown&#39;, (event) =&gt; {
+    if (event.key === &#39;Enter&#39; &amp;&amp; event.target.matches(&#39;[data-manual-code]&#39;)) {
+      event.preventDefault();
+      runManualScan();
+    }
+    if (event.key === &#39;Escape&#39;) {
+      if (!switchOverlay.hidden) { switchOverlay.hidden = true; pendingFarmKey = null; return; }
+      if (!scanOverlay.hidden) { closeScan(); return; }
+      if (!farmOverlay.hidden) closeFarmPicker();
+    }
+  });
+  applyFarm(currentFarm);
+  goTo(currentPage);
+})();
+&lt;/script&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerdown&quot;, handlePointer);
+    document.removeEventListener(&quot;pointercancel&quot;, handlePointer);
+    document.removeEventListener(&quot;click&quot;, handleTouchClick);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerdown&quot;, handlePointer);
+  document.addEventListener(&quot;pointercancel&quot;, handlePointer);
+  document.addEventListener(&quot;click&quot;, handleTouchClick);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>
