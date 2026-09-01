@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.9 |
+| เวอร์ชัน | 1.10 |
 | สถานะ | Gate 6 Passed — External PA-1 Owner Decision = NO-GO/BLOCKED; No Deployment |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | `AGENTS.md` v3.3, Development/Mock Data/Pilot Knowledge v1.0.4, Scope Knowledge v0.2.2, Decision Log v3.2, AIFC Knowledge v0.2, Owner Addendum Gate 6, External PA-1 Owner Review Decision v1.2, Phase 7 Plan v2.0 |
+| Source of Truth | `AGENTS.md` v4.5, Development/Mock Data/Pilot Knowledge v1.0.6, Scope Knowledge v0.2.9, Decision Log v4.6, Owner Addendum Gate 6, External PA-1 Owner Review Decision v1.3, Phase 7 Plan v2.3, Candidate Manifest v1.0 |
 
 ระบบบริหารจัดการสวนทุเรียนแบบหลายสวน (Multi-Farm) ตั้งแต่ทะเบียนต้น การดูแล งานคนสวน โรค ปุ๋ย–ยา ผลผลิต การเก็บเกี่ยว จนถึงการขาย
 
@@ -20,7 +20,7 @@
 - Gate 4: **APPROVED เมื่อ 2026-08-31 — อนุมัติ Phase 5 ตาม DEC-028**
 - Gate 5: **APPROVED เมื่อ 2026-08-31 — อนุมัติ Phase 6 ตาม DEC-029**
 - Gate 6: **APPROVED เมื่อ 2026-08-31 — อนุมัติ Phase 7 ตาม DEC-031**
-- DEC-010: **APPROVED — เบอร์โทรศัพท์ + SMS OTP บน Emulator เท่านั้น**
+- DEC-010: **APPROVED — เบอร์โทรศัพท์ + SMS OTP; DEC-040/042 อนุมัติ limited real Auth/Hosting test แยกแล้ว**
 - DEC-021: **APPROVED — เริ่ม Phase 3 ตาม Prompt Phase 3**
 - DEC-027: **APPROVED — Mock-first Development; Field/Device ไม่ block Engineering Phase**
 - DEC-028: **APPROVED — Gate 4 ผ่านและอนุมัติเริ่ม Phase 5**
@@ -32,19 +32,23 @@
 - DEC-036: **APPROVED — Work photo durable queue/lifecycle hardening แบบ local/mock-only**
 - DEC-037: **APPROVED — PA-1 เฉพาะ Local/Emulator rehearsal ด้วย Mock Data; ไม่อนุมัติ External Action หรือ Deploy**
 - DEC-038: **BLOCKED — Owner ตัดสิน External PA-1 เป็น NO-GO; ต้องมี actual values, governance, cost และ clean frozen deployable Candidate ก่อน review ใหม่**
+- DEC-043: **APPROVED — Farm Management remediation แบบ Local/Mock/Emulator; ห้าม Hard delete/Deploy**
+- DEC-048: **APPROVED — Annual Farm Management Cycle แบบ Mock-first**
+- DEC-049: **APPROVED — Management Reporting/Cost แบบ Mock-first**
+- DEC-050: **APPROVED — Financial Data เฉพาะ trusted Organization Owner; ไม่อนุมัติ Deploy/Migration Production**
 - Application code: **Phase 7 local hardening และ PA-1 Local/Emulator rehearsal ผ่านการตรวจแล้ว**
 - Mock Data Pack: **Phase 6 v1.0.0 — deterministic/resettable/SIMULATED/TEST ONLY**
 - Field/Physical Validation: **Deferred ไป Controlled Pilot และต้องผ่านก่อน Production/ป้ายถาวร/ขยายใช้งาน**
-- Firebase production: **ยังไม่สร้างหรือเชื่อมต่อ**
+- Firebase production: **มี limited Mock Firestore/Phone Auth/Hosting carve-out ตาม DEC-041/042; source รุ่นนี้ยังไม่ได้ Deploy และห้าม Deploy ในงานนี้**
 - Phase 6: **ดำเนินการเสร็จและ Gate 6 ผ่านแล้ว**
-- Phase 7: **Planning/Operations Pack และ Candidate `KDOMS-PC-SIM-20260831-02` ผ่าน Local/Browser/Emulator rehearsal; ยังห้าม Deploy**
+- Phase 7: **Planning/Operations Pack และ Candidate `KDOMS-PC-SIM-20260901-05` ผ่าน Local/Browser/Emulator validation; ยังห้าม Deploy**
 - Owner Mockup Input: **ครบ PA-1/PA-2 แบบ deterministic/resettable และติดป้าย SIMULATED/TEST ONLY**
 - PA-1 Mock Dry-run: **PASSED — ตรวจอัตโนมัติซ้ำได้; ไม่มี deployment/ข้อมูลจริง/physical evidence**
 - Owner-selected PA-1 Input: **COMPLETE — 22 ช่องตรงกับ Mock source และติดป้าย SIMULATED/TEST ONLY**
 - PA-1 Local/Emulator: **APPROVED และ PASSED — Mock Data เท่านั้น**
 - External PA-1: **NO-GO/BLOCKED — resource/cost/credential/deployment ยัง HOLD**
 - External PA-1 Readiness: **Owner exact decision บันทึกแล้วเมื่อ 2026-09-01**
-- Current Local Candidate integrity: **Historical local evidence เท่านั้น — Source ปัจจุบันไม่ตรง frozen snapshot เดิมและยังไม่มี clean deployable Candidate**
+- Current Local Candidate integrity: **Source drift เดิมถูกปิดด้วย clean Candidate `KDOMS-PC-SIM-20260901-05`; สถานะ `FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` และไม่ใช่ deployable Candidate**
 - Production: **NOT APPROVED — ต้องผ่าน Controlled Pilot และ PA-3 ก่อน**
 
 ## Source of Truth

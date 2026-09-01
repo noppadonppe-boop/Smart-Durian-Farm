@@ -2,18 +2,18 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.4 |
+| เวอร์ชัน | 1.5 |
 | สถานะ | Source Stabilized and Local Candidate Frozen from Clean Commit; No Deployment |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ตรวจ | 2026-09-01 |
-| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.2, Candidate Manifest v0.9, Source Stabilization Inventory v1.1, Phase 6 Validation Report v1.0, DEC-031, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049 |
+| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.3, Candidate Manifest v1.0, Source Stabilization Inventory v1.2, Phase 6 Validation Report v1.0, Owner-only Financial Access Validation Report v1.0, DEC-031, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049, DEC-050 |
 
 ## 1. สรุป
 
-Phase 7 Source Stabilization ผ่านแล้ว Candidate `KDOMS-PC-SIM-20260901-04`
-ถูก freeze จาก clean local commit และตรวจ checksum ซ้ำได้ หลังแยก Farm Management,
-Tree form และ Orchard selector CSS ตาม lazy route, แก้ Dark/Light token และแก้
-async test assertion แอปผ่าน Full Validation ด้วย local/Mock/Firebase Emulator
+Phase 7 Source Stabilization ผ่านแล้ว Candidate `KDOMS-PC-SIM-20260901-05`
+ถูก freeze จาก clean local commit และตรวจ checksum ซ้ำได้ หลังรวม DEC-050
+Owner-only Financial Data, แก้ Annual Cycle switcher touch target/horizontal
+overflow และคง route CSS split เดิม แอปผ่าน Full Validation ด้วย local/Mock/Firebase Emulator
 โดยไม่มีการ Deploy, สร้าง external resource หรือใช้ข้อมูลจริง
 
 ผลนี้หมายถึง **PA-1 Local/Emulator ผ่าน** ไม่ใช่ Pilot deployment,
@@ -26,12 +26,12 @@ Physical Device/Field Validation หรือ Production readiness
 | ESLint | ผ่าน ไม่มี warning/error |
 | TypeScript strict | ผ่าน |
 | Unit/component | 229/229 ผ่านใน 29 files |
-| Firebase Emulator/security/integration | 67/67 ผ่านใน 9 files; Cross-Farm allow/disclosure = 0 |
-| Deterministic seed | ผ่าน 148 records ใน 7 modules; Farm 4, farm membership 9, classification `OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY` |
+| Firebase Emulator/security/integration | 69/69 ผ่านใน 9 files; Cross-Farm allow/disclosure = 0; forged Owner/Non-owner Financial access ถูกปฏิเสธ |
+| Deterministic seed | ผ่าน 161 records ใน 7 modules; Farm 4, farm membership 9, classification `OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY` |
 | Mock-only build/PWA | ผ่าน; build artifact 83 files; precache 82 entries |
-| Initial JavaScript | 348,801 / 350,000 bytes — ผ่าน |
-| Initial CSS | 56,239 / 60,000 bytes — ผ่านและต่ำกว่าเป้าหมาย 58,000 |
-| Total offline runtime | 1,718,980 / 1,800,000 bytes — ผ่าน |
+| Initial JavaScript | 349,617 / 350,000 bytes — ผ่าน; เหลือ headroom 383 bytes |
+| Initial CSS | 56,497 / 60,000 bytes — ผ่านและต่ำกว่าเป้าหมาย 58,000 |
+| Total offline runtime | 1,730,235 / 1,800,000 bytes — ผ่าน |
 | Offline runtime scan | ผ่าน 82 local build files; external runtime = 0 |
 | Emulator health | Auth 9099, Firestore 8080, Storage 9199 ผ่าน |
 | Browser durable queue | interruption/reload/retry/commit/cleanup ผ่าน; Queue เหลือ 0 |
@@ -39,7 +39,7 @@ Physical Device/Field Validation หรือ Production readiness
 | Documentation/CSV QA | metadata ครบ; CSV header 27/24/24 columns, 0 data rows |
 | Browser responsive/theme/offline | ผ่าน 320px, 360×800, 390×844; overflow = 0, console error = 0, Light/Dark และ touch target ≥44px ผ่าน |
 | Secret/real-data review | ไม่พบ credential/private key/real data ใน commit; local phone allowlist อยู่เฉพาะ ignored `.env` และไม่ถูก commit |
-| File inventory | 254 paths จำแนกครบ: Intended 252, Generated 2, Ambiguous 0; Generated ถูก ignore โดยไม่ลบ |
+| File inventory | 48,067 paths ณ freeze: Intended 330, Generated 47,735, Local-only/config 2, Ambiguous 0; Generated/local-only ถูก ignore โดยไม่ลบ |
 | `git diff --check` | ผ่าน ไม่มี whitespace error |
 
 Dependency findings เดิมจาก rehearsal ก่อนหน้า (ไม่ได้รัน network audit ใหม่ในงานนี้):
@@ -48,7 +48,7 @@ Dependency findings เดิมจาก rehearsal ก่อนหน้า (�
 - `@opentelemetry/core@1.30.1` ผ่าน `firebase-tools` development dependency
 
 ทั้งสองรายการเป็น dev-only ไม่อยู่ใน browser runtime; งานนี้ไม่ใช้ network หรือ
-external package audit ใหม่ จึงไม่ยกระดับผลเดิมเป็นผลตรวจ ณ Candidate `...-04`
+external package audit ใหม่ จึงไม่ยกระดับผลเดิมเป็นผลตรวจ ณ Candidate `...-05`
 
 ## 3. Phase 7 artifacts
 

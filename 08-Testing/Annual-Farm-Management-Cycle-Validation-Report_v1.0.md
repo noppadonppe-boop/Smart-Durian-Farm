@@ -51,6 +51,12 @@
 | Browser closed-cycle history | ผ่าน; แสดง Correction Revision 1 → 2 และไม่แสดงคำสั่งแก้ปกติ |
 | ESLint ทั้ง repository | ผ่าน (`--max-warnings=0`) |
 
+ตัวเลข 67/148 และ performance ในตารางนี้เป็น point-in-time evidence ของการส่งมอบ
+DEC-048 เดิม ไม่ใช่ผลล่าสุดของ repository หลัง DEC-050 ผล baseline ปัจจุบันของ
+Candidate `KDOMS-PC-SIM-20260901-05` คือ Emulator 69/69, seed 161 records,
+Initial JS 349,617 bytes, CSS 56,497 bytes และ Offline runtime 1,730,235 bytes
+ตาม `08-Testing/Phase-7-Local-Pilot-Readiness-Report_v1.0.md` v1.5
+
 ## 4. หมายเหตุการทดสอบร่วมกับงานอื่นใน Working Tree
 
 Working Tree มีงาน DEC-049 Management Reporting เกิดขึ้นพร้อมกัน จึงรักษาไฟล์และ

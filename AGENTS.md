@@ -2,7 +2,7 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 4.4 |
+| เวอร์ชัน | 4.5 |
 | สถานะ | Gate 6 Passed — Owner-only Financial Data Approved; Annual Cycle and Management Reporting/Cost Approved Mock-first; Limited Tree Register Operational Data Authorized; Deployment/PA-2/Broader Production Not Approved |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
@@ -76,6 +76,10 @@
   actual values, governance owners/destination/region/key custody, cost ceiling และ
   clean frozen deployable Candidate ยังไม่ครบ อีกทั้ง Source ปัจจุบันไม่ตรง local
   frozen snapshot เดิม; ต้องจัด Owner Review ใหม่และรอ `GO` ก่อน External Action
+- หมายเหตุหลังการตัดสิน: source drift ฝั่ง Local ถูก remediated ด้วย Candidate
+  `KDOMS-PC-SIM-20260901-05` แล้ว แต่ Candidate ยังเป็น
+  `FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE`; actual values/governance/cost/
+  external controls ยังขาด จึงไม่เปลี่ยน DEC-038 หรือ External PA-1 เป็น GO
 - Owner อนุมัติ DEC-039 และ Disease Analysis P1 — Deterministic Mock Analysis
   เมื่อ 2026-09-01; ดำเนินการและผ่าน Local/Mock/Firebase Emulator/Browser
   validation แล้วสำหรับ Analysis Session, Mock Confidence/Quality, Abstain และ

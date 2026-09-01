@@ -1,14 +1,14 @@
-# Phase 7 Source Stabilization File Inventory v1.1
+# Phase 7 Source Stabilization File Inventory v1.2
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.1 |
+| เวอร์ชัน | 1.2 |
 | สถานะ | Completed — No Ambiguous Ownership; Candidate Source and Evidence Committed Locally |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ตรวจ | 2026-09-01 |
 | Classification | `OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY` |
 | Approval effect | Local source stabilization/freeze only; no push/tag/deploy/external action |
-| Source of Truth | `AGENTS.md` v4.3, Phase 7 Plan v2.2, DEC-037, DEC-038, DEC-048, DEC-049, Owner instruction for Source Stabilization |
+| Source of Truth | `AGENTS.md` v4.5, Phase 7 Plan v2.3, DEC-037, DEC-038, DEC-048, DEC-049, DEC-050, Owner instruction for Source Stabilization |
 
 ## 1. วิธีตรวจ
 
@@ -16,17 +16,28 @@
 ร่วมกับการตรวจชนิดไฟล์, ignored local environment, credential/phone pattern,
 ภาพ/ไฟล์ binary และความสอดคล้องกับ Decision/Validation artifacts ที่มีอยู่
 
-หลังเพิ่มไฟล์ stabilization ที่ตรวจสอบแล้ว 4 ไฟล์, Owner Review Mockup 1 ไฟล์
-และไฟล์ใหม่ของ DEC-048/049 จำนวน 25 ไฟล์ รายการที่ติดตามรวมเป็น 254 ไฟล์:
-Intended 252, Generated 2 และ Ambiguous 0
+เมื่อ freeze Candidate `KDOMS-PC-SIM-20260901-05` ตรวจครบทั้ง tracked และ ignored
+ด้วย `git ls-files`, `git ls-files --others --exclude-standard` และ
+`git ls-files --others -i --exclude-standard` รวม 48,067 paths:
+
+| Classification | จำนวน | ขอบเขต |
+|---|---:|---|
+| Intended source/document/test | 330 | tracked source, requirements, architecture, operations และ test evidence |
+| Generated output | 47,735 | dependency/build/emulator/log/workbook และ root npm lock ที่ถูก ignore |
+| Local-only/config | 2 | `.env` และ `.env.firebase-live.local` ที่ถูก ignore |
+| Ambiguous | 0 | ไม่มีไฟล์ที่ไม่ทราบเจ้าของหรือขอบเขต |
 
 หลักการ: ไม่ลบ ไม่ reset ไม่ checkout และไม่ overwrite ไฟล์เดิมของผู้ใช้
 
-## 2. Intended source/document/test (252 ไฟล์)
+## 2. Intended source/document/test (330 ไฟล์ ณ Candidate 05)
 
 รายการต่อไปนี้สอดคล้องกับ implementation, requirements, architecture, operations,
-test evidence และ Owner decisions ตั้งแต่ Gate 1–6/Phase 7/DEC-027–DEC-049
+test evidence และ Owner decisions ตั้งแต่ Gate 1–6/Phase 7/DEC-027–DEC-050
 จึงอนุญาตให้นำเข้า local commits แบบแยกกลุ่มหลัง validation:
+
+รายการ 252 ไฟล์ด้านล่างเป็น initial source-drift checkpoint ที่คงไว้เพื่อการตรวจ
+ย้อนหลัง ส่วนยอด 330 คือ tracked repository ทั้งหมดหลังรวม DEC-048/049/050 และ
+Phase 7 evidence; ไม่มี untracked non-ignored path เหลือที่ freeze
 
 - ` M` `.gitignore`
 - ` M` `00-Project-Management/Decision-Log.md`
@@ -304,25 +315,35 @@ scan จึงจัดเป็น Intended; ไม่มีรายการ 
 inventory เดิมแล้ว จึงไม่เพิ่มจำนวน path; commit แยกคือ `2a614ed` สำหรับเอกสารและ
 `483bb41` สำหรับ application source/tests
 
-## 3. Generated output (2 ไฟล์)
+ชุด DEC-050 Owner-only Financial Data จำนวน 52 changed/untracked paths ถูกตรวจ
+provenance และ secret/real-data scan แล้วทั้งหมด: เอกสาร/Knowledge 13 ไฟล์ commit
+`1e56c21`, source/rules/mock/tests 39 ไฟล์ commit `f90ab77` และ mobile overflow
+remediation commit `95f5365`; ไฟล์ใหม่ 2 รายการคือ Owner Addendum และ Validation
+Report ที่มี Project Owner/Decision reference ชัดเจน จึงเป็น Intended ไม่ใช่ Ambiguous
 
-เก็บไฟล์ไว้ในเครื่องและเพิ่ม ignore rule โดยไม่ลบหรือ commit:
+## 3. Generated output (47,735 ไฟล์)
 
-- `??` `outputs/01a05bcf-5dc6-78f3-bc1f-da8797ad4379/KDOMS-แบบฟอร์ม-ทะเบียนต้น-ภาษาไทย.xlsx`
-- `??` `package-lock.json`
+เก็บไว้ในเครื่องและถูก ignore โดยไม่ลบหรือ commit แยกตามกลุ่ม:
+
+- `07-Source-Code/web-app/node_modules/**` — 47,647 dependency files
+- `07-Source-Code/web-app/dist/**` — 83 build/PWA files
+- `.firebase/**`, `.firebase-local/**` และ `firestore-debug.log` — 3 emulator/runtime files
+- `outputs/**` — 1 workbook ที่สร้างจากเครื่องมือ
+- `/package-lock.json` — 1 root npm lockfile ที่ไม่ใช่ dependency lock ของแอป
 
 เหตุผล:
 
 - `outputs/**` เป็น workbook ที่ระบบสร้างขึ้น ไม่ใช่ source of truth
 - `/package-lock.json` เป็น lockfile ว่างจาก npm ที่ root ขณะที่แอปกำหนด `pnpm` และใช้ `07-Source-Code/web-app/pnpm-lock.yaml` เป็น dependency lock
 
-## 4. Local-only/config
+## 4. Local-only/config (2 ไฟล์)
 
 รายการต่อไปนี้ถูก ignore อยู่แล้วและห้าม commit:
 
 - `07-Source-Code/web-app/.env` — local Production/Auth configuration; พบ phone-like allowlist data จึงคง local-only
 - `07-Source-Code/web-app/.env.firebase-live.local` — local Firebase Auth configuration
-- `node_modules/`, `dist/`, `.firebase/`, `.firebase-local/`, `coverage/`, `*-debug.log` และ emulator state — dependency/build/runtime output
+
+dependency/build/runtime output อยู่ใน Generated output ข้างต้น ไม่ใช่ Local config
 
 รายการ config ที่อนุญาตให้ commit เพราะไม่มี secret:
 

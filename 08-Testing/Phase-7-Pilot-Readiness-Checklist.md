@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 2.1 |
+| เวอร์ชัน | 2.2 |
 | สถานะ | Clean Local Candidate Frozen; External PA-1 Remains NO-GO/BLOCKED; No Deployment |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.2, External PA-1 Owner Review Decision v1.2, Pilot Impact & Approval Pack v2.0, Candidate Manifest v0.9, Local Pilot Readiness Report v1.4, Source Stabilization Inventory v1.1, Governance Decision Sheet v1.3, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049 |
+| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.3, External PA-1 Owner Review Decision v1.3, Pilot Impact & Approval Pack v2.1, Candidate Manifest v1.0, Local Pilot Readiness Report v1.5, Source Stabilization Inventory v1.2, Governance Decision Sheet v1.4, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049, DEC-050 |
 
 ## A. Authorization and boundary
 
@@ -40,25 +40,27 @@
 
 ## C. Local Candidate readiness
 
-- [x] Candidate `KDOMS-PC-SIM-20260901-04` frozen จาก clean source commit สำหรับ Local Rehearsal เท่านั้น
+- [x] Candidate `KDOMS-PC-SIM-20260901-05` frozen จาก clean source commit สำหรับ Local Rehearsal เท่านั้น
 - [x] ESLint และ TypeScript strict ผ่าน
 - [x] Unit/component suite ผ่าน 229/229 ใน 29 test files
-- [x] Firebase Emulator/security/integration suite ผ่าน 67/67 ใน 9 test files;
+- [x] Firebase Emulator/security/integration suite ผ่าน 69/69 ใน 9 test files;
   Cross-Farm allow/disclosure = 0
-- [x] Deterministic seed ผ่าน 148 records ใน 7 modules และ 4 Farm Profiles
+- [x] Deterministic seed ผ่าน 161 records ใน 7 modules และ 4 Farm Profiles
 - [x] Work photo resize/compress/metadata policy และ automatic Retry/Orphan ผ่าน local/emulator
 - [x] Durable queue/checkpoint/replay และ metadata-only Retry block ผ่าน; local desktop
   IndexedDB interruption/reload/retry/commit/cleanup ผ่าน ส่วน Android/iPhone WP-09/WP-11 ยังเปิด
 - [x] Lifecycle worker core: dry-run, approval separation, reference check, retention และ Cross-Farm stop ผ่าน local
 - [x] HEIC fail-closed พร้อม JPEG/approved on-device conversion guidance ผ่าน unit test
 - [x] Mock-only build/PWA/offline runtime/performance budget ผ่าน; precache 82 entries
-- [x] Initial JavaScript 348,801/350,000 bytes, Initial CSS 56,239/60,000 bytes
-  และ total offline runtime 1,718,980/1,800,000 bytes ผ่าน
+- [x] Initial JavaScript 349,617/350,000 bytes, Initial CSS 56,497/60,000 bytes
+  และ total offline runtime 1,730,235/1,800,000 bytes ผ่าน
 - [x] Browser responsive ผ่าน 320px, Android 360×800 และ iPhone 390×844;
   Light/Dark, touch target, Offline UX และ console error = 0
 - [x] Historical Candidate `...-01` ถูกเก็บเป็นหลักฐานเดิมและ superseded
 - [x] Candidate `KDOMS-PC-SIM-20260831-02` เก็บเป็น historical local evidence;
   source drift เดิมถูก remediated ด้วย Candidate ใหม่ แต่ External decision ไม่เปลี่ยน
+- [x] Candidate `KDOMS-PC-SIM-20260901-04` เก็บเป็น historical local evidence;
+  Candidate `...-05` supersede หลังรวม DEC-050 และแก้ mobile overflow
 - [x] Dependency audit high/critical = 0; moderate 2 dev-only บันทึกแล้ว
 - [x] ไม่พบ credential/ข้อมูลจริงใน commit; production/local phone allowlist อยู่เฉพาะ
   ignored `.env` และไม่อยู่ใน Candidate

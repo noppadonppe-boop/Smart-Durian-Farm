@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 2.2 |
+| เวอร์ชัน | 2.3 |
 | สถานะ | External PA-1 Owner Decision = NO-GO/BLOCKED; External Actions on HOLD |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | Owner Addendum Gate 6, Prompt Phase 7, AGENTS.md v4.3, External PA-1 Owner Review Decision v1.2, Source Stabilization Owner Review Mockup v1.1, Candidate Manifest v0.9, Local Pilot Readiness Report v1.4, Development/Mock Data/Pilot Knowledge v1.0.6, DEC-027, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049, Phase 6 Validation Report v1.0 |
+| Source of Truth | Owner Addendum Gate 6, Prompt Phase 7, AGENTS.md v4.5, External PA-1 Owner Review Decision v1.3, Source Stabilization Owner Review Mockup v1.2, Candidate Manifest v1.0, Local Pilot Readiness Report v1.5, Development/Mock Data/Pilot Knowledge v1.0.6, DEC-027, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049, DEC-050, Phase 6 Validation Report v1.0 |
 
 ## 1. เป้าหมาย
 
@@ -40,7 +40,7 @@ Pilot แบบจำกัดสิทธิ์เพื่อเก็บห�
 | Stage | งาน | หลักฐาน | สถานะ/การอนุมัติ |
 |---|---|---|---|
 | P7-A | Local Pilot readiness | full suite, build, security/performance, plan/runbook/templates | ทำได้ตาม Gate 6 |
-| **PA-1L** | Local/browser/Firebase Emulator rehearsal ด้วย Mock data | Candidate `KDOMS-PC-SIM-20260901-04` + Local Readiness Report v1.4 | **Source stabilized และ clean Local Candidate frozen; not deployable** |
+| **PA-1L** | Local/browser/Firebase Emulator rehearsal ด้วย Mock data | Candidate `KDOMS-PC-SIM-20260901-05` + Local Readiness Report v1.5 | **Source stabilized และ clean Local Candidate frozen; not deployable** |
 | **PA-1E** | Owner ตรวจ External Pilot environment/resource/cost | actual provider/region/budget/owners + deployable revision | **NO-GO/BLOCKED ตาม DEC-038; source drift เดิมปิดแล้ว แต่ actual values, governance, cost, external controls และ Owner GO ยังขาด** |
 | P7-B | Private Pilot Candidate ด้วย Mock data | deployment smoke, access control, rollback, backup rehearsal | ทำหลัง PA-1E เท่านั้น |
 | **PA-2** | Owner ตรวจ Field execution/ข้อมูลจริง | cohort, devices, users, privacy, retention, evidence, QR, safety | **ต้องอนุมัติก่อนข้อมูลจริง/ลงพื้นที่** |

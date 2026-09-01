@@ -2,14 +2,14 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.2 |
+| เวอร์ชัน | 1.3 |
 | สถานะ | **OWNER DECISION — NO-GO; EXTERNAL PA-1 BLOCKED** |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ Owner ตัดสินใจ | 2026-09-01 |
 | Review ID | `KDOMS-PA1E-OWNER-REVIEW-20260901-01` |
 | ขอบเขต | Private Non-Production Pilot Candidate ด้วย Mock/Synthetic Data เท่านั้น |
 | Machine-readable record | `09-Deployment/phase7-external-pa1-owner-decision-v1.0.json` |
-| Source of Truth | Owner exact decision 2026-09-01, `AGENTS.md` v3.3, Phase 7 Plan v2.0, Pilot Impact & Approval Pack v1.8, PA-1 Owner Actual Input Form v1.4, Pilot Candidate Manifest v0.7, PA-1 Local Rehearsal Report v1.1, Pilot Readiness Checklist v1.9, Photo Data Governance Decision Sheet v1.1, Work Photo Durable Queue/Lifecycle Architecture v1.0, Decision Log v3.2, DEC-038 |
+| Source of Truth | Owner exact decision 2026-09-01, historical evidence at decision time, Post-decision Candidate Manifest v1.0/Phase 7 Plan v2.3, DEC-038 |
 
 ## 1. External PA-1 Readiness Decision
 
@@ -37,6 +37,15 @@ commit เป็น prerequisite ก่อนสร้าง resource หรื�
 | คำสั่ง Owner | คง External Action ทั้งหมดไว้ที่ HOLD และใช้ Mock/Synthetic Data เท่านั้นจนกว่าค่าจริงและ clean frozen deployable Candidate จะครบ |
 | ข้อสันนิษฐาน | ไม่มีการยกระดับค่า `SIM-*`, `.example.invalid` หรือ 0 THB ให้เป็นค่าจริง และไม่มีการอนุมาน owner/resource จากข้อมูลจำลอง |
 | คำถามที่ต้องตัดสินใจรอบถัดไป | Owner actual values, governance และ clean Candidate ครบหรือไม่ก่อนจัดทำ External PA-1 Owner Review ฉบับใหม่ |
+
+### Post-decision status update — ไม่เปลี่ยนมติ Owner
+
+ข้อความ “Source ปัจจุบันไม่ตรง local frozen snapshot เดิม” ในเอกสารนี้บันทึก
+ข้อเท็จจริง ณ เวลาที่ Owner ตัดสิน DEC-038 ต่อมา source drift ฝั่ง Local ถูก
+remediated ด้วย Candidate `KDOMS-PC-SIM-20260901-05` แล้ว แต่ Candidate มีสถานะ
+`FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` และ actual values, governance,
+cost ceiling กับ external controls ยังไม่ครบ ดังนั้น External PA-1 ยังคง
+`NO-GO/BLOCKED`; ไม่มี resource, credential หรือ deployment authorization ใหม่
 
 ## 2. หลักฐานที่ใช้ประเมิน
 

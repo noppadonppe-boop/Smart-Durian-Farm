@@ -106,3 +106,8 @@ External PA-1 formal decision: **NO-GO / BLOCKED ตาม DEC-038 เมื่�
 ค่าในแบบฟอร์มนี้ยังเป็น Mock Substitute ทั้งหมดและใช้ปิด prerequisite ไม่ได้
 Source ปัจจุบันไม่ตรง local frozen snapshot เดิม จึงต้องออก clean frozen
 deployable Candidate ใหม่ก่อน Owner Review รอบถัดไป
+
+Post-freeze note 2026-09-01: ข้อความข้างต้นเป็นเงื่อนไข ณ เวลา DEC-038 ปัจจุบัน
+Local source drift ถูก remediated ด้วย Candidate `KDOMS-PC-SIM-20260901-05`
+แต่ Candidate ยังเป็น `FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` และค่าจริง/
+governance/cost/external controls ยังไม่ครบ จึงไม่เปลี่ยน External PA-1 เป็น GO

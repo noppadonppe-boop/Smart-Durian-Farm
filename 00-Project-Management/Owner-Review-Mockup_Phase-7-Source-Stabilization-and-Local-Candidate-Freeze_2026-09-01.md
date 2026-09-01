@@ -2,7 +2,7 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.1 |
+| เวอร์ชัน | 1.2 |
 | สถานะ | Local Scope Executed and Evidence Prepared — Owner Decision Reference Still TBD |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
@@ -10,7 +10,7 @@
 | Approval effect | ไม่มีสิทธิ์ Deploy หรือดำเนิน External Pilot Action |
 | External PA-1 | `NO-GO/BLOCKED` |
 | PA-2 / Controlled Pilot / Production | `NOT APPROVED` |
-| Source of Truth | Current Owner instruction, Phase 7 Plan v2.2, Candidate Manifest v0.9, Local Pilot Readiness Report v1.4, DEC-037, DEC-038, DEC-048, DEC-049 |
+| Source of Truth | Current Owner instruction, Phase 7 Plan v2.3, Candidate Manifest v1.0, Local Pilot Readiness Report v1.5, DEC-037, DEC-038, DEC-048, DEC-049, DEC-050 |
 
 ## 1. ขอบเขตที่เสนอให้ Owner พิจารณา
 
@@ -42,7 +42,7 @@
 | Region | `SIM-REGION-01` |
 | Billing | `DISABLED — SIMULATED` |
 | Cost ceiling | `0 THB — MOCK ONLY; NOT A REAL COST ESTIMATE` |
-| Candidate | `KDOMS-PC-SIM-20260901-04 — FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` |
+| Candidate | `KDOMS-PC-SIM-20260901-05 — FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` |
 | Data | Deterministic `SIMULATED/TEST ONLY` |
 | External actions | `false` |
 | Lifecycle worker | `DRY_RUN only` |
@@ -54,11 +54,11 @@
 
 ## 3. ผล Source Stabilization และเกณฑ์ก่อน Freeze
 
-- [x] Initial CSS 56,239 ≤ 60,000 bytes และ ≤58,000 bytes
+- [x] Initial CSS 56,497 ≤ 60,000 bytes และ ≤58,000 bytes
 - [x] TypeScript strict และ ESLint ผ่าน
 - [x] Unit/component 229/229 ผ่านใน 29 files
-- [x] Firebase Emulator/security 67/67 ผ่านใน 9 files
-- [x] Deterministic seed 148 records ใน 7 modules ผ่าน
+- [x] Firebase Emulator/security 69/69 ผ่านใน 9 files
+- [x] Deterministic seed 161 records ใน 7 modules ผ่าน
 - [x] Cross-Farm disclosure/allow = 0
 - [x] Build/PWA 82 precache entries และ Offline runtime scan 82 files ผ่าน
 - [x] `git diff --check` ผ่าน
@@ -73,14 +73,18 @@
 
 | Field | Value |
 |---|---|
-| Source commit | `483bb4109794ef220fe54aec0a766a7b84f0474a` |
-| Source snapshot SHA-256 | `38191A7C68CC9B5D9E659A85E9CAC5D8F5CA940966AF45D0C53D03766A6F57EA` |
-| Build artifact SHA-256 | `B721DD90634F4A54B0BA678BE454664D98101E48E74B4CA45EF83F357545FD5D` |
+| Source commit | `95f5365e00876fefc427e6d8fd40b1de3deb5809` |
+| Source snapshot SHA-256 | `0B826DE5FE7D673FC7C0BC3AAD93228CE9852EBE38F183A928D481E54A5D9477` |
+| Build artifact SHA-256 | `A571B3A229C17E4F8DED27CAE959ED3D24570B6E010BCE2E0F5AA73463F0E476` |
 | Dependency lock SHA-256 | `399735448A585711372FD5EB3C620B1BF141C10833081C6A296E3606B86C7DF6` |
 
 Source drift เดิมถูกปิดด้วย clean Local Candidate นี้ แต่ไม่ทำให้ Candidate เป็น
 deployable revision และไม่ยกเลิก External PA-1 `NO-GO/BLOCKED` ตาม DEC-038
 เพราะ actual values, governance, cost และ external controls ยังไม่ครบ
+
+Candidate `KDOMS-PC-SIM-20260901-04` คงเป็น historical local evidence และถูก
+Candidate `...-05` แทนหลังรวม DEC-050 Owner-only Financial Data กับการแก้
+Annual Cycle switcher touch target/horizontal overflow; ไม่ใช่การอนุมัติ Deploy
 
 ## 5. Owner Decision
 

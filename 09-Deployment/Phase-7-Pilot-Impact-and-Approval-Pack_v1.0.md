@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 2.0 |
+| เวอร์ชัน | 2.1 |
 | สถานะ | External PA-1 Owner Decision = NO-GO/BLOCKED — No External Action Authorized |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.2, External PA-1 Owner Review Decision v1.2, Source Stabilization Owner Review Mockup v1.1, Candidate Manifest v0.9, Local Pilot Readiness Report v1.4, Development/Mock Data/Pilot Knowledge v1.0.6, Governance Decision Sheet v1.3, DEC-017, DEC-027, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049 |
+| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.3, External PA-1 Owner Review Decision v1.3, Source Stabilization Owner Review Mockup v1.2, Candidate Manifest v1.0, Local Pilot Readiness Report v1.5, Development/Mock Data/Pilot Knowledge v1.0.6, Governance Decision Sheet v1.4, DEC-017, DEC-027, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049, DEC-050 |
 
 ## 1. คำขออนุมัติที่เอกสารนี้รองรับ
 
@@ -102,7 +102,7 @@ Owner เลือกถูกบันทึกไว้ที่
 | Monitoring/alert channel และ retention | `SIM-ALERT-CHANNEL-01 / 30 days — SIMULATED` |
 | Backup destination/key custody | `SIM-BACKUP-STORE-01 / SIM-KEY-CUSTODIAN-01` |
 | Proposed Pilot RPO/RTO/backup retention | `24h / 8h / rolling 30 days — SIMULATED` |
-| Candidate ID | `KDOMS-PC-SIM-20260901-04 — FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` |
+| Candidate ID | `KDOMS-PC-SIM-20260901-05 — FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` |
 | อนุญาต PA-1 Local/Emulator | `APPROVED และ PASSED — DEC-037` |
 | อนุญาต External PA-1/Deployment | `NOT APPROVED` |
 
@@ -112,7 +112,7 @@ Owner local/emulator rehearsal approval status: **APPROVED ตาม DEC-037**
 
 External environment/resource/deployment approval status:
 **NO-GO / BLOCKED ตาม DEC-038** โดยเหตุ Source drift เดิมถูก remediated แล้วด้วย
-clean Local Candidate `KDOMS-PC-SIM-20260901-04` แต่ Candidate นี้ยังระบุชัดว่า
+clean Local Candidate `KDOMS-PC-SIM-20260901-05` แต่ Candidate นี้ยังระบุชัดว่า
 not deployable และ actual provider/region, governance owners/destination/key custody,
 cost ceiling, access/rollback/backup controls และ Owner GO สำหรับ External PA-1
 ยังไม่ครบ การปิด source drift เพียงรายการเดียวไม่ยกเลิก DEC-038
