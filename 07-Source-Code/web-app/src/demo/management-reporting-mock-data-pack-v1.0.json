@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "classification": "SIMULATED/TEST ONLY",
   "resettable": true,
+  "annualPlanFinancials": [],
   "laborCosts": [
     {
       "organizationId": "org_demo_kdoms_01",

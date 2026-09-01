@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { usePhase2 } from '../app/usePhase2'
 import { OrchardTargetSelector } from '../components/OrchardTargetSelector'
 import {
-  canApproveCommercialCorrection,
+  canAccessCommercialFinancialData,
   canManageCommercial,
   canReadCommercial,
   canRecordFruitObservation,
@@ -103,6 +103,8 @@ export function ProductionPage() {
   }
 
   const load = useCallback(async () => {
+    setSnapshot(undefined)
+    setTrees([])
     if (!currentFarm || !canReadCommercial(currentFarm.role)) {
       setLoading(false)
       return
@@ -280,14 +282,16 @@ export function ProductionPage() {
     void submit(() => createSalesLot(idempotency('sale', formSignature(form)), {
       lotCode: formText(form, 'lotCode'),
       soldOn: formText(form, 'soldOn'),
-      customerReference: formText(form, 'customerReference'),
       allocations: [{ harvestLotId: formText(form, 'harvestLotId'), weightKg }],
       quantityFruit: numberOrNull(form, 'quantityFruit'),
       weightKg,
-      unitPriceBahtPerKg: Number(formText(form, 'unitPriceBahtPerKg')),
-      depositBaht: Number(formText(form, 'depositBaht')),
-      receivedBaht: Number(formText(form, 'receivedBaht')),
       note: formText(form, 'note'),
+      ...(canAccessCommercialFinancialData(currentFarm) ? { financial: {
+        customerReference: formText(form, 'customerReference'),
+        unitPriceBahtPerKg: Number(formText(form, 'unitPriceBahtPerKg')),
+        depositBaht: Number(formText(form, 'depositBaht')),
+        receivedBaht: Number(formText(form, 'receivedBaht')),
+      } } : {}),
     }), 'สร้าง Sales Lot จำลองแล้วและเชื่อม Traceability แล้ว')
   }
 
@@ -317,11 +321,11 @@ export function ProductionPage() {
           <article><small>Crop Cycle</small><strong>{snapshot.cropCycles.filter((item) => item.status === 'ACTIVE').length}</strong><span>รอบที่ใช้งาน</span></article>
           <article><small>Harvest</small><strong>{snapshot.harvestLots.length}</strong><span>ล็อต</span></article>
           <article><small>Sales</small><strong>{snapshot.salesLots.filter((item) => item.status !== 'ARCHIVED').length}</strong><span>ล็อต</span></article>
-          <article><small>ค้างรับ</small><strong>{snapshot.salesLots.reduce((sum, item) => sum + item.outstandingBaht, 0).toLocaleString('th-TH')}</strong><span>บาท · ไม่ใช่บัญชี</span></article>
+          {canAccessCommercialFinancialData(currentFarm) && snapshot.financial ? <article><small>ค้างรับ</small><strong>{snapshot.financial.salesLots.reduce((sum, item) => sum + item.outstandingBaht, 0).toLocaleString('th-TH')}</strong><span>บาท · Owner only · ไม่ใช่บัญชี</span></article> : null}
         </div>
 
         <section className="commercial-section" aria-labelledby="trace-title">
-          <div className="section-heading"><div><span className="status-pill">End-to-end trace</span><h2 id="trace-title">เส้นทางจากต้นถึงล็อตขาย</h2></div><Link to="/inventory">เปิดสต็อกและต้นทุนตรง</Link></div>
+          <div className="section-heading"><div><span className="status-pill">End-to-end trace</span><h2 id="trace-title">เส้นทางจากต้นถึงล็อตขาย</h2></div><Link to="/inventory">{canAccessCommercialFinancialData(currentFarm) ? 'เปิดสต็อกและต้นทุนตรง' : 'เปิดสต็อกวัสดุ'}</Link></div>
           <div className="trace-list">
             {snapshot.traceability.map((row) => <article key={`${row.salesLotId}:${row.harvestLotId}`} className="trace-card">
               <div><small>Sales Lot</small><strong>{row.salesLotCode}</strong></div><span aria-hidden="true">→</span>
@@ -365,16 +369,21 @@ export function ProductionPage() {
           <div className="section-heading"><div><span className="status-pill">Lots</span><h2 id="lot-title">Harvest และ Sales Lots</h2></div></div>
           <div className="commercial-card-grid">{snapshot.harvestLots.map((lot) => <article className="commercial-card" key={lot.harvestLotId}>
             <small>Harvest · {lot.status}</small><h3>{lot.lotCode}</h3><strong>{lot.totalWeightKg ?? 'UNKNOWN'} kg</strong><p>ขายแล้ว {lot.soldWeightKg} kg · {valueQualityLabels[lot.valueQuality]}</p>
-          </article>)}{snapshot.salesLots.map((lot) => <article className="commercial-card" key={lot.salesLotId}>
-            <small>Sales · {lot.status}</small><h3>{lot.lotCode}</h3><strong>{lot.weightKg} kg · {lot.grossAmountBaht.toLocaleString('th-TH')} บาท</strong><p>{lot.customerReference} · ค้าง {lot.outstandingBaht.toLocaleString('th-TH')} บาท</p>
-            {canApproveCommercialCorrection(currentFarm.role) && lot.status !== 'ARCHIVED' ? <details><summary>แก้ยอดด้วย Correction Event</summary><form className="compact-form" onSubmit={(event) => onCorrection(event, lot.salesLotId, lot.weightKg)}>
-              <label>ราคาต่อ kg<input name="unitPriceBahtPerKg" type="number" min="0" step="0.01" defaultValue={lot.unitPriceBahtPerKg} /></label>
-              <label>มัดจำ<input name="depositBaht" type="number" min="0" step="0.01" defaultValue={lot.depositBaht} /></label>
-              <label>รับแล้ว<input name="receivedBaht" type="number" min="0" step="0.01" defaultValue={lot.receivedBaht} /></label>
+          </article>)}{snapshot.salesLots.map((lot) => {
+            const financial = canAccessCommercialFinancialData(currentFarm)
+              ? snapshot.financial?.salesLots.find((record) => record.salesLotId === lot.salesLotId)
+              : undefined
+            return <article className="commercial-card" key={lot.salesLotId}>
+            <small>Sales · {lot.status}</small><h3>{lot.lotCode}</h3><strong>{lot.weightKg} kg</strong>
+            {financial ? <p>{financial.customerReference} · ยอด {financial.grossAmountBaht.toLocaleString('th-TH')} · ค้าง {financial.outstandingBaht.toLocaleString('th-TH')} บาท · {financial.paymentStatus}</p> : <p>ข้อมูลล็อตเชิงปฏิบัติการ · ไม่แสดงข้อมูลการเงิน</p>}
+            {financial && canAccessCommercialFinancialData(currentFarm) && lot.status !== 'ARCHIVED' ? <details><summary>แก้ยอดด้วย Correction Event</summary><form className="compact-form" onSubmit={(event) => onCorrection(event, lot.salesLotId, lot.weightKg)}>
+              <label>ราคาต่อ kg<input name="unitPriceBahtPerKg" type="number" min="0" step="0.01" defaultValue={financial.unitPriceBahtPerKg} /></label>
+              <label>มัดจำ<input name="depositBaht" type="number" min="0" step="0.01" defaultValue={financial.depositBaht} /></label>
+              <label>รับแล้ว<input name="receivedBaht" type="number" min="0" step="0.01" defaultValue={financial.receivedBaht} /></label>
               <label>เหตุผล<textarea name="reason" required defaultValue="SIMULATED/TEST ONLY — correction review" /></label>
               <button className="primary-action" disabled={submitting} type="submit">บันทึก Correction</button>
             </form></details> : null}
-          </article>)}</div>
+          </article>})}</div>
         </section>
 
         {canRecordFruitObservation(currentFarm.role) ? <section className="commercial-form-stack" aria-label="ฟอร์ม Crop Cycle และ Fruit Observation">
@@ -467,12 +476,14 @@ export function ProductionPage() {
             <label>Harvest Lot<select name="harvestLotId" defaultValue={availableHarvests[0]?.harvestLotId}>{availableHarvests.map((lot) => <option key={lot.harvestLotId} value={lot.harvestLotId}>{lot.lotCode} · เหลือ {(lot.totalWeightKg ?? 0) - lot.soldWeightKg} kg</option>)}</select></label>
             <label>รหัส Sales Lot<input name="lotCode" required defaultValue={`S-${currentFarm.farmCode}-DEMO-02`} /></label>
             <label>วันที่ขาย<input name="soldOn" type="date" required defaultValue="2026-08-31" /></label>
-            <label>Customer reference<input name="customerReference" required defaultValue="BUYER-DEMO-002" /></label>
             <label>จำนวนผล<input name="quantityFruit" type="number" min="0" defaultValue="20" /></label>
             <label>น้ำหนัก kg<input name="weightKg" type="number" min="0.001" step="0.001" required defaultValue="50" /></label>
-            <label>บาท/kg<input name="unitPriceBahtPerKg" type="number" min="0" step="0.01" required defaultValue="150" /></label>
-            <label>มัดจำ<input name="depositBaht" type="number" min="0" step="0.01" required defaultValue="1000" /></label>
-            <label>รับแล้ว<input name="receivedBaht" type="number" min="0" step="0.01" required defaultValue="0" /></label>
+            {canAccessCommercialFinancialData(currentFarm) ? <>
+              <label>Customer reference<input name="customerReference" required defaultValue="BUYER-DEMO-002" /></label>
+              <label>บาท/kg<input name="unitPriceBahtPerKg" type="number" min="0" step="0.01" required defaultValue="150" /></label>
+              <label>มัดจำ<input name="depositBaht" type="number" min="0" step="0.01" required defaultValue="1000" /></label>
+              <label>รับแล้ว<input name="receivedBaht" type="number" min="0" step="0.01" required defaultValue="0" /></label>
+            </> : <p className="span-full">บันทึกเฉพาะข้อมูลล็อตเชิงปฏิบัติการ; ราคาและการรับเงินให้เจ้าขององค์กรบันทึก</p>}
             <label className="span-full">หมายเหตุ<input name="note" defaultValue="SIMULATED/TEST ONLY — customer reference only" /></label>
             <button className="primary-action span-full" type="submit" disabled={submitting || availableHarvests.length === 0}>สร้าง Sales Lot</button>
           </form></details>

@@ -42,6 +42,8 @@ describe('MockCommercialTraceabilityRepository', () => {
     expect(north.traceability[0]).toMatchObject({
       salesLotCode: 'S-DEMO-N-001', harvestLotCode: 'H-DEMO-N-001', cropCycleCode: 'CROP-DEMO-N-2026-01',
     })
+    expect(north.financial).toBeNull()
+    expect((await repository.listSnapshot(context('ORG_OWNER'))).financial?.salesLots).toHaveLength(1)
     const south = await repository.listSnapshot(context('FARM_MANAGER', 'farm_demo_south_02'))
     expect(south.salesLots).toHaveLength(0)
     expect(south.harvestLots).toHaveLength(1)
@@ -74,27 +76,21 @@ describe('MockCommercialTraceabilityRepository', () => {
     const salesContext = context('SALES_INVENTORY')
     const first = await repository.createSalesLot(salesContext, 'sale-once', {
       lotCode: 'S-DEMO-N-002',
-      customerReference: 'BUYER-DEMO-002',
       allocations: [{ harvestLotId: 'harvest_demo_north_001', weightKg: 40 }],
       quantityFruit: 16,
       weightKg: 40,
-      unitPriceBahtPerKg: 150,
-      depositBaht: 1000,
-      receivedBaht: 0,
       note: 'SIMULATED/TEST ONLY',
     })
     const retry = await repository.createSalesLot(salesContext, 'sale-once', {
-      lotCode: 'IGNORED-BY-IDEMPOTENCY', customerReference: 'BUYER-DEMO-999',
+      lotCode: 'IGNORED-BY-IDEMPOTENCY',
       allocations: [{ harvestLotId: 'harvest_demo_north_001', weightKg: 1 }],
-      quantityFruit: null, weightKg: 1, unitPriceBahtPerKg: 1, depositBaht: 0,
-      receivedBaht: 0, note: '',
+      quantityFruit: null, weightKg: 1, note: '',
     })
     expect(retry.salesLotId).toBe(first.salesLotId)
     await expect(repository.createSalesLot(salesContext, 'cross-farm-sale', {
-      lotCode: 'S-CROSS', customerReference: 'BUYER-DEMO-CROSS',
+      lotCode: 'S-CROSS',
       allocations: [{ harvestLotId: 'harvest_demo_south_001', weightKg: 10 }],
-      quantityFruit: null, weightKg: 10, unitPriceBahtPerKg: 100, depositBaht: 0,
-      receivedBaht: 0, note: '',
+      quantityFruit: null, weightKg: 10, note: '',
     })).rejects.toThrow('ข้ามสวน')
   })
 
@@ -109,7 +105,6 @@ describe('MockCommercialTraceabilityRepository', () => {
       reason: 'SIMULATED/TEST ONLY — issue',
       referenceType: 'WORK_ORDER' as const,
       referenceId: 'work_demo_tree_000001',
-      directUnitCostBaht: 12,
     }
     const first = await repository.recordInventoryMovement(salesContext, 'issue-once', input)
     const retry = await repository.recordInventoryMovement(salesContext, 'issue-once', input)
@@ -125,9 +120,17 @@ describe('MockCommercialTraceabilityRepository', () => {
     })).rejects.toThrow('Owner/Manager')
   })
 
-  it('requires manager approval for correction and archives records append-only', async () => {
+  it('allows only the organization owner to read and correct financial records', async () => {
     const manager = context('FARM_MANAGER')
-    const corrected = await repository.correctSalesLot(manager, 'sales_demo_north_001', 'correct-once', {
+    await expect(repository.correctSalesLot(manager, 'sales_demo_north_001', 'manager-denied', {
+      weightKg: 180,
+      unitPriceBahtPerKg: 150,
+      depositBaht: 5000,
+      receivedBaht: 12000,
+      reason: 'must be denied',
+    })).rejects.toThrow('เฉพาะเจ้าขององค์กร')
+    const owner = context('ORG_OWNER')
+    const corrected = await repository.correctSalesLot(owner, 'sales_demo_north_001', 'correct-once', {
       weightKg: 180,
       unitPriceBahtPerKg: 150,
       depositBaht: 5000,
@@ -135,11 +138,11 @@ describe('MockCommercialTraceabilityRepository', () => {
       reason: 'SIMULATED/TEST ONLY — correction evidence',
     })
     expect(corrected.version).toBe(2)
-    expect(corrected.audit[0]!.eventType).toBe('CORRECTED')
     await expect(repository.correctSalesLot(context('SALES_INVENTORY'), corrected.salesLotId, 'blocked', {
       weightKg: 180, unitPriceBahtPerKg: 150, depositBaht: 5000,
       receivedBaht: 12000, reason: 'blocked',
-    })).rejects.toThrow('Owner/Manager')
+    })).rejects.toThrow('เฉพาะเจ้าขององค์กร')
+    expect((await repository.listSnapshot(owner)).financial?.audit[0]?.eventType).toBe('CORRECTED')
     const archived = await repository.archiveSalesLot(manager, corrected.salesLotId, 'archive-once', 'SIMULATED reason')
     expect(archived.status).toBe('ARCHIVED')
     expect(archived.audit[0]!.eventType).toBe('ARCHIVED')
@@ -150,7 +153,7 @@ describe('MockCommercialTraceabilityRepository', () => {
     await repository.recordInventoryMovement(manager, 'receipt', {
       itemId: 'inventory_item_demo_north_002', lotId: 'inventory_lot_demo_north_002',
       movementType: 'RECEIPT', quantity: 25, unit: 'piece', reason: 'SIMULATED receipt',
-      referenceType: 'PURCHASE_REFERENCE', referenceId: 'PURCHASE-DEMO-RESET', directUnitCostBaht: null,
+      referenceType: 'PURCHASE_REFERENCE', referenceId: 'PURCHASE-DEMO-RESET',
     })
     expect((await repository.listSnapshot(manager)).inventoryMovements).toHaveLength(4)
     await repository.resetMockPack()

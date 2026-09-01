@@ -9,6 +9,7 @@ import {
   type CommercialSnapshot,
   type InventoryMovementType,
 } from '../domain/commercialTraceability'
+import { canAccessFinancialData } from '../domain/farm'
 import { PageHeader } from './PageHeader'
 
 function formText(form: FormData, name: string): string {
@@ -28,6 +29,7 @@ export function InventoryPage() {
   const idempotencyKeys = useRef(new Map<string, string>())
 
   const load = useCallback(async () => {
+    setSnapshot(undefined)
     if (!currentFarm || !canReadCommercial(currentFarm.role)) return
     try { setSnapshot(await listCommercialSnapshot()) } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'อ่านสต็อกไม่สำเร็จ')
@@ -67,7 +69,11 @@ export function InventoryPage() {
         reason: formText(form, 'reason'),
         referenceType: formText(form, 'referenceType') as 'PURCHASE_REFERENCE' | 'WORK_ORDER' | 'CARE_EVENT' | 'COUNT_CORRECTION',
         referenceId: formText(form, 'referenceId'),
-        directUnitCostBaht: formText(form, 'directUnitCostBaht').trim() ? Number(formText(form, 'directUnitCostBaht')) : null,
+        ...(canAccessFinancialData(currentFarm) ? { financial: {
+          directUnitCostBaht: formText(form, 'directUnitCostBaht').trim()
+            ? Number(formText(form, 'directUnitCostBaht'))
+            : null,
+        } } : {}),
       })
       setMessage('บันทึก Inventory Movement และ Audit แล้ว')
       await load()
@@ -105,8 +111,10 @@ export function InventoryPage() {
       <div className="commercial-metrics">
         <article><small>รายการวัสดุ</small><strong>{snapshot.inventoryItems.length}</strong><span>Item</span></article>
         <article><small>แจ้งเตือน</small><strong>{snapshot.alerts.length}</strong><span>Low stock/Expiry</span></article>
-        <article><small>ต้นทุนเบิกใช้</small><strong>{snapshot.directCostSummary.totalIssuedCostBaht.toLocaleString('th-TH')}</strong><span>บาท · เท่าที่มีข้อมูล</span></article>
-        <article><small>ไม่ทราบต้นทุน</small><strong>{snapshot.directCostSummary.unknownCostMovementCount}</strong><span>Movement</span></article>
+        {canAccessFinancialData(currentFarm) && snapshot.financial ? <>
+          <article><small>ต้นทุนเบิกใช้</small><strong>{snapshot.financial.directCostSummary.totalIssuedCostBaht.toLocaleString('th-TH')}</strong><span>บาท · Owner only</span></article>
+          <article><small>ไม่ทราบต้นทุน</small><strong>{snapshot.financial.directCostSummary.unknownCostMovementCount}</strong><span>Movement</span></article>
+        </> : null}
       </div>
       <section className="commercial-section"><div className="section-heading"><div><span className="status-pill">Alerts</span><h2>เตือนสต็อกต่ำและใกล้หมดอายุ</h2></div><Link to="/production">กลับ Traceability</Link></div>
         <div className="alert-grid">{snapshot.alerts.map((alert) => <article className={`inventory-alert inventory-alert--${alert.kind.toLowerCase()}`} key={alert.alertId}><strong>{alert.title}</strong><p>{alert.description}</p></article>)}{snapshot.alerts.length === 0 ? <p>ไม่มีรายการเตือน</p> : null}</div>
@@ -118,7 +126,12 @@ export function InventoryPage() {
         })}</article>)}</div>
       </section>
       <section className="commercial-section"><div className="section-heading"><div><span className="status-pill">Movement history</span><h2>ประวัติรับ–เบิก–ปรับยอด</h2></div></div>
-        <div className="movement-list">{snapshot.inventoryMovements.map((movement) => <article key={movement.movementId}><span className={`movement-sign movement-sign--${movement.quantityDelta < 0 ? 'out' : 'in'}`}>{movement.quantityDelta > 0 ? '+' : ''}{movement.quantityDelta}</span><div><strong>{movement.movementType} · {movement.unit}</strong><p>{movement.reason}</p><small>{movement.referenceType}: {movement.referenceId} · ต้นทุน {movement.directCostBaht?.toLocaleString('th-TH') ?? 'UNKNOWN'} บาท</small></div></article>)}</div>
+        <div className="movement-list">{snapshot.inventoryMovements.map((movement) => {
+          const financial = canAccessFinancialData(currentFarm)
+            ? snapshot.financial?.inventoryMovements.find((record) => record.movementId === movement.movementId)
+            : undefined
+          return <article key={movement.movementId}><span className={`movement-sign movement-sign--${movement.quantityDelta < 0 ? 'out' : 'in'}`}>{movement.quantityDelta > 0 ? '+' : ''}{movement.quantityDelta}</span><div><strong>{movement.movementType} · {movement.unit}</strong><p>{movement.reason}</p><small>{movement.referenceType}: {movement.referenceId}{financial ? ` · ต้นทุน ${financial.directCostBaht?.toLocaleString('th-TH') ?? 'UNKNOWN'} บาท` : ''}</small></div></article>
+        })}</div>
       </section>
       {canManageCommercial(currentFarm.role) && selectedItem && selectedLot ? <details className="inventory-form-panel" open><summary>+ บันทึก Inventory Movement</summary><form className="commercial-form" onSubmit={(event) => { void onMovement(event) }}>
         <label>Item<select name="itemId" value={selectedItem.itemId} onChange={(event) => selectItem(event.target.value)}>{activeItems.map((item) => <option value={item.itemId} key={item.itemId}>{item.itemCode} · {item.name}</option>)}</select></label>
@@ -129,7 +142,7 @@ export function InventoryPage() {
         <label>หน่วย<input name="unit" readOnly value={selectedItem.baseUnit} /><small>กำหนดจากหน่วยฐานของ Item เพื่อไม่คาดเดาการแปลง</small></label>
         <label>Reference type<select name="referenceType" defaultValue="WORK_ORDER"><option value="PURCHASE_REFERENCE">เอกสารรับเข้า</option><option value="WORK_ORDER">Work Order</option><option value="CARE_EVENT">Care Event</option>{canApproveCommercialCorrection(currentFarm.role) ? <option value="COUNT_CORRECTION">ตรวจนับ/Correction</option> : null}</select></label>
         <label>Reference ID<input name="referenceId" required defaultValue="work_demo_tree_000001" /></label>
-        <label>ต้นทุนต่อหน่วย (บาท)<input name="directUnitCostBaht" type="number" min="0" step="0.01" defaultValue="42.5" /></label>
+        {canAccessFinancialData(currentFarm) ? <label>ต้นทุนต่อหน่วย (บาท)<input name="directUnitCostBaht" type="number" min="0" step="0.01" defaultValue="42.5" /><small>Owner only</small></label> : null}
         <label className="span-full">เหตุผล<input name="reason" required defaultValue="SIMULATED/TEST ONLY — เบิกใช้กับงานจำลอง" /></label>
         <button className="primary-action span-full" disabled={saving} type="submit">{saving ? 'กำลังบันทึก…' : 'บันทึก Movement'}</button>
       </form></details> : null}

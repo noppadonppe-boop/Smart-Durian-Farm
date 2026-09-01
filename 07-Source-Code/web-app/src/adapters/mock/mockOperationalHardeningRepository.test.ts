@@ -45,6 +45,7 @@ describe('MockOperationalHardeningRepository', () => {
     expect(worker.snapshot.farmCode).toBe('DEMO-F01')
     expect(worker.visibility.work).toBe(true)
     expect(worker.visibility.sales).toBe(false)
+    expect(worker.financial).toBeNull()
   })
 
   it('excludes an unauthorized farm from Portfolio aggregation', async () => {
@@ -53,7 +54,7 @@ describe('MockOperationalHardeningRepository', () => {
       access({ farmId: 'farm_demo_south_02', farmCode: 'DEMO-F02', role: 'FARM_MANAGER' }),
     ])
     expect(portfolio.farmCount).toBe(2)
-    expect(portfolio.farms.map((farm) => farm.farmCode)).not.toContain('DEMO-F99')
+    expect(portfolio.farms.map((farm) => farm.snapshot.farmCode)).not.toContain('DEMO-F99')
     expect(portfolio.totals.urgentDiseaseCount).toBe(3)
   })
 

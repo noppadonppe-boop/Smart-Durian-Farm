@@ -72,7 +72,6 @@ describe('Annual Farm Management Cycle', () => {
       responsibleRole: 'FARM_MANAGER',
       plannedQuantity: null,
       plannedUnit: '',
-      plannedDirectCostBaht: null,
       notes: 'SIMULATED/TEST ONLY',
     }, cycle).target.scope).toBe('ZONE')
 
@@ -88,7 +87,6 @@ describe('Annual Farm Management Cycle', () => {
       responsibleRole: 'FARM_MANAGER',
       plannedQuantity: null,
       plannedUnit: '',
-      plannedDirectCostBaht: null,
       notes: '',
     }, cycle)).toThrow('ต้องมี Position')
   })

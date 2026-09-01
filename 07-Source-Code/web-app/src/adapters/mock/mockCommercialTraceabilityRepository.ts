@@ -8,6 +8,7 @@ import {
   calculateDirectCostSummary,
   calculateInventoryBalances,
   calculateSaleAmounts,
+  canAccessCommercialFinancialData,
   canApproveCommercialCorrection,
   canManageCommercial,
   canReadCommercial,
@@ -21,6 +22,7 @@ import {
   validateSalesLot,
   type CommercialAlert,
   type CommercialAuditEvent,
+  type CommercialFinancialAuditEvent,
   type CommercialMutationContext,
   type CommercialSnapshot,
   type CropCycleRecord,
@@ -32,9 +34,11 @@ import {
   type HarvestLotRecord,
   type InventoryItemRecord,
   type InventoryMovementInput,
+  type InventoryMovementFinancialRecord,
   type InventoryMovementRecord,
   type SalesCorrectionInput,
   type SalesLotDraft,
+  type SalesLotFinancialRecord,
   type SalesLotRecord,
 } from '../../domain/commercialTraceability'
 
@@ -43,8 +47,10 @@ interface Phase5PackShape {
   fruitObservations: FruitObservationRecord[]
   harvestLots: HarvestLotRecord[]
   salesLots: SalesLotRecord[]
+  salesFinancials: SalesLotFinancialRecord[]
   inventoryItems: InventoryItemRecord[]
   inventoryMovements: InventoryMovementRecord[]
+  inventoryMovementFinancials: InventoryMovementFinancialRecord[]
 }
 
 const fixedTimeLabel = '31 ส.ค. 2569 · เวลาจำลองคงที่'
@@ -88,12 +94,42 @@ function auditEvent(
   }
 }
 
+function financialAuditEvent(
+  context: CommercialMutationContext,
+  recordKind: CommercialFinancialAuditEvent['recordKind'],
+  recordId: string,
+  eventType: CommercialFinancialAuditEvent['eventType'],
+  reason: string,
+  beforeSummary: string,
+  afterSummary: string,
+  recordVersion: number,
+  amountBaht: number | null,
+): CommercialFinancialAuditEvent {
+  return {
+    ...auditEvent(
+      context,
+      recordKind,
+      recordId,
+      eventType,
+      reason,
+      beforeSummary,
+      afterSummary,
+      recordVersion,
+    ),
+    organizationId: context.farm.organizationId,
+    farmId: context.farm.farmId,
+    amountBaht,
+    exampleData: true,
+  }
+}
+
 export class MockCommercialTraceabilityRepository implements CommercialTraceabilityRepository {
   constructor(private readonly annualCycleRepository?: AnnualCycleRepository) {}
 
   private pack = clonePack()
   private readonly completedOperations = new Map<string, unknown>()
   private audit: CommercialAuditEvent[] = []
+  private financialAudit: CommercialFinancialAuditEvent[] = []
 
   private recordsForFarm<T extends { organizationId: string; farmId: string }>(
     context: CommercialMutationContext,
@@ -179,6 +215,19 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     if (inventoryBalances.some((balance) => balance.balance < 0)) {
       throw new Error('Critical: พบยอดสต็อกติดลบใน Mock Data Pack')
     }
+    const financial = canAccessCommercialFinancialData(context.farm) ? {
+      salesLots: this.pack.salesFinancials.filter((record) =>
+        record.organizationId === context.farm.organizationId && record.farmId === context.farm.farmId),
+      inventoryMovements: this.pack.inventoryMovementFinancials.filter((record) =>
+        record.organizationId === context.farm.organizationId && record.farmId === context.farm.farmId),
+      directCostSummary: calculateDirectCostSummary(
+        inventoryMovements,
+        this.pack.inventoryMovementFinancials.filter((record) =>
+          record.organizationId === context.farm.organizationId && record.farmId === context.farm.farmId),
+      ),
+      audit: this.financialAudit.filter((event) =>
+        event.organizationId === context.farm.organizationId && event.farmId === context.farm.farmId),
+    } : null
     return Promise.resolve(copy({
       cropCycles,
       fruitObservations,
@@ -188,7 +237,7 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
       inventoryMovements,
       inventoryBalances,
       alerts: this.alertsFor(inventoryItems, inventoryBalances),
-      directCostSummary: calculateDirectCostSummary(inventoryMovements),
+      financial,
       traceability: buildTraceability(cropCycles, harvestLots, salesLots),
     }))
   }
@@ -374,15 +423,16 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
       item.organizationId === context.farm.organizationId && item.farmId === context.farm.farmId &&
       item.lotCode.toUpperCase() === validated.lotCode.toUpperCase())
     if (duplicateCode) throw new Error('รหัส Sales Lot ซ้ำในสวนนี้')
-    const amount = calculateSaleAmounts(
-      validated.weightKg, validated.unitPriceBahtPerKg, validated.depositBaht, validated.receivedBaht,
-    )
+    if (validated.financial && !canAccessCommercialFinancialData(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
+    }
+    const { financial: financialDraft, ...operationalDraft } = validated
     const record: SalesLotRecord = {
-      ...validated,
-      ...amount,
+      ...operationalDraft,
       organizationId: context.farm.organizationId,
       farmId: context.farm.farmId,
       salesLotId: createCommercialRecordId('sales'),
+      status: 'CONFIRMED',
       actorUserId: context.actor.userId,
       createdAtLabel: fixedTimeLabel,
       version: 1,
@@ -390,8 +440,39 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
       audit: [],
     }
     const event = auditEvent(context, 'SALES_LOT', record.salesLotId, 'CREATED',
-      'Customer reference only', '', `${record.grossAmountBaht} THB`, 1)
+      record.note, '', `${record.weightKg} kg`, 1)
     record.audit = [event]
+    if (financialDraft) {
+      const amount = calculateSaleAmounts(
+        record.weightKg,
+        financialDraft.unitPriceBahtPerKg,
+        financialDraft.depositBaht,
+        financialDraft.receivedBaht,
+      )
+      const financialRecord: SalesLotFinancialRecord = {
+        ...financialDraft,
+        ...amount,
+        organizationId: context.farm.organizationId,
+        farmId: context.farm.farmId,
+        salesLotId: record.salesLotId,
+        actorUserId: context.actor.userId,
+        createdAtLabel: fixedTimeLabel,
+        version: 1,
+        exampleData: true,
+      }
+      this.pack.salesFinancials.unshift(financialRecord)
+      this.financialAudit.unshift(financialAuditEvent(
+        context,
+        'SALES_LOT',
+        record.salesLotId,
+        'CREATED',
+        'Owner-only sale financial record',
+        '',
+        `${financialRecord.grossAmountBaht} THB`,
+        1,
+        financialRecord.grossAmountBaht,
+      ))
+    }
     harvests.forEach(({ allocation, harvest }) => {
       harvest.soldWeightKg = roundQuantity(harvest.soldWeightKg + allocation.weightKg)
       harvest.version += 1
@@ -407,11 +488,11 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     salesLotId: string,
     idempotencyKey: string,
     input: SalesCorrectionInput,
-  ): Promise<SalesLotRecord> {
-    const existing = this.existingOperation<SalesLotRecord>(context, idempotencyKey)
+  ): Promise<SalesLotFinancialRecord> {
+    const existing = this.existingOperation<SalesLotFinancialRecord>(context, idempotencyKey)
     if (existing) return Promise.resolve(existing)
-    if (!canApproveCommercialCorrection(context.farm.role)) {
-      throw new Error('Sales correction ต้องให้ Owner/Manager ดำเนินการตาม conservative policy')
+    if (!canAccessCommercialFinancialData(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
     }
     const record = this.requiredFarmRecord(
       context, this.pack.salesLots, (item) => item.salesLotId === salesLotId, ' Sales Lot',
@@ -421,23 +502,35 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     if (roundQuantity(input.weightKg) !== record.weightKg) {
       throw new Error('การแก้น้ำหนักต้องสร้าง correction allocation แยก; รอบนี้แก้ได้เฉพาะยอดเงิน')
     }
-    const before = `${record.unitPriceBahtPerKg}/${record.depositBaht}/${record.receivedBaht}`
+    const financialRecord = this.requiredFarmRecord(
+      context,
+      this.pack.salesFinancials,
+      (item) => item.salesLotId === salesLotId,
+      ' Owner-only Sales Financial Record',
+    )
+    const before = `${financialRecord.unitPriceBahtPerKg}/${financialRecord.depositBaht}/${financialRecord.receivedBaht}`
     const amount = calculateSaleAmounts(
       input.weightKg, input.unitPriceBahtPerKg, input.depositBaht, input.receivedBaht,
     )
-    record.unitPriceBahtPerKg = input.unitPriceBahtPerKg
-    record.depositBaht = input.depositBaht
-    record.receivedBaht = input.receivedBaht
-    record.grossAmountBaht = amount.grossAmountBaht
-    record.outstandingBaht = amount.outstandingBaht
-    record.status = amount.status
-    record.version += 1
-    const event = auditEvent(context, 'SALES_LOT', record.salesLotId, 'CORRECTED',
-      input.reason.trim(), before, `${record.unitPriceBahtPerKg}/${record.depositBaht}/${record.receivedBaht}`,
-      record.version)
-    record.audit = [event, ...record.audit]
-    this.audit.unshift(event)
-    return Promise.resolve(this.completeOperation(context, idempotencyKey, record))
+    financialRecord.unitPriceBahtPerKg = input.unitPriceBahtPerKg
+    financialRecord.depositBaht = input.depositBaht
+    financialRecord.receivedBaht = input.receivedBaht
+    financialRecord.grossAmountBaht = amount.grossAmountBaht
+    financialRecord.outstandingBaht = amount.outstandingBaht
+    financialRecord.paymentStatus = amount.paymentStatus
+    financialRecord.version += 1
+    this.financialAudit.unshift(financialAuditEvent(
+      context,
+      'SALES_LOT',
+      record.salesLotId,
+      'CORRECTED',
+      input.reason.trim(),
+      before,
+      `${financialRecord.unitPriceBahtPerKg}/${financialRecord.depositBaht}/${financialRecord.receivedBaht}`,
+      financialRecord.version,
+      financialRecord.grossAmountBaht,
+    ))
+    return Promise.resolve(this.completeOperation(context, idempotencyKey, financialRecord))
   }
 
   async archiveSalesLot(
@@ -491,6 +584,9 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     )
     if (item.status === 'ARCHIVED') throw new Error('ไม่อนุญาตเคลื่อนไหว Item ที่ Archive แล้ว')
     const validated = validateInventoryMovement(item, input)
+    if (validated.financial && !canAccessCommercialFinancialData(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
+    }
     const currentBalances = calculateInventoryBalances(
       [item],
       this.recordsForFarm(context, this.pack.inventoryMovements).filter((movement) => movement.itemId === item.itemId),
@@ -499,8 +595,9 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     if (roundQuantity(current + validated.quantityDelta) < 0) {
       throw new Error('นโยบาย Phase 5 ปฏิเสธสต็อกติดลบ')
     }
+    const { financial: financialDraft, ...operationalInput } = validated
     const record: InventoryMovementRecord = {
-      ...validated,
+      ...operationalInput,
       organizationId: context.farm.organizationId,
       farmId: context.farm.farmId,
       movementId: createCommercialRecordId('inventory_move'),
@@ -513,6 +610,33 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     const event = auditEvent(context, 'INVENTORY_MOVEMENT', record.movementId, 'STOCK_RECORDED',
       record.reason, `${current} ${record.unit}`, `${roundQuantity(current + record.quantityDelta)} ${record.unit}`, 1)
     record.audit = [event]
+    if (financialDraft) {
+      const financialRecord: InventoryMovementFinancialRecord = {
+        ...financialDraft,
+        organizationId: context.farm.organizationId,
+        farmId: context.farm.farmId,
+        movementId: record.movementId,
+        directCostBaht: financialDraft.directUnitCostBaht === null
+          ? null
+          : Math.round((Math.abs(record.quantityDelta) * financialDraft.directUnitCostBaht + Number.EPSILON) * 100) / 100,
+        actorUserId: context.actor.userId,
+        createdAtLabel: fixedTimeLabel,
+        version: 1,
+        exampleData: true,
+      }
+      this.pack.inventoryMovementFinancials.unshift(financialRecord)
+      this.financialAudit.unshift(financialAuditEvent(
+        context,
+        'INVENTORY_MOVEMENT',
+        record.movementId,
+        'STOCK_RECORDED',
+        'Owner-only inventory cost record',
+        '',
+        `${financialRecord.directCostBaht ?? 'UNKNOWN'} THB`,
+        1,
+        financialRecord.directCostBaht,
+      ))
+    }
     this.audit.unshift(event)
     this.pack.inventoryMovements.unshift(record)
     return Promise.resolve(this.completeOperation(context, idempotencyKey, record))
@@ -541,6 +665,7 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     this.pack = clonePack()
     this.completedOperations.clear()
     this.audit = []
+    this.financialAudit = []
     return Promise.resolve()
   }
 }

@@ -77,7 +77,7 @@ export function ManagementReportsPage() {
   }, [anchorDate, selectedCycle])
 
   const load = useCallback(async () => {
-    if (!currentFarm || !identity || !selectedCycle || !canViewManagementReports(currentFarm.role)) return
+    if (!currentFarm || !identity || !selectedCycle || !canViewManagementReports(currentFarm)) return
     setLoading(true)
     setError(undefined)
     try {
@@ -96,7 +96,7 @@ export function ManagementReportsPage() {
   }, [load])
 
   if (!currentFarm || !identity) return null
-  if (!canViewManagementReports(currentFarm.role)) {
+  if (!canViewManagementReports(currentFarm)) {
     return <section className="page-stack"><PageHeader eyebrow="Access denied" title="รายงานการจัดการสวน" description="บทบาทปัจจุบันไม่มีสิทธิ์ดูข้อมูลต้นทุนและรายงานระดับสวน" /></section>
   }
 
@@ -156,7 +156,7 @@ export function ManagementReportsPage() {
   }
 
   const downloadCsv = () => {
-    if (!report || !canExportManagementReport(currentFarm.role)) return
+    if (!report || !canExportManagementReport(currentFarm)) return
     const blob = new Blob([createManagementReportCsv(report)], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -205,7 +205,7 @@ export function ManagementReportsPage() {
 
     {report ? <>
       <section className="report-summary" aria-labelledby="report-summary-title">
-        <div className="section-heading"><div><span className="status-pill">{report.reportCode} · v{report.reportVersion}</span><h2 id="report-summary-title">{reportPeriodKindLabels[report.period.kind]} · {report.period.label}</h2></div>{canExportManagementReport(currentFarm.role) ? <button className="secondary-action" type="button" onClick={downloadCsv}>ดาวน์โหลด CSV</button> : null}</div>
+        <div className="section-heading"><div><span className="status-pill">{report.reportCode} · v{report.reportVersion}</span><h2 id="report-summary-title">{reportPeriodKindLabels[report.period.kind]} · {report.period.label}</h2></div>{canExportManagementReport(currentFarm) ? <button className="secondary-action" type="button" onClick={downloadCsv}>ดาวน์โหลด CSV</button> : null}</div>
         <div className="commercial-metrics report-metrics">
           <article><small>จำนวนผลล่าสุด</small><strong>{formatOptional(report.metrics.currentFruitCount, ' ผล')}</strong><span>ประมาณการ {report.metrics.currentFruitEstimatedCount} รายการ</span></article>
           <article><small>เก็บเกี่ยว</small><strong>{report.metrics.harvestFruitCount.toLocaleString('th-TH')} ผล</strong><span>{report.metrics.harvestWeightKg.toLocaleString('th-TH')} kg</span></article>
@@ -243,11 +243,11 @@ export function ManagementReportsPage() {
       </section>
     </> : null}
 
-    {selectedCycle && (canRecordLaborCost(currentFarm.role) || canRecordOperatingExpense(currentFarm.role)) ? <section className="report-entry-section" aria-labelledby="cost-entry-title">
+    {selectedCycle && (canRecordLaborCost(currentFarm) || canRecordOperatingExpense(currentFarm)) ? <section className="report-entry-section" aria-labelledby="cost-entry-title">
       <div className="section-heading"><div><span className="status-pill">Append-only mock entry</span><h2 id="cost-entry-title">บันทึกต้นทุนและค่าใช้จ่าย</h2></div></div>
       <p>บันทึกใหม่อย่างตรวจสอบย้อนหลังได้ ไม่มีปุ่มแก้หรือลบ และไม่ใช้ข้อมูลบุคคลจริง</p>
       <div className="report-entry-grid">
-        {canRecordLaborCost(currentFarm.role) ? <details open><summary>+ ค่าแรงงาน</summary><form className="commercial-form" onSubmit={(event) => { void submitLabor(event) }}>
+        {canRecordLaborCost(currentFarm) ? <details open><summary>+ ค่าแรงงาน</summary><form className="commercial-form" onSubmit={(event) => { void submitLabor(event) }}>
           <label>วันที่<input name="incurredOn" type="date" required defaultValue={anchorDate} /></label>
           <label>ทีม/ผู้ปฏิบัติงานแบบย่อ<input name="workerReference" required defaultValue="ทีมงานจำลอง C" /></label>
           <label>ฐานค่าจ้าง<select name="basis" defaultValue="DAY">{laborCostBases.map((value) => <option value={value} key={value}>{laborCostBasisLabels[value]}</option>)}</select></label>
@@ -258,7 +258,7 @@ export function ManagementReportsPage() {
           <label className="span-full">หมายเหตุ<input name="notes" defaultValue="SIMULATED/TEST ONLY — ไม่ใช่ Payroll" /></label>
           <button className="primary-action span-full" disabled={saving} type="submit">บันทึกค่าแรง</button>
         </form></details> : null}
-        {canRecordOperatingExpense(currentFarm.role) ? <details open><summary>+ ค่าใช้จ่ายอื่น</summary><form className="commercial-form" onSubmit={(event) => { void submitExpense(event) }}>
+        {canRecordOperatingExpense(currentFarm) ? <details open><summary>+ ค่าใช้จ่ายอื่น</summary><form className="commercial-form" onSubmit={(event) => { void submitExpense(event) }}>
           <label>วันที่<input name="incurredOn" type="date" required defaultValue={anchorDate} /></label>
           <label>หมวด<select name="category" defaultValue="WATER_ELECTRICITY">{expenseCategories.map((value) => <option value={value} key={value}>{expenseCategoryLabels[value]}</option>)}</select></label>
           <label className="span-full">รายละเอียด<input name="description" required defaultValue="ค่าใช้จ่ายดำเนินงานจำลอง" /></label>

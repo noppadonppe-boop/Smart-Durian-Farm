@@ -175,6 +175,21 @@ export interface FarmPermissions {
   isReadOnly: boolean
 }
 
+/**
+ * Financial data is an organization-owner capability, not a farm role.
+ * Keep this check on the trusted FarmAccess object so a client-provided role
+ * cannot grant access to prices, costs, receipts, margins, or financial audit.
+ */
+export function canAccessFinancialData(access: FarmAccess): boolean {
+  return access.membershipStatus === 'ACTIVE' && access.isOrganizationOwner
+}
+
+export function assertFinancialDataAccess(access: FarmAccess): void {
+  if (!canAccessFinancialData(access)) {
+    throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
+  }
+}
+
 const readOnlyRoles: readonly CanonicalRole[] = ['VIEWER', 'AUDITOR']
 
 export function permissionsFor(access: FarmAccess): FarmPermissions {

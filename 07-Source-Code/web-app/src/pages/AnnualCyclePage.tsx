@@ -140,7 +140,6 @@ export function AnnualCyclePage() {
       responsibleRole,
       plannedQuantity: null,
       plannedUnit: '',
-      plannedDirectCostBaht: null,
       notes: 'SIMULATED/TEST ONLY',
     }
     void run(

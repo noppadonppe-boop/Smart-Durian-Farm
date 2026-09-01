@@ -57,7 +57,7 @@ describe('MockManagementReportingRepository', () => {
     expect(snapshot.laborCosts.filter((record) => record.laborCostId === first.laborCostId)).toHaveLength(1)
   })
 
-  it('keeps worker and viewer from recording cost', async () => {
+  it('keeps every non-owner role from reading or recording financial data', async () => {
     const draft = {
       annualCycleId: cycle.annualCycleId,
       incurredOn: '2026-08-31',
@@ -69,12 +69,17 @@ describe('MockManagementReportingRepository', () => {
       referenceId: farm.farmId,
       notes: '',
     }
-    await expect(repository.createLaborCost({ ...context, farm: { ...farm, role: 'WORKER' } }, cycle, 'worker-deny', draft)).rejects.toThrow(/ไม่มีสิทธิ์|Owner\/Manager/u)
-    await expect(repository.createOperatingExpense({ ...context, farm: { ...farm, role: 'VIEWER' } }, cycle, 'viewer-deny', {
-      annualCycleId: cycle.annualCycleId,
-      incurredOn: '2026-08-31',
-      category: 'OTHER_OPERATING', description: 'จำลอง', amountBaht: 10,
-      allocationScope: 'FARM', allocationReferenceId: farm.farmId, notes: '',
-    })).rejects.toThrow(/ไม่มีสิทธิ์/u)
+    const nonOwnerRoles = ['ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY', 'VIEWER', 'AUDITOR'] as const
+    for (const role of nonOwnerRoles) {
+      const deniedContext = { ...context, farm: { ...farm, role, isOrganizationOwner: false } }
+      await expect(repository.listSnapshot(deniedContext, cycle.annualCycleId)).rejects.toThrow(/เฉพาะเจ้าขององค์กร/u)
+      await expect(repository.createLaborCost(deniedContext, cycle, `labor-deny-${role}`, draft)).rejects.toThrow(/เฉพาะเจ้าขององค์กร/u)
+      await expect(repository.createOperatingExpense(deniedContext, cycle, `expense-deny-${role}`, {
+        annualCycleId: cycle.annualCycleId,
+        incurredOn: '2026-08-31',
+        category: 'OTHER_OPERATING', description: 'จำลอง', amountBaht: 10,
+        allocationScope: 'FARM', allocationReferenceId: farm.farmId, notes: '',
+      })).rejects.toThrow(/เฉพาะเจ้าขององค์กร/u)
+    }
   })
 })

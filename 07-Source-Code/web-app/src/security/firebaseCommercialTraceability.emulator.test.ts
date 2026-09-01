@@ -21,6 +21,8 @@ const salesId = 'phase5_sales_03'
 const agronomistId = 'phase5_agronomist_04'
 const workerId = 'phase5_worker_05'
 const viewerId = 'phase5_viewer_06'
+const auditorId = 'phase5_auditor_07'
+const pseudoOwnerId = 'phase5_pseudo_owner_08'
 const annualA = 'annual_phase5_a_2026'
 const annualB = 'annual_phase5_b_2026'
 const cropA = 'crop_phase5_a_001'
@@ -65,6 +67,7 @@ async function seed() {
     const roles = new Map<string, CanonicalRole>([
       [ownerId, 'ORG_OWNER'], [managerId, 'FARM_MANAGER'], [salesId, 'SALES_INVENTORY'],
       [agronomistId, 'AGRONOMIST'], [workerId, 'WORKER'], [viewerId, 'VIEWER'],
+      [auditorId, 'AUDITOR'], [pseudoOwnerId, 'ORG_OWNER'],
     ])
     for (const [userId, role] of roles) {
       await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
@@ -143,9 +146,76 @@ async function seed() {
       organizationId, farmId: farmA, movementId: 'seed_receipt', itemId: itemA,
       lotId: lotA, movementType: 'RECEIPT', quantity: 20, quantityDelta: 20,
       unit: 'kg', reason: 'Seed', referenceType: 'PURCHASE_REFERENCE',
-      referenceId: 'SEED', directUnitCostBaht: 10, directCostBaht: 200,
+      referenceId: 'SEED', dataClass: 'OPERATIONAL',
       actorUserId: ownerId, createdAtLabel: 'seed', version: 1, exampleData: true,
       audit: [], createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/inventoryMovementFinancials/seed_receipt`), {
+      organizationId, farmId: farmA, movementId: 'seed_receipt',
+      directUnitCostBaht: 10, directCostBaht: 200, actorUserId: ownerId,
+      createdAtLabel: 'seed', version: 1, exampleData: true, createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/salesFinancials/seed_financial`), {
+      organizationId, farmId: farmA, salesLotId: 'seed_financial', customerReference: 'OWNER-ONLY',
+      unitPriceBahtPerKg: 100, depositBaht: 0, receivedBaht: 0,
+      grossAmountBaht: 1000, outstandingBaht: 1000, paymentStatus: 'UNPAID',
+      actorUserId: ownerId, createdAtLabel: 'seed', version: 1, exampleData: true,
+      createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/commercialFinancialAuditEvents/seed_financial_audit`), {
+      eventId: 'seed_financial_audit', organizationId, farmId: farmA, actorUserId: ownerId,
+      eventType: 'CREATED', targetType: 'SALES_LOT', targetId: 'seed_financial',
+      reason: 'Owner-only seed', beforeSummary: '', afterSummary: '1000 THB',
+      version: 1, amountBaht: 1000, createdAtLabel: 'seed', exampleData: true, createdAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/annualPlanFinancials/seed_plan`), {
+      organizationId, farmId: farmA, planItemId: 'seed_plan', plannedDirectCostBaht: 1000,
+      actorUserId: ownerId, version: 1, exampleData: true, createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/managementLaborCosts/seed_labor`), {
+      organizationId, farmId: farmA, costId: 'seed_labor', amountBaht: 500,
+      actorUserId: ownerId, version: 1, exampleData: true, createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/managementOperatingExpenses/seed_expense`), {
+      organizationId, farmId: farmA, expenseId: 'seed_expense', amountBaht: 300,
+      actorUserId: ownerId, version: 1, exampleData: true, createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/managementFinancialAuditEvents/seed_management_audit`), {
+      organizationId, farmId: farmA, eventId: 'seed_management_audit', amountBaht: 300,
+      actorUserId: ownerId, version: 1, exampleData: true, createdAt: now, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/financialDashboardViews/summary`), {
+      organizationId, farmId: farmA, salesGrossBaht: 1000, salesOutstandingBaht: 1000,
+      lastCalculatedAtLabel: 'seed', exampleData: true, updatedAt: now,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/salesLots/legacy_sale_with_finance`), {
+      organizationId, farmId: farmA, salesLotId: 'legacy_sale_with_finance',
+      lotCode: 'LEGACY-FINANCE', soldOn: '2026-08-31',
+      allocations: [{ harvestLotId: harvestA, weightKg: 1 }],
+      quantityFruit: null, weightKg: 1, note: 'legacy mixed document',
+      status: 'ARCHIVED', actorUserId: ownerId, createdAtLabel: 'seed', version: 1,
+      audit: [],
+      unitPriceBahtPerKg: 999, grossAmountBaht: 9999, exampleData: true,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/inventoryMovements/legacy_move_with_finance`), {
+      organizationId, farmId: farmA, movementId: 'legacy_move_with_finance',
+      itemId: itemA, lotId: lotA, movementType: 'RECEIPT', quantity: 1,
+      quantityDelta: 1, unit: 'kg', reason: 'legacy mixed document',
+      referenceType: 'PURCHASE_REFERENCE', referenceId: 'LEGACY',
+      actorUserId: ownerId, createdAtLabel: 'seed', version: 1, audit: [],
+      directUnitCostBaht: 999, directCostBaht: 9999, exampleData: true,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/annualPlanItems/legacy_plan_with_finance`), {
+      organizationId, farmId: farmA, planItemId: 'legacy_plan_with_finance',
+      plannedDirectCostBaht: 9999, exampleData: true,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/commercialAuditEvents/legacy_financial_audit`), {
+      organizationId, farmId: farmA, eventId: 'legacy_financial_audit',
+      beforeSummary: '100/200/300', afterSummary: '999/999/999', exampleData: true,
+    })
+    await setDoc(doc(firestore, `${farmPath(farmA)}/dashboardViews/ORG_OWNER`), {
+      organizationId, farmId: farmA, roleBucket: 'ORG_OWNER',
+      salesGrossBaht: 9999, salesOutstandingBaht: 9999, exampleData: true,
     })
   })
 }
@@ -186,20 +256,20 @@ describe('Firebase Phase 5 Commercial repository and Rules', () => {
     const salesRepository = repository(salesId)
     const context = { actor: identity(salesId), farm: farm('SALES_INVENTORY', salesId) }
     const created = await salesRepository.createSalesLot(context, 'sale_once_001', {
-      lotCode: 'S-A-001', customerReference: 'BUYER-DEMO-001',
+      lotCode: 'S-A-001',
       allocations: [{ harvestLotId: harvestA, weightKg: 50 }], quantityFruit: 20,
-      weightKg: 50, unitPriceBahtPerKg: 150, depositBaht: 1000,
-      receivedBaht: 0, note: 'SIMULATED/TEST ONLY',
+      weightKg: 50, note: 'SIMULATED/TEST ONLY',
     })
     const retry = await salesRepository.createSalesLot(context, 'sale_once_001', {
-      lotCode: 'IGNORED', customerReference: 'BUYER-DEMO-999',
+      lotCode: 'IGNORED',
       allocations: [{ harvestLotId: harvestA, weightKg: 1 }], quantityFruit: null,
-      weightKg: 1, unitPriceBahtPerKg: 1, depositBaht: 0, receivedBaht: 0, note: '',
+      weightKg: 1, note: '',
     })
     expect(retry.salesLotId).toBe(created.salesLotId)
     const snapshot = await salesRepository.listSnapshot(context)
     expect(snapshot.traceability[0]).toMatchObject({ harvestLotId: harvestA, cropCycleId: cropA })
     expect(snapshot.harvestLots.some((item) => item.farmId === farmB)).toBe(false)
+    expect(snapshot.financial).toBeNull()
   })
 
   it('denies cross-farm allocation and hides commercial records from Worker', async () => {
@@ -207,9 +277,9 @@ describe('Firebase Phase 5 Commercial repository and Rules', () => {
     await expect(salesRepository.createSalesLot(
       { actor: identity(salesId), farm: farm('SALES_INVENTORY', salesId) },
       'cross_farm_001', {
-        lotCode: 'S-CROSS', customerReference: 'BUYER-DEMO-CROSS',
+        lotCode: 'S-CROSS',
         allocations: [{ harvestLotId: harvestB, weightKg: 10 }], quantityFruit: null,
-        weightKg: 10, unitPriceBahtPerKg: 100, depositBaht: 0, receivedBaht: 0, note: '',
+        weightKg: 10, note: '',
       },
     )).rejects.toThrow()
     const workerFirestore = environment.authenticatedContext(workerId).firestore()
@@ -259,54 +329,107 @@ describe('Firebase Phase 5 Commercial repository and Rules', () => {
     const issue = await salesRepository.recordInventoryMovement(context, 'issue_once_001', {
       itemId: itemA, lotId: lotA, movementType: 'ISSUE', quantity: 5, unit: 'kg',
       reason: 'SIMULATED issue', referenceType: 'WORK_ORDER', referenceId: 'WORK-DEMO',
-      directUnitCostBaht: 10,
     })
     const retry = await salesRepository.recordInventoryMovement(context, 'issue_once_001', {
       itemId: itemA, lotId: lotA, movementType: 'ISSUE', quantity: 1, unit: 'kg',
-      reason: 'ignored', referenceType: 'WORK_ORDER', referenceId: 'WORK-DEMO', directUnitCostBaht: 10,
+      reason: 'ignored', referenceType: 'WORK_ORDER', referenceId: 'WORK-DEMO',
     })
     expect(retry.movementId).toBe(issue.movementId)
     await expect(salesRepository.recordInventoryMovement(context, 'negative_001', {
       itemId: itemA, lotId: lotA, movementType: 'ISSUE', quantity: 100, unit: 'kg',
-      reason: 'negative', referenceType: 'WORK_ORDER', referenceId: 'WORK-DEMO', directUnitCostBaht: null,
+      reason: 'negative', referenceType: 'WORK_ORDER', referenceId: 'WORK-DEMO',
     })).rejects.toThrow('สต็อกติดลบ')
     await expect(salesRepository.recordInventoryMovement(context, 'adjust_denied_001', {
       itemId: itemA, lotId: lotA, movementType: 'ADJUSTMENT', quantity: -1, unit: 'kg',
-      reason: 'count correction', referenceType: 'COUNT_CORRECTION', referenceId: 'COUNT-DEMO', directUnitCostBaht: null,
+      reason: 'count correction', referenceType: 'COUNT_CORRECTION', referenceId: 'COUNT-DEMO',
     })).rejects.toThrow('Owner/Manager')
     const managerMovement = await repository(managerId).recordInventoryMovement(
       { actor: identity(managerId), farm: farm('FARM_MANAGER', managerId) },
       'adjust_allowed_001', {
         itemId: itemA, lotId: lotA, movementType: 'ADJUSTMENT', quantity: -1, unit: 'kg',
-        reason: 'SIMULATED count correction', referenceType: 'COUNT_CORRECTION', referenceId: 'COUNT-DEMO', directUnitCostBaht: null,
+        reason: 'SIMULATED count correction', referenceType: 'COUNT_CORRECTION', referenceId: 'COUNT-DEMO',
       },
     )
     expect(managerMovement.quantityDelta).toBe(-1)
+    expect((await repository(managerId).listCommercialAudit({
+      actor: identity(managerId), farm: farm('FARM_MANAGER', managerId),
+    })).every((event) => event.reason !== '100/200/300')).toBe(true)
   })
 
-  it('records sales correction audit for Owner/Manager only', async () => {
+  it('keeps sales financial creation and correction Owner-only', async () => {
     const salesRepository = repository(salesId)
     const salesContext = { actor: identity(salesId), farm: farm('SALES_INVENTORY', salesId) }
-    const sale = await salesRepository.createSalesLot(salesContext, 'sale_correction_seed', {
-      lotCode: 'S-A-CORR', customerReference: 'BUYER-DEMO-CORR',
+    await expect(salesRepository.createSalesLot(salesContext, 'sale_finance_denied', {
+      lotCode: 'S-A-DENIED',
       allocations: [{ harvestLotId: harvestA, weightKg: 40 }], quantityFruit: null,
-      weightKg: 40, unitPriceBahtPerKg: 100, depositBaht: 0, receivedBaht: 0, note: '',
+      weightKg: 40, note: '',
+      financial: { customerReference: 'MUST-NOT-PERSIST', unitPriceBahtPerKg: 100, depositBaht: 0, receivedBaht: 0 },
+    })).rejects.toThrow('เฉพาะเจ้าขององค์กร')
+    const ownerRepository = repository(ownerId)
+    const ownerContext = { actor: identity(ownerId), farm: farm('ORG_OWNER', ownerId) }
+    const sale = await ownerRepository.createSalesLot(ownerContext, 'sale_correction_seed', {
+      lotCode: 'S-A-CORR',
+      allocations: [{ harvestLotId: harvestA, weightKg: 40 }], quantityFruit: null,
+      weightKg: 40, note: '',
+      financial: { customerReference: 'BUYER-DEMO-CORR', unitPriceBahtPerKg: 100, depositBaht: 0, receivedBaht: 0 },
     })
     await expect(salesRepository.correctSalesLot(salesContext, sale.salesLotId, 'denied_corr', {
       weightKg: 40, unitPriceBahtPerKg: 110, depositBaht: 0,
       receivedBaht: 0, reason: 'denied',
-    })).rejects.toThrow('Owner/Manager')
-    const ownerRepository = repository(ownerId)
+    })).rejects.toThrow('เฉพาะเจ้าขององค์กร')
     const corrected = await ownerRepository.correctSalesLot(
-      { actor: identity(ownerId), farm: farm('ORG_OWNER', ownerId) },
+      ownerContext,
       sale.salesLotId, 'owner_corr', {
         weightKg: 40, unitPriceBahtPerKg: 110, depositBaht: 1000,
         receivedBaht: 0, reason: 'SIMULATED correction',
       },
     )
-    expect(corrected.audit[0]?.eventType).toBe('CORRECTED')
-    expect((await ownerRepository.listCommercialAudit(
-      { actor: identity(ownerId), farm: farm('ORG_OWNER', ownerId) },
-    )).some((event) => event.eventType === 'CORRECTED')).toBe(true)
+    expect(corrected).toMatchObject({ unitPriceBahtPerKg: 110, grossAmountBaht: 4400 })
+    const ownerSnapshot = await ownerRepository.listSnapshot(ownerContext)
+    expect(ownerSnapshot.financial?.audit.some((event) => event.eventType === 'CORRECTED')).toBe(true)
+  })
+
+  it('allows finance reads only for the active organization owner across every financial collection', async () => {
+    const ownerFirestore = environment.authenticatedContext(ownerId).firestore()
+    const targets = [
+      'inventoryMovementFinancials/seed_receipt',
+      'salesFinancials/seed_financial',
+      'commercialFinancialAuditEvents/seed_financial_audit',
+      'annualPlanFinancials/seed_plan',
+      'managementLaborCosts/seed_labor',
+      'managementOperatingExpenses/seed_expense',
+      'managementFinancialAuditEvents/seed_management_audit',
+      'financialDashboardViews/summary',
+    ]
+    for (const target of targets) {
+      await assertSucceeds(getDoc(doc(ownerFirestore, `${farmPath(farmA)}/${target}`)))
+    }
+
+    for (const userId of [managerId, salesId, agronomistId, workerId, viewerId, auditorId, pseudoOwnerId]) {
+      const firestore = environment.authenticatedContext(userId).firestore()
+      for (const target of targets) {
+        await assertFails(getDoc(doc(firestore, `${farmPath(farmA)}/${target}`)))
+      }
+    }
+  })
+
+  it('fails closed for legacy mixed documents that still contain financial fields', async () => {
+    const legacyTargets = [
+      'salesLots/legacy_sale_with_finance',
+      'inventoryMovements/legacy_move_with_finance',
+      'annualPlanItems/legacy_plan_with_finance',
+      'commercialAuditEvents/legacy_financial_audit',
+      'dashboardViews/ORG_OWNER',
+    ]
+    const ownerFirestore = environment.authenticatedContext(ownerId).firestore()
+    for (const target of legacyTargets) {
+      await assertSucceeds(getDoc(doc(ownerFirestore, `${farmPath(farmA)}/${target}`)))
+    }
+    for (const userId of [managerId, salesId, agronomistId, workerId, viewerId, auditorId, pseudoOwnerId]) {
+      const firestore = environment.authenticatedContext(userId).firestore()
+      for (const target of legacyTargets) {
+        await assertFails(getDoc(doc(firestore, `${farmPath(farmA)}/${target}`)))
+      }
+    }
   })
 })

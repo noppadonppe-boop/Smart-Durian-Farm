@@ -9,6 +9,7 @@ import {
   dashboardVisibility,
   validatePhotoRecoveryDraft,
   type FarmDashboardSnapshot,
+  type FarmDashboardFinancialSnapshot,
   type OfflineOperationRecord,
   type OperationalContext,
 } from './operationalHardening'
@@ -50,6 +51,13 @@ const snapshot: FarmDashboardSnapshot = {
   fruitEstimate: { count: 10, unit: 'fruit', quality: 'ESTIMATED' },
   harvestAvailableKg: 2,
   inventoryWarningCount: 1,
+  lastCalculatedAtLabel: 'เวลาจำลอง',
+  exampleData: true,
+}
+
+const financial: FarmDashboardFinancialSnapshot = {
+  organizationId: snapshot.organizationId,
+  farmId: snapshot.farmId,
   salesGrossBaht: 100,
   salesOutstandingBaht: 20,
   lastCalculatedAtLabel: 'เวลาจำลอง',
@@ -58,31 +66,34 @@ const snapshot: FarmDashboardSnapshot = {
 
 describe('Phase 6 dashboard and authorization policy', () => {
   it('shows only role-appropriate dashboard sections', () => {
-    expect(dashboardVisibility('WORKER').sales).toBe(false)
-    expect(dashboardVisibility('WORKER').work).toBe(true)
-    expect(dashboardVisibility('AGRONOMIST').fruit).toBe(true)
-    expect(dashboardVisibility('AGRONOMIST').inventory).toBe(false)
-    expect(dashboardVisibility('SALES_INVENTORY').sales).toBe(true)
-    expect(dashboardVisibility('AUDITOR').work).toBe(false)
+    expect(dashboardVisibility(farm({ role: 'WORKER', isOrganizationOwner: false })).sales).toBe(false)
+    expect(dashboardVisibility(farm({ role: 'WORKER', isOrganizationOwner: false })).work).toBe(true)
+    expect(dashboardVisibility(farm({ role: 'AGRONOMIST', isOrganizationOwner: false })).fruit).toBe(true)
+    expect(dashboardVisibility(farm({ role: 'AGRONOMIST', isOrganizationOwner: false })).inventory).toBe(false)
+    expect(dashboardVisibility(farm({ role: 'SALES_INVENTORY', isOrganizationOwner: false })).sales).toBe(false)
+    expect(dashboardVisibility(farm({ role: 'AUDITOR', isOrganizationOwner: false })).work).toBe(false)
+    expect(dashboardVisibility(farm()).sales).toBe(true)
   })
 
   it('builds owner portfolio from authorized farms and excludes hidden farm data', () => {
     const south = { ...snapshot, farmId: 'farm_demo_south_02', farmCode: 'DEMO-F02' }
-    const hidden = { ...snapshot, farmId: 'farm_demo_hidden_99', farmCode: 'DEMO-F99', salesGrossBaht: 999999 }
+    const hidden = { ...snapshot, farmId: 'farm_demo_hidden_99', farmCode: 'DEMO-F99' }
+    const southFinancial = { ...financial, farmId: south.farmId }
+    const hiddenFinancial = { ...financial, farmId: hidden.farmId, salesGrossBaht: 999999 }
     const result = buildPortfolioDashboard(actor, [
       farm(),
       farm({ farmId: 'farm_demo_south_02', farmCode: 'DEMO-F02', role: 'FARM_MANAGER' }),
-    ], [snapshot, south, hidden])
+    ], [snapshot, south, hidden], [financial, southFinancial, hiddenFinancial])
 
     expect(result.farmCount).toBe(2)
-    expect(result.farms.map((item) => item.farmCode)).not.toContain('DEMO-F99')
+    expect(result.farms.map((item) => item.snapshot.farmCode)).not.toContain('DEMO-F99')
     expect(result.totals.salesGrossBaht).toBe(200)
   })
 
   it('denies portfolio to a non-owner', () => {
     expect(() => buildPortfolioDashboard(actor, [
       farm({ role: 'FARM_MANAGER', isOrganizationOwner: false }),
-    ], [snapshot])).toThrow(/เจ้าขององค์กร/u)
+    ], [snapshot], [financial])).toThrow(/เจ้าขององค์กร/u)
   })
 })
 

@@ -57,6 +57,7 @@ import type {
   InventoryMovementRecord,
   SalesCorrectionInput,
   SalesLotDraft,
+  SalesLotFinancialRecord,
   SalesLotRecord,
 } from '../domain/commercialTraceability'
 import type {
@@ -370,7 +371,7 @@ export interface CommercialTraceabilityRepository {
     salesLotId: string,
     idempotencyKey: string,
     input: SalesCorrectionInput,
-  ): Promise<SalesLotRecord>
+  ): Promise<SalesLotFinancialRecord>
   archiveSalesLot(
     context: CommercialMutationContext,
     salesLotId: string,

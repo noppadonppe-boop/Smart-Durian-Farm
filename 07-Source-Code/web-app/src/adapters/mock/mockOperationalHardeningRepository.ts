@@ -14,6 +14,7 @@ import {
   validatePhotoRecoveryDraft,
   type ConflictResolution,
   type FarmDashboardSnapshot,
+  type FarmDashboardFinancialSnapshot,
   type FarmDashboardView,
   type FarmExportRecord,
   type MasterDataConflict,
@@ -25,10 +26,11 @@ import {
   type PortfolioDashboard,
   type QueueOperationInput,
 } from '../../domain/operationalHardening'
-import type { AuthenticatedIdentity, FarmAccess } from '../../domain/farm'
+import { canAccessFinancialData, type AuthenticatedIdentity, type FarmAccess } from '../../domain/farm'
 
 interface Phase6PackShape {
   farmDashboards: FarmDashboardSnapshot[]
+  farmDashboardFinancials: FarmDashboardFinancialSnapshot[]
   offlineOperations: OfflineOperationRecord[]
   masterConflicts: MasterDataConflict[]
   photoRecoveries: PhotoRecoveryRecord[]
@@ -105,14 +107,24 @@ export class MockOperationalHardeningRepository implements OperationalHardeningR
       candidate.farmId === context.farm.farmId,
     )
     if (!snapshot) throw new Error('ไม่พบ Dashboard ของสวนที่ได้รับสิทธิ์')
-    return Promise.resolve(copy({ snapshot, visibility: dashboardVisibility(context.farm.role) }))
+    const financial = canAccessFinancialData(context.farm)
+      ? this.pack.farmDashboardFinancials.find((candidate) =>
+          candidate.organizationId === context.farm.organizationId && candidate.farmId === context.farm.farmId,
+        ) ?? null
+      : null
+    return Promise.resolve(copy({ snapshot, financial, visibility: dashboardVisibility(context.farm) }))
   }
 
   async getPortfolioDashboard(
     actor: AuthenticatedIdentity,
     authorizedFarms: readonly FarmAccess[],
   ): Promise<PortfolioDashboard> {
-    return Promise.resolve(copy(buildPortfolioDashboard(actor, authorizedFarms, this.pack.farmDashboards)))
+    return Promise.resolve(copy(buildPortfolioDashboard(
+      actor,
+      authorizedFarms,
+      this.pack.farmDashboards,
+      this.pack.farmDashboardFinancials,
+    )))
   }
 
   async listOfflineOperations(context: OperationalContext): Promise<readonly OfflineOperationRecord[]> {

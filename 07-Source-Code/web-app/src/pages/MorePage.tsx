@@ -54,7 +54,7 @@ export function MorePage() {
           <div><strong>รอบบริหารสวนรายปี</strong><small>มิ.ย.–พ.ค. หรือวันเริ่มเฉพาะสวน · แผนระดับสวน/โซน</small></div>
           <span aria-hidden="true">›</span>
         </Link>
-        {canViewManagementReports(currentFarm.role) ? <Link to="/reports">
+        {canViewManagementReports(currentFarm) ? <Link to="/reports">
           <span aria-hidden="true">▤</span>
           <div><strong>รายงานผลสวนและต้นทุน</strong><small>สัปดาห์ · เดือน · 3 เดือน · ปี พร้อมค่าแรงและค่าใช้จ่าย</small></div>
           <span aria-hidden="true">›</span>
@@ -95,7 +95,7 @@ export function MorePage() {
           </Link>
           <Link to="/inventory">
             <span aria-hidden="true">▣</span>
-            <div><strong>สต็อกและต้นทุนตรง</strong><small>รับ เบิก ปรับยอด พร้อม Reference/Audit</small></div>
+            <div><strong>{currentFarm.isOrganizationOwner ? 'สต็อกและต้นทุนตรง' : 'สต็อกวัสดุ'}</strong><small>{currentFarm.isOrganizationOwner ? 'รับ เบิก ปรับยอด พร้อมต้นทุน Owner-only' : 'รับ เบิก ปรับยอดเชิงปฏิบัติการ · ไม่แสดงต้นทุน'}</small></div>
             <span aria-hidden="true">›</span>
           </Link>
         </> : null}

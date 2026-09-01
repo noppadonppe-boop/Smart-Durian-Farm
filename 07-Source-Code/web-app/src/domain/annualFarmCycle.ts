@@ -113,7 +113,6 @@ export interface AnnualPlanItemDraft {
   responsibleRole: CanonicalRole
   plannedQuantity: number | null
   plannedUnit: string
-  plannedDirectCostBaht: number | null
   notes: string
 }
 
@@ -392,10 +391,6 @@ export function validateAnnualPlanItem(
     throw new Error('จำนวนที่วางแผนต้องเป็นเลขตั้งแต่ 0 ขึ้นไป')
   }
   if (draft.plannedQuantity !== null && !draft.plannedUnit.trim()) throw new Error('จำนวนที่วางแผนต้องมีหน่วย')
-  if (draft.plannedDirectCostBaht !== null && (
-    !Number.isFinite(draft.plannedDirectCostBaht) || draft.plannedDirectCostBaht < 0
-  )) throw new Error('ต้นทุนที่วางแผนต้องเป็นเลขตั้งแต่ 0 ขึ้นไป')
-
   return {
     ...draft,
     title: requiredText(draft.title, 'ชื่อแผน', 120),

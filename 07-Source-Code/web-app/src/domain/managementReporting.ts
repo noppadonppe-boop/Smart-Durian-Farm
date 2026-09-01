@@ -1,6 +1,6 @@
 import type { AnnualCycleRecord, AnnualPlanItemRecord } from './annualFarmCycle'
 import type { CommercialSnapshot } from './commercialTraceability'
-import type { AuthenticatedIdentity, CanonicalRole, FarmAccess } from './farm'
+import { canAccessFinancialData, type AuthenticatedIdentity, type FarmAccess } from './farm'
 import type { DiseaseIncidentRecord, WorkOrderRecord } from './workCareDisease'
 
 export const reportPeriodKinds = ['WEEKLY', 'MONTHLY', 'THREE_MONTH', 'ANNUAL'] as const
@@ -149,9 +149,22 @@ export interface ManagementCostAuditEvent {
   exampleData: true
 }
 
+export interface AnnualPlanFinancialRecord {
+  organizationId: string
+  farmId: string
+  annualCycleId: string
+  planItemId: string
+  plannedDirectCostBaht: number | null
+  actorUserId: string
+  createdAtLabel: string
+  version: 1
+  exampleData: true
+}
+
 export interface ManagementCostSnapshot {
   laborCosts: readonly LaborCostRecord[]
   operatingExpenses: readonly OperatingExpenseRecord[]
+  annualPlanFinancials: readonly AnnualPlanFinancialRecord[]
   audit: readonly ManagementCostAuditEvent[]
 }
 
@@ -414,20 +427,20 @@ export function normalizeOperatingExpenseDraft(
   }
 }
 
-export function canViewManagementReports(role: CanonicalRole): boolean {
-  return ['ORG_OWNER', 'FARM_MANAGER', 'SALES_INVENTORY', 'VIEWER', 'AUDITOR'].includes(role)
+export function canViewManagementReports(access: FarmAccess): boolean {
+  return canAccessFinancialData(access)
 }
 
-export function canRecordLaborCost(role: CanonicalRole): boolean {
-  return role === 'ORG_OWNER' || role === 'FARM_MANAGER'
+export function canRecordLaborCost(access: FarmAccess): boolean {
+  return canAccessFinancialData(access) && access.farmStatus === 'ACTIVE'
 }
 
-export function canRecordOperatingExpense(role: CanonicalRole): boolean {
-  return role === 'ORG_OWNER' || role === 'FARM_MANAGER' || role === 'SALES_INVENTORY'
+export function canRecordOperatingExpense(access: FarmAccess): boolean {
+  return canAccessFinancialData(access) && access.farmStatus === 'ACTIVE'
 }
 
-export function canExportManagementReport(role: CanonicalRole): boolean {
-  return role === 'ORG_OWNER' || role === 'FARM_MANAGER'
+export function canExportManagementReport(access: FarmAccess): boolean {
+  return canAccessFinancialData(access)
 }
 
 function inPeriod(date: string | undefined, period: ReportPeriod): boolean {
@@ -436,6 +449,9 @@ function inPeriod(date: string | undefined, period: ReportPeriod): boolean {
 
 function assertFarmScoped(input: BuildFarmManagementReportInput): void {
   const { organizationId, farmId } = input.context.farm
+  if (input.commercial.financial === null) {
+    throw new Error('หยุดสร้างรายงาน: ไม่ได้รับ Owner-only financial snapshot')
+  }
   const collections: readonly (readonly { organizationId: string; farmId: string }[])[] = [
     input.workOrders,
     input.diseaseIncidents,
@@ -447,7 +463,11 @@ function assertFarmScoped(input: BuildFarmManagementReportInput): void {
     input.commercial.inventoryMovements,
     input.costs.laborCosts,
     input.costs.operatingExpenses,
+    input.costs.annualPlanFinancials,
     input.costs.audit,
+    input.commercial.financial.salesLots,
+    input.commercial.financial.inventoryMovements,
+    input.commercial.financial.audit,
   ]
   if (collections.some((records) => records.some(
     (record) => record.organizationId !== organizationId || record.farmId !== farmId,
@@ -472,7 +492,7 @@ function reportCode(kind: ReportPeriodKind): FarmManagementReport['reportCode'] 
 export function buildFarmManagementReport(
   input: BuildFarmManagementReportInput,
 ): FarmManagementReport {
-  if (!canViewManagementReports(input.context.farm.role)) {
+  if (!canViewManagementReports(input.context.farm)) {
     throw new Error('บทบาทนี้ไม่มีสิทธิ์ดูรายงานการจัดการสวน')
   }
   assertFarmScoped(input)
@@ -516,15 +536,25 @@ export function buildFarmManagementReport(
   )
   const operatingExpenses = expenses.filter((record) => record.costTreatment === 'OPERATING')
   const capitalExpenses = expenses.filter((record) => record.costTreatment === 'CAPITAL')
-  const overlappingPlans = input.annualPlanItems.filter(
+  const overlappingPlanIds = new Set(input.annualPlanItems.filter(
     (plan) => plan.annualCycleId === input.annualCycle.annualCycleId &&
-      plan.plannedDirectCostBaht !== null &&
       plan.plannedStart < period.periodEndExclusive &&
       plan.plannedEndExclusive > period.periodStart,
+  ).map((plan) => plan.planItemId))
+  const overlappingPlanFinancials = input.costs.annualPlanFinancials.filter(
+    (record) => record.annualCycleId === input.annualCycle.annualCycleId &&
+      overlappingPlanIds.has(record.planItemId) &&
+      record.plannedDirectCostBaht !== null,
   )
+  const financial = input.commercial.financial
+  if (!financial) throw new Error('หยุดสร้างรายงาน: ไม่ได้รับ Owner-only financial snapshot')
+  const salesFinancialById = new Map(financial.salesLots.map((record) => [record.salesLotId, record]))
+  const movementFinancialById = new Map(financial.inventoryMovements.map((record) => [record.movementId, record]))
 
   const sumMoney = (values: readonly number[]) => roundMoney(values.reduce((sum, value) => sum + value, 0))
-  const materialDirectCostBaht = sumMoney(materialIssues.map((record) => record.directCostBaht ?? 0))
+  const materialDirectCostBaht = sumMoney(materialIssues.map(
+    (record) => movementFinancialById.get(record.movementId)?.directCostBaht ?? 0,
+  ))
   const laborCostBaht = sumMoney(labor.map((record) => record.amountBaht))
   const operatingExpenseBaht = sumMoney(operatingExpenses.map((record) => record.amountBaht))
   const capitalExpenseBaht = sumMoney(capitalExpenses.map((record) => record.amountBaht))
@@ -533,7 +563,9 @@ export function buildFarmManagementReport(
     laborCostBaht,
     operatingExpenseBaht,
   ])
-  const grossSalesRecordedBaht = sumMoney(sales.map((record) => record.grossAmountBaht))
+  const grossSalesRecordedBaht = sumMoney(sales.map(
+    (record) => salesFinancialById.get(record.salesLotId)?.grossAmountBaht ?? 0,
+  ))
   const managementMarginBaht = roundMoney(grossSalesRecordedBaht - totalManagementCostBaht)
   const harvestFruitCount = harvests.reduce((sum, record) => sum + (record.quantityFruit ?? 0), 0)
   const harvestWeightKg = roundQuantity(harvests.reduce((sum, record) => sum + (record.totalWeightKg ?? 0), 0))
@@ -545,12 +577,15 @@ export function buildFarmManagementReport(
   if (input.commercial.inventoryMovements.some(
     (record) => record.movementType === 'ISSUE' && !record.effectiveOn,
   )) flags.add('MATERIAL_COST_EFFECTIVE_DATE_UNKNOWN')
-  if (materialIssues.some((record) => record.directCostBaht === null)) flags.add('UNKNOWN_MATERIAL_COST')
+  if (materialIssues.some((record) =>
+    !movementFinancialById.has(record.movementId) ||
+    movementFinancialById.get(record.movementId)?.directCostBaht === null,
+  )) flags.add('UNKNOWN_MATERIAL_COST')
   if (currentObservations.some((record) => record.observedCount === null || record.valueQuality === 'UNKNOWN')) {
     flags.add('UNKNOWN_FRUIT_VALUE')
   }
   if (capitalExpenseBaht > 0) flags.add('CAPITAL_EXCLUDED_FROM_OPERATING_COST')
-  if (input.kind !== 'ANNUAL' && overlappingPlans.length > 0) flags.add('PLAN_COST_NOT_PRORATED')
+  if (input.kind !== 'ANNUAL' && overlappingPlanFinancials.length > 0) flags.add('PLAN_COST_NOT_PRORATED')
 
   const details: ReportDetailRow[] = [
     ...labor.map((record) => ({
@@ -579,7 +614,7 @@ export function buildFarmManagementReport(
       effectiveOn: record.effectiveOn ?? 'UNKNOWN',
       description: `${record.itemId} · ${record.reason}`,
       category: 'ต้นทุนวัสดุที่เบิกใช้',
-      amountBaht: record.directCostBaht,
+      amountBaht: movementFinancialById.get(record.movementId)?.directCostBaht ?? null,
       quantity: Math.abs(record.quantityDelta),
       unit: record.unit,
     })),
@@ -599,7 +634,7 @@ export function buildFarmManagementReport(
       effectiveOn: record.soldOn ?? 'UNKNOWN',
       description: record.lotCode,
       category: 'ยอดขายที่บันทึก',
-      amountBaht: record.grossAmountBaht,
+      amountBaht: salesFinancialById.get(record.salesLotId)?.grossAmountBaht ?? null,
       quantity: record.weightKg,
       unit: 'kg',
     })),
@@ -623,7 +658,7 @@ export function buildFarmManagementReport(
     grossSalesRecordedBaht,
     outstandingSalesBaht: sumMoney(input.commercial.salesLots
       .filter((record) => !['CANCELLED', 'ARCHIVED'].includes(record.status) && (!record.soldOn || record.soldOn < period.periodEndExclusive))
-      .map((record) => record.outstandingBaht)),
+      .map((record) => salesFinancialById.get(record.salesLotId)?.outstandingBaht ?? 0)),
     materialDirectCostBaht,
     laborCostBaht,
     operatingExpenseBaht,
@@ -642,8 +677,11 @@ export function buildFarmManagementReport(
     costPerHarvestKgBaht: harvestWeightKg === 0
       ? null
       : roundMoney(totalManagementCostBaht / harvestWeightKg),
-    plannedDirectCostBaht: sumMoney(overlappingPlans.map((plan) => plan.plannedDirectCostBaht ?? 0)),
-    unknownCostMovementCount: materialIssues.filter((record) => record.directCostBaht === null).length,
+    plannedDirectCostBaht: sumMoney(overlappingPlanFinancials.map((record) => record.plannedDirectCostBaht ?? 0)),
+    unknownCostMovementCount: materialIssues.filter((record) =>
+      !movementFinancialById.has(record.movementId) ||
+      movementFinancialById.get(record.movementId)?.directCostBaht === null,
+    ).length,
   }
 
   return {

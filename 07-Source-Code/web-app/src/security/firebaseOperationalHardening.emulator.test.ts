@@ -63,7 +63,7 @@ function repository(userId: string) {
   )
 }
 
-function dashboard(farmId: string, farmCode: string, salesGrossBaht: number) {
+function dashboard(farmId: string, farmCode: string) {
   return {
     organizationId,
     farmId,
@@ -76,6 +76,15 @@ function dashboard(farmId: string, farmCode: string, salesGrossBaht: number) {
     fruitEstimate: { count: 120, unit: 'fruit', quality: 'ESTIMATED' },
     harvestAvailableKg: 80,
     inventoryWarningCount: 1,
+    lastCalculatedAtLabel: '31 ส.ค. 2569 · SIMULATED/TEST ONLY',
+    exampleData: true,
+  }
+}
+
+function dashboardFinancial(farmId: string, salesGrossBaht: number) {
+  return {
+    organizationId,
+    farmId,
     salesGrossBaht,
     salesOutstandingBaht: 500,
     lastCalculatedAtLabel: '31 ส.ค. 2569 · SIMULATED/TEST ONLY',
@@ -124,8 +133,12 @@ async function seed(): Promise<void> {
       })
       await setDoc(
         doc(firestore, `${farmPath(currentFarm)}/dashboardViews/ORG_OWNER`),
-        { ...dashboard(currentFarm, farmCode, currentFarm === hiddenFarm ? 999_999 : 10_000), roleBucket: 'ORG_OWNER', updatedAt: now },
+        { ...dashboard(currentFarm, farmCode), roleBucket: 'ORG_OWNER', updatedAt: now },
       )
+      await setDoc(doc(firestore, `${farmPath(currentFarm)}/financialDashboardViews/summary`), {
+        ...dashboardFinancial(currentFarm, currentFarm === hiddenFarm ? 999_999 : 10_000),
+        updatedAt: now,
+      })
     }
 
     const memberships = new Map<string, CanonicalRole>([
@@ -170,7 +183,7 @@ async function seed(): Promise<void> {
 
     for (const roleBucket of ['FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY', 'VIEWER']) {
       await setDoc(doc(firestore, `${farmPath(farmA)}/dashboardViews/${roleBucket}`), {
-        ...dashboard(farmA, 'P6RULES-F01', roleBucket === 'WORKER' ? 0 : 10_000),
+        ...dashboard(farmA, 'P6RULES-F01'),
         roleBucket,
         updatedAt: now,
       })
@@ -265,11 +278,18 @@ describe('Firebase Phase 6 Operational hardening repository and Rules', () => {
       farm: farm('WORKER', workerId),
     })
     expect(workerView.visibility.sales).toBe(false)
-    expect(workerView.snapshot.salesGrossBaht).toBe(0)
+    expect(workerView.financial).toBeNull()
 
     const workerFirestore = environment.authenticatedContext(workerId).firestore()
     await assertFails(getDoc(doc(workerFirestore, `${farmPath(farmA)}/dashboardViews/ORG_OWNER`)))
+    await assertFails(getDoc(doc(workerFirestore, `${farmPath(farmA)}/financialDashboardViews/summary`)))
     await assertFails(getDoc(doc(workerFirestore, `${farmPath(hiddenFarm)}/dashboardViews/WORKER`)))
+
+    const ownerView = await repository(ownerId).getFarmDashboard({
+      actor: identity(ownerId),
+      farm: farm('ORG_OWNER', ownerId),
+    })
+    expect(ownerView.financial?.salesGrossBaht).toBe(10_000)
   })
 
   it('builds the Owner portfolio from authorized farms only', async () => {
@@ -279,8 +299,8 @@ describe('Firebase Phase 6 Operational hardening repository and Rules', () => {
       farm('ORG_OWNER', ownerId, farmB),
     ])
     expect(portfolio.farmCount).toBe(2)
-    expect(portfolio.farms.map((item) => item.farmId)).toEqual([farmA, farmB])
-    expect(portfolio.farms.some((item) => item.farmId === hiddenFarm)).toBe(false)
+    expect(portfolio.farms.map((item) => item.snapshot.farmId)).toEqual([farmA, farmB])
+    expect(portfolio.farms.some((item) => item.snapshot.farmId === hiddenFarm)).toBe(false)
   })
 
   it('queues and syncs a duplicate operation idempotently with one audit event', async () => {

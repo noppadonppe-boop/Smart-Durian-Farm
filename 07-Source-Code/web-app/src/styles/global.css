@@ -1477,6 +1477,8 @@ code {
 
 .annual-cycle-switcher select {
   min-width: 0;
+  min-height: var(--touch-target);
+  padding-inline: var(--space-2);
   flex: 1;
   color: var(--color-text);
   background: var(--color-surface);
@@ -1485,6 +1487,11 @@ code {
 }
 
 .annual-cycle-switcher a {
+  min-height: var(--touch-target);
+  padding-inline: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-primary-strong);
   font-size: 0.72rem;
   font-weight: 800;

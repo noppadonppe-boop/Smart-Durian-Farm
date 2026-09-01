@@ -19,8 +19,6 @@
       "fruitEstimate": { "count": 1240, "unit": "fruit", "quality": "ESTIMATED" },
       "harvestAvailableKg": 245.5,
       "inventoryWarningCount": 2,
-      "salesGrossBaht": 51000,
-      "salesOutstandingBaht": 12000,
       "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
       "exampleData": true
     },
@@ -36,8 +34,6 @@
       "fruitEstimate": { "count": null, "unit": "fruit", "quality": "UNKNOWN" },
       "harvestAvailableKg": 90,
       "inventoryWarningCount": 1,
-      "salesGrossBaht": 18000,
-      "salesOutstandingBaht": 0,
       "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
       "exampleData": true
     },
@@ -53,6 +49,30 @@
       "fruitEstimate": { "count": 9999, "unit": "fruit", "quality": "ESTIMATED" },
       "harvestAvailableKg": 9999,
       "inventoryWarningCount": 99,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · SECURITY FIXTURE",
+      "exampleData": true
+    }
+  ],
+  "farmDashboardFinancials": [
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "salesGrossBaht": 51000,
+      "salesOutstandingBaht": 12000,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_south_02",
+      "salesGrossBaht": 18000,
+      "salesOutstandingBaht": 0,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_hidden_99",
       "salesGrossBaht": 999999,
       "salesOutstandingBaht": 999999,
       "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · SECURITY FIXTURE",

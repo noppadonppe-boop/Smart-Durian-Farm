@@ -1,4 +1,4 @@
-import type { AuthenticatedIdentity, CanonicalRole, FarmAccess } from './farm'
+import { canAccessFinancialData, type AuthenticatedIdentity, type CanonicalRole, type FarmAccess } from './farm'
 
 export const cropStages = [
   'FLOWERING',
@@ -12,7 +12,8 @@ export const valueQualities = ['MEASURED', 'ESTIMATED', 'UNKNOWN'] as const
 export const countMethods = ['FULL_COUNT', 'SAMPLE', 'ESTIMATE', 'UNKNOWN'] as const
 export const fruitCountingModes = ['MANUAL', 'AI_ASSISTED'] as const
 export const harvestStatuses = ['PLANNED', 'HARVESTING', 'GRADED', 'CLOSED', 'ARCHIVED'] as const
-export const salesStatuses = ['DRAFT', 'CONFIRMED', 'PARTIALLY_RECEIVED', 'PAID', 'CANCELLED', 'ARCHIVED'] as const
+export const salesStatuses = ['CONFIRMED', 'CANCELLED', 'ARCHIVED'] as const
+export const salesPaymentStatuses = ['UNPAID', 'PARTIALLY_RECEIVED', 'PAID'] as const
 export const inventoryMovementTypes = ['RECEIPT', 'ISSUE', 'ADJUSTMENT'] as const
 
 export type CropStage = (typeof cropStages)[number]
@@ -21,6 +22,7 @@ export type CountMethod = (typeof countMethods)[number]
 export type FruitCountingMode = (typeof fruitCountingModes)[number]
 export type HarvestStatus = (typeof harvestStatuses)[number]
 export type SalesStatus = (typeof salesStatuses)[number]
+export type SalesPaymentStatus = (typeof salesPaymentStatuses)[number]
 export type InventoryMovementType = (typeof inventoryMovementTypes)[number]
 export type CommercialRecordKind = 'FRUIT_OBSERVATION' | 'HARVEST_LOT' | 'SALES_LOT' | 'INVENTORY_MOVEMENT'
 
@@ -157,28 +159,43 @@ export interface HarvestAllocation {
 export interface SalesLotDraft {
   lotCode: string
   soldOn?: string
-  customerReference: string
   allocations: readonly HarvestAllocation[]
   quantityFruit: number | null
   weightKg: number
+  note: string
+  financial?: SalesLotFinancialDraft
+}
+
+export interface SalesLotFinancialDraft {
+  customerReference: string
   unitPriceBahtPerKg: number
   depositBaht: number
   receivedBaht: number
-  note: string
 }
 
-export interface SalesLotRecord extends SalesLotDraft {
+export interface SalesLotRecord extends Omit<SalesLotDraft, 'financial'> {
   organizationId: string
   farmId: string
   salesLotId: string
-  grossAmountBaht: number
-  outstandingBaht: number
   status: SalesStatus
   actorUserId: string
   createdAtLabel: string
   version: number
   exampleData: true
   audit: readonly CommercialAuditEvent[]
+}
+
+export interface SalesLotFinancialRecord extends SalesLotFinancialDraft {
+  organizationId: string
+  farmId: string
+  salesLotId: string
+  grossAmountBaht: number
+  outstandingBaht: number
+  paymentStatus: SalesPaymentStatus
+  actorUserId: string
+  createdAtLabel: string
+  version: number
+  exampleData: true
 }
 
 export interface SalesCorrectionInput {
@@ -219,20 +236,41 @@ export interface InventoryMovementInput {
   reason: string
   referenceType: 'PURCHASE_REFERENCE' | 'WORK_ORDER' | 'CARE_EVENT' | 'COUNT_CORRECTION'
   referenceId: string
-  directUnitCostBaht: number | null
+  financial?: InventoryMovementFinancialDraft
 }
 
-export interface InventoryMovementRecord extends InventoryMovementInput {
+export interface InventoryMovementRecord extends Omit<InventoryMovementInput, 'financial'> {
   organizationId: string
   farmId: string
   movementId: string
   quantityDelta: number
-  directCostBaht: number | null
   actorUserId: string
   createdAtLabel: string
   version: 1
   exampleData: true
   audit: readonly CommercialAuditEvent[]
+}
+
+export interface InventoryMovementFinancialDraft {
+  directUnitCostBaht: number | null
+}
+
+export interface InventoryMovementFinancialRecord extends InventoryMovementFinancialDraft {
+  organizationId: string
+  farmId: string
+  movementId: string
+  directCostBaht: number | null
+  actorUserId: string
+  createdAtLabel: string
+  version: 1
+  exampleData: true
+}
+
+export interface CommercialFinancialAuditEvent extends CommercialAuditEvent {
+  organizationId: string
+  farmId: string
+  amountBaht: number | null
+  exampleData: true
 }
 
 export interface InventoryBalance {
@@ -257,6 +295,13 @@ export interface DirectCostSummary {
   unknownCostMovementCount: number
 }
 
+export interface CommercialFinancialSnapshot {
+  salesLots: readonly SalesLotFinancialRecord[]
+  inventoryMovements: readonly InventoryMovementFinancialRecord[]
+  directCostSummary: DirectCostSummary
+  audit: readonly CommercialFinancialAuditEvent[]
+}
+
 export interface TraceabilityRow {
   salesLotId: string
   salesLotCode: string
@@ -278,7 +323,7 @@ export interface CommercialSnapshot {
   inventoryMovements: readonly InventoryMovementRecord[]
   inventoryBalances: readonly InventoryBalance[]
   alerts: readonly CommercialAlert[]
-  directCostSummary: DirectCostSummary
+  financial: CommercialFinancialSnapshot | null
   traceability: readonly TraceabilityRow[]
 }
 
@@ -314,7 +359,7 @@ export function calculateSaleAmounts(
   unitPriceBahtPerKg: number,
   depositBaht: number,
   receivedBaht: number,
-): { grossAmountBaht: number; outstandingBaht: number; status: SalesStatus } {
+): { grossAmountBaht: number; outstandingBaht: number; paymentStatus: SalesPaymentStatus } {
   assertFiniteNonNegative(weightKg, 'น้ำหนัก')
   assertFiniteNonNegative(unitPriceBahtPerKg, 'ราคาต่อกิโลกรัม')
   assertFiniteNonNegative(depositBaht, 'เงินมัดจำ')
@@ -323,12 +368,12 @@ export function calculateSaleAmounts(
   const paid = roundMoney(depositBaht + receivedBaht)
   if (paid > grossAmountBaht) throw new Error('ยอดมัดจำและยอดรับรวมเกินมูลค่าล็อตขาย')
   const outstandingBaht = roundMoney(grossAmountBaht - paid)
-  const status: SalesStatus = outstandingBaht === 0
+  const paymentStatus: SalesPaymentStatus = outstandingBaht === 0
     ? 'PAID'
     : paid > 0
       ? 'PARTIALLY_RECEIVED'
-      : 'CONFIRMED'
-  return { grossAmountBaht, outstandingBaht, status }
+      : 'UNPAID'
+  return { grossAmountBaht, outstandingBaht, paymentStatus }
 }
 
 export function validateFruitObservation(draft: FruitObservationDraft): FruitObservationDraft {
@@ -468,36 +513,42 @@ export function validateSalesLot(draft: SalesLotDraft): SalesLotDraft {
   if (roundQuantity(draft.weightKg) !== allocatedWeight) {
     throw new Error('น้ำหนัก Sales Lot ต้องเท่ากับน้ำหนักที่แบ่งจาก Harvest Lot')
   }
-  calculateSaleAmounts(
-    draft.weightKg,
-    draft.unitPriceBahtPerKg,
-    draft.depositBaht,
-    draft.receivedBaht,
-  )
-  const customerReference = requiredText(draft.customerReference, 'Customer reference')
-  if (/@/u.test(customerReference) || /(?:\+?\d[\s-]*){8,}/u.test(customerReference)) {
-    throw new Error('Customer reference ต้องเป็นรหัสย่อเท่านั้น ห้ามใส่อีเมลหรือหมายเลขโทรศัพท์')
+  let financial: SalesLotFinancialDraft | undefined
+  if (draft.financial) {
+    calculateSaleAmounts(
+      draft.weightKg,
+      draft.financial.unitPriceBahtPerKg,
+      draft.financial.depositBaht,
+      draft.financial.receivedBaht,
+    )
+    const customerReference = requiredText(draft.financial.customerReference, 'Customer reference')
+    if (/@/u.test(customerReference) || /(?:\+?\d[\s-]*){8,}/u.test(customerReference)) {
+      throw new Error('Customer reference ต้องเป็นรหัสย่อเท่านั้น ห้ามใส่อีเมลหรือหมายเลขโทรศัพท์')
+    }
+    financial = {
+      customerReference,
+      unitPriceBahtPerKg: roundMoney(draft.financial.unitPriceBahtPerKg),
+      depositBaht: roundMoney(draft.financial.depositBaht),
+      receivedBaht: roundMoney(draft.financial.receivedBaht),
+    }
   }
   return {
     ...draft,
     lotCode: requiredText(draft.lotCode, 'รหัส Sales Lot'),
-    customerReference,
     allocations: draft.allocations.map((item) => ({
       ...item,
       weightKg: roundQuantity(item.weightKg),
     })),
     weightKg: roundQuantity(draft.weightKg),
-    unitPriceBahtPerKg: roundMoney(draft.unitPriceBahtPerKg),
-    depositBaht: roundMoney(draft.depositBaht),
-    receivedBaht: roundMoney(draft.receivedBaht),
     note: draft.note.trim(),
+    ...(financial ? { financial } : {}),
   }
 }
 
 export function validateInventoryMovement(
   item: InventoryItemRecord,
   input: InventoryMovementInput,
-): InventoryMovementInput & { quantityDelta: number; directCostBaht: number | null } {
+): InventoryMovementInput & { quantityDelta: number } {
   if (input.effectiveOn !== undefined) assertIsoDate(input.effectiveOn, 'วันที่เคลื่อนไหวสต็อก')
   if (input.itemId !== item.itemId) throw new Error('Inventory Item ไม่ตรงกับรายการเคลื่อนไหว')
   if (!item.lots.some((lot) => lot.lotId === input.lotId)) throw new Error('ไม่พบ Inventory Lot ใน Item นี้')
@@ -508,7 +559,9 @@ export function validateInventoryMovement(
   }
   requiredText(input.reason, 'เหตุผล')
   requiredText(input.referenceId, 'Reference')
-  if (input.directUnitCostBaht !== null) assertFiniteNonNegative(input.directUnitCostBaht, 'ต้นทุนต่อหน่วย')
+  if (input.financial?.directUnitCostBaht !== null && input.financial?.directUnitCostBaht !== undefined) {
+    assertFiniteNonNegative(input.financial.directUnitCostBaht, 'ต้นทุนต่อหน่วย')
+  }
   const quantity = roundQuantity(input.quantity)
   const quantityDelta = input.movementType === 'ISSUE' ? -quantity : quantity
   return {
@@ -517,10 +570,13 @@ export function validateInventoryMovement(
     referenceId: input.referenceId.trim(),
     quantity,
     quantityDelta,
-    directUnitCostBaht: input.directUnitCostBaht === null ? null : roundMoney(input.directUnitCostBaht),
-    directCostBaht: input.directUnitCostBaht === null
-      ? null
-      : roundMoney(Math.abs(quantityDelta) * input.directUnitCostBaht),
+    ...(input.financial ? {
+      financial: {
+        directUnitCostBaht: input.financial.directUnitCostBaht === null
+          ? null
+          : roundMoney(input.financial.directUnitCostBaht),
+      },
+    } : {}),
   }
 }
 
@@ -566,16 +622,21 @@ export function buildTraceability(
 
 export function calculateDirectCostSummary(
   movements: readonly InventoryMovementRecord[],
+  financialRecords: readonly InventoryMovementFinancialRecord[],
 ): DirectCostSummary {
   const issued = movements.filter((item) => item.movementType === 'ISSUE')
+  const financialByMovementId = new Map(financialRecords.map((record) => [record.movementId, record]))
   const costOf = (items: readonly InventoryMovementRecord[]) => roundMoney(
-    items.reduce((sum, item) => sum + (item.directCostBaht ?? 0), 0),
+    items.reduce((sum, item) => sum + (financialByMovementId.get(item.movementId)?.directCostBaht ?? 0), 0),
   )
   return {
     totalIssuedCostBaht: costOf(issued),
     linkedWorkCostBaht: costOf(issued.filter((item) => item.referenceType === 'WORK_ORDER')),
     linkedCareCostBaht: costOf(issued.filter((item) => item.referenceType === 'CARE_EVENT')),
-    unknownCostMovementCount: issued.filter((item) => item.directCostBaht === null).length,
+    unknownCostMovementCount: issued.filter((item) =>
+      !financialByMovementId.has(item.movementId) ||
+      financialByMovementId.get(item.movementId)?.directCostBaht === null,
+    ).length,
   }
 }
 
@@ -593,6 +654,10 @@ export function canManageCommercial(role: CanonicalRole): boolean {
 
 export function canApproveCommercialCorrection(role: CanonicalRole): boolean {
   return ['ORG_OWNER', 'FARM_MANAGER'].includes(role)
+}
+
+export function canAccessCommercialFinancialData(access: FarmAccess): boolean {
+  return canAccessFinancialData(access)
 }
 
 export function assertCommercialScope(

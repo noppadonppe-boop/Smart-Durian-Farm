@@ -708,6 +708,7 @@ export async function seedAnnualCycles({ firestore, packs, rootSegments = [], us
       plan.planItemId,
     ), {
       ...plan,
+      dataClass: 'OPERATIONAL',
       actorUserId: uidFor(userMappings, plan.updatedBy),
       createdBy: uidFor(userMappings, plan.createdBy),
       updatedBy: uidFor(userMappings, plan.updatedBy),
@@ -764,8 +765,10 @@ export async function seedCommercialTraceability({ firestore, packs, rootSegment
     ['fruitObservations', packs.commercial.fruitObservations, 'observationId'],
     ['harvestLots', packs.commercial.harvestLots, 'harvestLotId'],
     ['salesLots', packs.commercial.salesLots, 'salesLotId'],
+    ['salesFinancials', packs.commercial.salesFinancials, 'salesLotId'],
     ['inventoryItems', packs.commercial.inventoryItems, 'itemId'],
     ['inventoryMovements', packs.commercial.inventoryMovements, 'movementId'],
+    ['inventoryMovementFinancials', packs.commercial.inventoryMovementFinancials, 'movementId'],
   ]
   for (const [collectionName, records, idField] of collections) {
     for (const record of records) {
@@ -782,6 +785,9 @@ export async function seedCommercialTraceability({ firestore, packs, rootSegment
       ), {
         ...record,
         actorUserId,
+        ...(['salesLots', 'inventoryMovements'].includes(collectionName)
+          ? { dataClass: 'OPERATIONAL' }
+          : {}),
         classification: 'SIMULATED/TEST ONLY',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -852,6 +858,41 @@ export async function seedCommercialTraceability({ firestore, packs, rootSegment
       createdAtLabel: packs.commercial.metadata.fixedClock,
       organizationId: record.organizationId,
       farmId: record.farmId,
+      dataClass: 'OPERATIONAL',
+      classification: 'SIMULATED/TEST ONLY',
+      exampleData: true,
+      createdAt: serverTimestamp(),
+    })
+  }
+
+  const financialAuditSources = [
+    ...packs.commercial.salesFinancials.map((record) => ['SALES_LOT', record.salesLotId, record, record.grossAmountBaht]),
+    ...packs.commercial.inventoryMovementFinancials.map((record) => ['INVENTORY_MOVEMENT', record.movementId, record, record.directCostBaht]),
+  ]
+  for (const [recordKind, recordId, record, amountBaht] of financialAuditSources) {
+    const eventId = `commercial_finance_seed_${recordId}`
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      record.organizationId,
+      record.farmId,
+      'commercialFinancialAuditEvents',
+      eventId,
+    ), {
+      eventId,
+      recordKind,
+      recordId,
+      eventType: recordKind === 'INVENTORY_MOVEMENT' ? 'STOCK_RECORDED' : 'CREATED',
+      actorUserId: uidFor(userMappings, 'user_demo_owner_01'),
+      actorDisplayName: 'เจ้าขององค์กรจำลอง',
+      reason: 'SIMULATED/TEST ONLY — Owner-only finance seed',
+      beforeSummary: '',
+      afterSummary: `financial-seeded:${recordId}`,
+      amountBaht,
+      recordVersion: record.version,
+      createdAtLabel: packs.commercial.metadata.fixedClock,
+      organizationId: record.organizationId,
+      farmId: record.farmId,
       classification: 'SIMULATED/TEST ONLY',
       exampleData: true,
       createdAt: serverTimestamp(),
@@ -863,10 +904,13 @@ export async function seedCommercialTraceability({ firestore, packs, rootSegment
     fruitObservations: packs.commercial.fruitObservations.length,
     harvestLots: packs.commercial.harvestLots.length,
     salesLots: packs.commercial.salesLots.length,
+    salesFinancials: packs.commercial.salesFinancials.length,
     inventoryItems: packs.commercial.inventoryItems.length,
     inventoryMovements: packs.commercial.inventoryMovements.length,
+    inventoryMovementFinancials: packs.commercial.inventoryMovementFinancials.length,
     inventoryBalances: balances.size,
     commercialAuditEvents: auditSources.length,
+    commercialFinancialAuditEvents: financialAuditSources.length,
   }
 }
 
@@ -882,13 +926,9 @@ export async function seedOperationalHardening({ firestore, packs, rootSegments 
         view.fruitEstimate = { count: null, unit: 'fruit', quality: 'UNKNOWN' }
         view.harvestAvailableKg = 0
         view.inventoryWarningCount = 0
-        view.salesGrossBaht = 0
-        view.salesOutstandingBaht = 0
       }
       if (role === 'AGRONOMIST') {
         view.inventoryWarningCount = 0
-        view.salesGrossBaht = 0
-        view.salesOutstandingBaht = 0
       }
       if (role === 'SALES_INVENTORY') {
         view.treeHealth = { normal: 0, watch: 0, sick: 0, recovering: 0, dead: 0, empty: 0 }
@@ -908,6 +948,21 @@ export async function seedOperationalHardening({ firestore, packs, rootSegments 
         updatedAt: serverTimestamp(),
       })
     }
+  }
+
+  for (const financial of packs.operations.farmDashboardFinancials) {
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      financial.organizationId,
+      financial.farmId,
+      'financialDashboardViews',
+      'summary',
+    ), {
+      ...financial,
+      classification: 'SIMULATED/TEST ONLY',
+      updatedAt: serverTimestamp(),
+    })
   }
 
   for (const operation of packs.operations.offlineOperations) {
@@ -974,6 +1029,7 @@ export async function seedOperationalHardening({ firestore, packs, rootSegments 
   }
   return {
     dashboardViews: dashboards.length * dashboardRoles.length,
+    financialDashboardViews: packs.operations.farmDashboardFinancials.length,
     offlineOperations: packs.operations.offlineOperations.length,
     masterConflicts: packs.operations.masterConflicts.length,
     photoRecoveries: packs.operations.photoRecoveries.length,

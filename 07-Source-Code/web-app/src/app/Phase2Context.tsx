@@ -69,6 +69,7 @@ import type {
   InventoryMovementRecord,
   SalesCorrectionInput,
   SalesLotDraft,
+  SalesLotFinancialRecord,
   SalesLotRecord,
 } from '../domain/commercialTraceability'
 import type {
@@ -353,7 +354,7 @@ export interface Phase2ContextValue {
     salesLotId: string,
     idempotencyKey: string,
     input: SalesCorrectionInput,
-  ) => Promise<SalesLotRecord>
+  ) => Promise<SalesLotFinancialRecord>
   archiveSalesLot: (
     salesLotId: string,
     idempotencyKey: string,

@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore'
 
 import type { OperationalHardeningRepository } from '../../adapters/contracts'
-import type { AuthenticatedIdentity, FarmAccess } from '../../domain/farm'
+import { canAccessFinancialData, type AuthenticatedIdentity, type FarmAccess } from '../../domain/farm'
 import {
   assertOperationalScope,
   buildFarmAuditCsv,
@@ -26,6 +26,7 @@ import {
   validatePhotoRecoveryDraft,
   type ConflictResolution,
   type FarmDashboardSnapshot,
+  type FarmDashboardFinancialSnapshot,
   type FarmDashboardView,
   type FarmExportRecord,
   type MasterDataConflict,
@@ -107,7 +108,14 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
     if (!result.exists()) throw new Error('ไม่พบ Dashboard view ใน Emulator')
     const snapshot = documentValue<FarmDashboardSnapshot>(result.data())
     assertOperationalScope(context, snapshot)
-    return { snapshot, visibility: dashboardVisibility(context.farm.role) }
+    const financialResult = canAccessFinancialData(context.farm)
+      ? await getDoc(doc(this.farmReference(context), 'financialDashboardViews', 'summary'))
+      : undefined
+    const financial = financialResult?.exists()
+      ? documentValue<FarmDashboardFinancialSnapshot>(financialResult.data())
+      : null
+    if (financial) assertOperationalScope(context, financial)
+    return { snapshot, financial, visibility: dashboardVisibility(context.farm) }
   }
 
   async getPortfolioDashboard(
@@ -117,15 +125,23 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
     if (!authorizedFarms.some((farm) => farm.isOrganizationOwner)) {
       throw new Error('Portfolio Dashboard ใช้ได้เฉพาะเจ้าขององค์กร')
     }
-    const snapshots = await Promise.all(authorizedFarms.map(async (farm) => {
-      const result = await getDoc(doc(this.farmReferenceFromAccess(farm), 'dashboardViews', 'ORG_OWNER'))
-      if (!result.exists()) return undefined
-      return documentValue<FarmDashboardSnapshot>(result.data())
+    const rows = await Promise.all(authorizedFarms.map(async (farm) => {
+      const [snapshotResult, financialResult] = await Promise.all([
+        getDoc(doc(this.farmReferenceFromAccess(farm), 'dashboardViews', 'ORG_OWNER')),
+        getDoc(doc(this.farmReferenceFromAccess(farm), 'financialDashboardViews', 'summary')),
+      ])
+      if (!snapshotResult.exists() || !financialResult.exists()) return undefined
+      return {
+        snapshot: documentValue<FarmDashboardSnapshot>(snapshotResult.data()),
+        financial: documentValue<FarmDashboardFinancialSnapshot>(financialResult.data()),
+      }
     }))
+    const available = rows.filter((row): row is NonNullable<typeof row> => row !== undefined)
     return buildPortfolioDashboard(
       actor,
       authorizedFarms,
-      snapshots.filter((snapshot): snapshot is FarmDashboardSnapshot => snapshot !== undefined),
+      available.map((row) => row.snapshot),
+      available.map((row) => row.financial),
     )
   }
 

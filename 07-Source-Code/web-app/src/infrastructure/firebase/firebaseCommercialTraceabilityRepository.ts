@@ -21,6 +21,7 @@ import {
   calculateDirectCostSummary,
   calculateInventoryBalances,
   calculateSaleAmounts,
+  canAccessCommercialFinancialData,
   canApproveCommercialCorrection,
   canManageCommercial,
   canReadCommercial,
@@ -34,6 +35,7 @@ import {
   validateSalesLot,
   type CommercialAlert,
   type CommercialAuditEvent,
+  type CommercialFinancialAuditEvent,
   type CommercialMutationContext,
   type CommercialSnapshot,
   type CropCycleDraft,
@@ -45,9 +47,11 @@ import {
   type HarvestLotRecord,
   type InventoryItemRecord,
   type InventoryMovementInput,
+  type InventoryMovementFinancialRecord,
   type InventoryMovementRecord,
   type SalesCorrectionInput,
   type SalesLotDraft,
+  type SalesLotFinancialRecord,
   type SalesLotRecord,
 } from '../../domain/commercialTraceability'
 import { rootDoc } from './firebaseDataRoot'
@@ -101,6 +105,26 @@ function auditEvent(
   }
 }
 
+function financialAuditEvent(
+  context: CommercialMutationContext,
+  recordKind: CommercialFinancialAuditEvent['recordKind'],
+  recordId: string,
+  eventType: CommercialFinancialAuditEvent['eventType'],
+  reason: string,
+  beforeSummary: string,
+  afterSummary: string,
+  recordVersion: number,
+  amountBaht: number | null,
+): CommercialFinancialAuditEvent {
+  return {
+    ...auditEvent(context, recordKind, recordId, eventType, reason, beforeSummary, afterSummary, recordVersion),
+    organizationId: context.farm.organizationId,
+    farmId: context.farm.farmId,
+    amountBaht,
+    exampleData: true,
+  }
+}
+
 export class FirebaseCommercialTraceabilityRepository implements CommercialTraceabilityRepository {
   constructor(
     private readonly firestore: Firestore,
@@ -130,8 +154,12 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
   private async listCollection<T extends { organizationId: string; farmId: string; exampleData: true }>(
     context: CommercialMutationContext,
     collectionName: string,
+    operationalOnly = false,
   ): Promise<T[]> {
-    const result = await getDocs(collection(this.farmReference(context), collectionName))
+    const reference = collection(this.farmReference(context), collectionName)
+    const result = await getDocs(operationalOnly
+      ? query(reference, where('dataClass', '==', 'OPERATIONAL'))
+      : reference)
     return result.docs.map((snapshot) => parseRecord<T>(snapshot.data(), context))
   }
 
@@ -163,7 +191,19 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       ...event,
       organizationId: context.farm.organizationId,
       farmId: context.farm.farmId,
+      dataClass: 'OPERATIONAL',
       exampleData: true,
+      createdAt: serverTimestamp(),
+    })
+  }
+
+  private writeFinancialAudit(
+    transaction: Transaction,
+    context: CommercialMutationContext,
+    event: CommercialFinancialAuditEvent,
+  ): void {
+    transaction.set(this.recordReference(context, 'commercialFinancialAuditEvents', event.eventId), {
+      ...event,
       createdAt: serverTimestamp(),
     })
   }
@@ -201,17 +241,38 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       this.listCollection<CropCycleRecord>(context, 'cropCycles'),
       this.listCollection<FruitObservationRecord>(context, 'fruitObservations'),
       this.listCollection<HarvestLotRecord>(context, 'harvestLots'),
-      this.listCollection<SalesLotRecord>(context, 'salesLots'),
+      this.listCollection<SalesLotRecord>(context, 'salesLots', !canAccessCommercialFinancialData(context.farm)),
       this.listCollection<InventoryItemRecord>(context, 'inventoryItems'),
-      this.listCollection<InventoryMovementRecord>(context, 'inventoryMovements'),
+      this.listCollection<InventoryMovementRecord>(context, 'inventoryMovements', !canAccessCommercialFinancialData(context.farm)),
     ])
     const inventoryBalances = calculateInventoryBalances(inventoryItems, inventoryMovements)
     if (inventoryBalances.some((entry) => entry.balance < 0)) throw new Error('Critical: พบยอดสต็อกติดลบใน Emulator')
+    let financial: CommercialSnapshot['financial'] = null
+    if (canAccessCommercialFinancialData(context.farm)) {
+      const [salesFinancials, inventoryMovementFinancials, auditSnapshots] = await Promise.all([
+        this.listCollection<SalesLotFinancialRecord>(context, 'salesFinancials'),
+        this.listCollection<InventoryMovementFinancialRecord>(context, 'inventoryMovementFinancials'),
+        getDocs(collection(this.farmReference(context), 'commercialFinancialAuditEvents')),
+      ])
+      const audit = auditSnapshots.docs.map((snapshot) => {
+        const data = snapshot.data()
+        if (data.organizationId !== context.farm.organizationId || data.farmId !== context.farm.farmId || data.exampleData !== true) {
+          throw new Error('Commercial financial audit scope ไม่ถูกต้อง')
+        }
+        return copy(data as CommercialFinancialAuditEvent)
+      })
+      financial = {
+        salesLots: salesFinancials,
+        inventoryMovements: inventoryMovementFinancials,
+        directCostSummary: calculateDirectCostSummary(inventoryMovements, inventoryMovementFinancials),
+        audit,
+      }
+    }
     return {
       cropCycles, fruitObservations, harvestLots, salesLots, inventoryItems, inventoryMovements,
       inventoryBalances,
       alerts: this.alertsFor(inventoryItems, inventoryBalances),
-      directCostSummary: calculateDirectCostSummary(inventoryMovements),
+      financial,
       traceability: buildTraceability(cropCycles, harvestLots, salesLots),
     }
   }
@@ -368,13 +429,34 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
   ): Promise<SalesLotRecord> {
     if (!canManageCommercial(context.farm.role)) throw new Error('บทบาทนี้ไม่มีสิทธิ์สร้าง Sales Lot')
     const validated = validateSalesLot(draft)
+    if (validated.financial && !canAccessCommercialFinancialData(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
+    }
     const salesLotId = createCommercialRecordId('sales')
-    const amount = calculateSaleAmounts(validated.weightKg, validated.unitPriceBahtPerKg, validated.depositBaht, validated.receivedBaht)
-    const record: SalesLotRecord = { ...validated, ...amount, organizationId: context.farm.organizationId,
-      farmId: context.farm.farmId, salesLotId, actorUserId: context.actor.userId,
+    const { financial: financialDraft, ...operationalDraft } = validated
+    const record: SalesLotRecord = { ...operationalDraft, organizationId: context.farm.organizationId,
+      farmId: context.farm.farmId, salesLotId, status: 'CONFIRMED', actorUserId: context.actor.userId,
       createdAtLabel: fixedTimeLabel, version: 1, exampleData: true, audit: [] }
-    const event = auditEvent(context, 'SALES_LOT', salesLotId, 'CREATED', 'Customer reference only', '', `${record.grossAmountBaht} THB`, 1)
+    const event = auditEvent(context, 'SALES_LOT', salesLotId, 'CREATED', record.note, '', `${record.weightKg} kg`, 1)
     record.audit = [event]
+    const financialRecord: SalesLotFinancialRecord | undefined = financialDraft
+      ? {
+          ...financialDraft,
+          ...calculateSaleAmounts(
+            record.weightKg,
+            financialDraft.unitPriceBahtPerKg,
+            financialDraft.depositBaht,
+            financialDraft.receivedBaht,
+          ),
+          organizationId: context.farm.organizationId,
+          farmId: context.farm.farmId,
+          salesLotId,
+          actorUserId: context.actor.userId,
+          createdAtLabel: fixedTimeLabel,
+          version: 1,
+          exampleData: true,
+        }
+      : undefined
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
       if (operation.exists()) return parseRecord<SalesLotRecord>((await transaction.get(
@@ -396,8 +478,26 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
           actorUserId: context.actor.userId, updatedAt: serverTimestamp() })
       })
       transaction.set(this.recordReference(context, 'salesLots', salesLotId), {
-        ...record, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        ...record, dataClass: 'OPERATIONAL', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       })
+      if (financialRecord) {
+        transaction.set(this.recordReference(context, 'salesFinancials', salesLotId), {
+          ...financialRecord,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+        this.writeFinancialAudit(transaction, context, financialAuditEvent(
+          context,
+          'SALES_LOT',
+          salesLotId,
+          'CREATED',
+          'Owner-only sale financial record',
+          '',
+          `${financialRecord.grossAmountBaht} THB`,
+          1,
+          financialRecord.grossAmountBaht,
+        ))
+      }
       this.writeAudit(transaction, context, event)
       this.setOperation(transaction, context, idempotencyKey, 'salesLots', salesLotId)
       return record
@@ -409,29 +509,33 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     salesLotId: string,
     idempotencyKey: string,
     input: SalesCorrectionInput,
-  ): Promise<SalesLotRecord> {
-    if (!canApproveCommercialCorrection(context.farm.role)) throw new Error('Sales correction ต้องให้ Owner/Manager ดำเนินการ')
+  ): Promise<SalesLotFinancialRecord> {
+    if (!canAccessCommercialFinancialData(context.farm)) throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
     if (!input.reason.trim()) throw new Error('Sales correction ต้องมีเหตุผล')
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
-      const reference = this.recordReference(context, 'salesLots', salesLotId)
-      if (operation.exists()) return parseRecord<SalesLotRecord>((await transaction.get(reference)).data() ?? {}, context)
-      const current = parseRecord<SalesLotRecord>((await transaction.get(reference)).data() ?? {}, context)
-      if (roundQuantity(input.weightKg) !== current.weightKg) throw new Error('การแก้น้ำหนักต้องใช้ correction allocation แยก')
+      const operationalReference = this.recordReference(context, 'salesLots', salesLotId)
+      const reference = this.recordReference(context, 'salesFinancials', salesLotId)
+      if (operation.exists()) return parseRecord<SalesLotFinancialRecord>((await transaction.get(reference)).data() ?? {}, context)
+      const operational = parseRecord<SalesLotRecord>((await transaction.get(operationalReference)).data() ?? {}, context)
+      const current = parseRecord<SalesLotFinancialRecord>((await transaction.get(reference)).data() ?? {}, context)
+      if (roundQuantity(input.weightKg) !== operational.weightKg) throw new Error('การแก้น้ำหนักต้องใช้ correction allocation แยก')
       const amount = calculateSaleAmounts(input.weightKg, input.unitPriceBahtPerKg, input.depositBaht, input.receivedBaht)
-      const updated = { ...current, ...amount, unitPriceBahtPerKg: input.unitPriceBahtPerKg,
+      const updated: SalesLotFinancialRecord = { ...current, ...amount, unitPriceBahtPerKg: input.unitPriceBahtPerKg,
         depositBaht: input.depositBaht, receivedBaht: input.receivedBaht, version: current.version + 1 }
-      const event = auditEvent(context, 'SALES_LOT', salesLotId, 'CORRECTED', input.reason.trim(),
+      const event = financialAuditEvent(context, 'SALES_LOT', salesLotId, 'CORRECTED', input.reason.trim(),
         `${current.unitPriceBahtPerKg}/${current.depositBaht}/${current.receivedBaht}`,
-        `${updated.unitPriceBahtPerKg}/${updated.depositBaht}/${updated.receivedBaht}`, updated.version)
-      updated.audit = [event, ...current.audit]
+        `${updated.unitPriceBahtPerKg}/${updated.depositBaht}/${updated.receivedBaht}`,
+        updated.version,
+        updated.grossAmountBaht,
+      )
       transaction.update(reference, { unitPriceBahtPerKg: updated.unitPriceBahtPerKg,
         depositBaht: updated.depositBaht, receivedBaht: updated.receivedBaht,
         grossAmountBaht: updated.grossAmountBaht, outstandingBaht: updated.outstandingBaht,
-        status: updated.status, version: updated.version, audit: updated.audit,
+        paymentStatus: updated.paymentStatus, version: updated.version,
         actorUserId: context.actor.userId, updatedAt: serverTimestamp() })
-      this.writeAudit(transaction, context, event)
-      this.setOperation(transaction, context, idempotencyKey, 'salesLots', salesLotId)
+      this.writeFinancialAudit(transaction, context, event)
+      this.setOperation(transaction, context, idempotencyKey, 'salesFinancials', salesLotId)
       return updated
     })
   }
@@ -480,6 +584,10 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     const itemSnapshot = await getDoc(itemReference)
     const item = parseRecord<InventoryItemRecord>(itemSnapshot.data() ?? {}, context)
     const validated = validateInventoryMovement(item, input)
+    if (validated.financial && !canAccessCommercialFinancialData(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
+    }
+    const { financial: financialDraft, ...operationalInput } = validated
     const movementId = createCommercialRecordId('inventory_move')
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
@@ -491,15 +599,46 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       const currentBalance = balanceSnapshot.exists() ? Number(balanceSnapshot.data().balance) : 0
       const nextBalance = roundQuantity(currentBalance + validated.quantityDelta)
       if (nextBalance < 0) throw new Error('นโยบาย Phase 5 ปฏิเสธสต็อกติดลบ')
-      const record: InventoryMovementRecord = { ...validated, organizationId: context.farm.organizationId,
+      const record: InventoryMovementRecord = { ...operationalInput, organizationId: context.farm.organizationId,
         farmId: context.farm.farmId, movementId, actorUserId: context.actor.userId,
         createdAtLabel: fixedTimeLabel, version: 1, exampleData: true, audit: [] }
       const event = auditEvent(context, 'INVENTORY_MOVEMENT', movementId, 'STOCK_RECORDED',
         record.reason, `${currentBalance} ${record.unit}`, `${nextBalance} ${record.unit}`, 1)
       record.audit = [event]
       transaction.set(this.recordReference(context, 'inventoryMovements', movementId), {
-        ...record, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        ...record, dataClass: 'OPERATIONAL', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       })
+      if (financialDraft) {
+        const financialRecord: InventoryMovementFinancialRecord = {
+          ...financialDraft,
+          organizationId: context.farm.organizationId,
+          farmId: context.farm.farmId,
+          movementId,
+          directCostBaht: financialDraft.directUnitCostBaht === null
+            ? null
+            : Math.round((Math.abs(record.quantityDelta) * financialDraft.directUnitCostBaht + Number.EPSILON) * 100) / 100,
+          actorUserId: context.actor.userId,
+          createdAtLabel: fixedTimeLabel,
+          version: 1,
+          exampleData: true,
+        }
+        transaction.set(this.recordReference(context, 'inventoryMovementFinancials', movementId), {
+          ...financialRecord,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+        this.writeFinancialAudit(transaction, context, financialAuditEvent(
+          context,
+          'INVENTORY_MOVEMENT',
+          movementId,
+          'STOCK_RECORDED',
+          'Owner-only inventory cost record',
+          '',
+          `${financialRecord.directCostBaht ?? 'UNKNOWN'} THB`,
+          1,
+          financialRecord.directCostBaht,
+        ))
+      }
       transaction.set(balanceReference, { organizationId: context.farm.organizationId,
         farmId: context.farm.farmId, lotId: input.lotId, itemId: input.itemId,
         unit: input.unit, balance: nextBalance, exampleData: true,
@@ -515,7 +654,10 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     if (!['ORG_OWNER', 'FARM_MANAGER', 'AUDITOR'].includes(context.farm.role)) {
       throw new Error('บทบาทนี้ไม่มีสิทธิ์อ่าน Commercial audit')
     }
-    const result = await getDocs(collection(this.farmReference(context), 'commercialAuditEvents'))
+    const result = await getDocs(query(
+      collection(this.farmReference(context), 'commercialAuditEvents'),
+      where('dataClass', '==', 'OPERATIONAL'),
+    ))
     return result.docs.map((snapshot) => {
       const data = snapshot.data()
       if (data.organizationId !== context.farm.organizationId || data.farmId !== context.farm.farmId || data.exampleData !== true) {

@@ -3,6 +3,7 @@ import type {
   CanonicalRole,
   FarmAccess,
 } from './farm'
+import { canAccessFinancialData } from './farm'
 import performanceBudget from '../config/phase6-performance-budget.json'
 import type { WorkPhotoPhase } from './workCareDisease'
 
@@ -62,6 +63,13 @@ export interface FarmDashboardSnapshot {
   }
   harvestAvailableKg: number
   inventoryWarningCount: number
+  lastCalculatedAtLabel: string
+  exampleData: true
+}
+
+export interface FarmDashboardFinancialSnapshot {
+  organizationId: string
+  farmId: string
   salesGrossBaht: number
   salesOutstandingBaht: number
   lastCalculatedAtLabel: string
@@ -80,13 +88,19 @@ export interface DashboardVisibility {
 
 export interface FarmDashboardView {
   snapshot: FarmDashboardSnapshot
+  financial: FarmDashboardFinancialSnapshot | null
   visibility: DashboardVisibility
+}
+
+export interface PortfolioFarmDashboard {
+  snapshot: FarmDashboardSnapshot
+  financial: FarmDashboardFinancialSnapshot
 }
 
 export interface PortfolioDashboard {
   organizationId: string
   farmCount: number
-  farms: readonly FarmDashboardSnapshot[]
+  farms: readonly PortfolioFarmDashboard[]
   totals: {
     urgentDiseaseCount: number
     overdueWorkCount: number
@@ -207,7 +221,8 @@ export interface FarmExportRecord {
 
 export const phase6PerformanceBudget = Object.freeze(performanceBudget)
 
-export function dashboardVisibility(role: CanonicalRole): DashboardVisibility {
+export function dashboardVisibility(access: FarmAccess): DashboardVisibility {
+  const role = access.role
   return {
     treeHealth: role !== 'SALES_INVENTORY' && role !== 'AUDITOR',
     disease: ['ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'VIEWER'].includes(role),
@@ -215,7 +230,7 @@ export function dashboardVisibility(role: CanonicalRole): DashboardVisibility {
     fruit: ['ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'SALES_INVENTORY', 'VIEWER'].includes(role),
     harvest: ['ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'SALES_INVENTORY', 'VIEWER'].includes(role),
     inventory: ['ORG_OWNER', 'FARM_MANAGER', 'SALES_INVENTORY', 'VIEWER'].includes(role),
-    sales: ['ORG_OWNER', 'FARM_MANAGER', 'SALES_INVENTORY', 'VIEWER'].includes(role),
+    sales: canAccessFinancialData(access),
   }
 }
 
@@ -300,6 +315,7 @@ export function buildPortfolioDashboard(
   actor: AuthenticatedIdentity,
   authorizedFarms: readonly FarmAccess[],
   snapshots: readonly FarmDashboardSnapshot[],
+  financialSnapshots: readonly FarmDashboardFinancialSnapshot[],
 ): PortfolioDashboard {
   if (!actor.userId || !authorizedFarms.some((farm) => farm.isOrganizationOwner)) {
     throw new Error('Portfolio Dashboard ใช้ได้เฉพาะเจ้าขององค์กร')
@@ -311,19 +327,25 @@ export function buildPortfolioDashboard(
   if (!organizationId) throw new Error('ไม่พบสวนที่ได้รับสิทธิ์')
   const farms = snapshots.filter((snapshot) =>
     snapshot.organizationId === organizationId && allowedFarmIds.has(snapshot.farmId),
-  )
+  ).map((snapshot) => {
+    const financial = financialSnapshots.find((candidate) =>
+      candidate.organizationId === snapshot.organizationId && candidate.farmId === snapshot.farmId,
+    )
+    if (!financial) throw new Error(`ไม่พบ Owner-only financial dashboard ของ ${snapshot.farmCode}`)
+    return { snapshot, financial }
+  })
   return {
     organizationId,
     farmCount: farms.length,
     farms,
     totals: farms.reduce((totals, farm) => ({
-      urgentDiseaseCount: totals.urgentDiseaseCount + farm.urgentDiseaseCount,
-      overdueWorkCount: totals.overdueWorkCount + farm.overdueWorkCount,
-      upcomingWorkCount: totals.upcomingWorkCount + farm.upcomingWorkCount,
-      inventoryWarningCount: totals.inventoryWarningCount + farm.inventoryWarningCount,
-      harvestAvailableKg: totals.harvestAvailableKg + farm.harvestAvailableKg,
-      salesGrossBaht: totals.salesGrossBaht + farm.salesGrossBaht,
-      salesOutstandingBaht: totals.salesOutstandingBaht + farm.salesOutstandingBaht,
+      urgentDiseaseCount: totals.urgentDiseaseCount + farm.snapshot.urgentDiseaseCount,
+      overdueWorkCount: totals.overdueWorkCount + farm.snapshot.overdueWorkCount,
+      upcomingWorkCount: totals.upcomingWorkCount + farm.snapshot.upcomingWorkCount,
+      inventoryWarningCount: totals.inventoryWarningCount + farm.snapshot.inventoryWarningCount,
+      harvestAvailableKg: totals.harvestAvailableKg + farm.snapshot.harvestAvailableKg,
+      salesGrossBaht: totals.salesGrossBaht + farm.financial.salesGrossBaht,
+      salesOutstandingBaht: totals.salesOutstandingBaht + farm.financial.salesOutstandingBaht,
     }), {
       urgentDiseaseCount: 0,
       overdueWorkCount: 0,

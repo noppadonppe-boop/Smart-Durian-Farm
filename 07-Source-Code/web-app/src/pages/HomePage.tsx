@@ -78,8 +78,8 @@ export function HomePage() {
           {dashboard.visibility.inventory ? <article className="dashboard-card dashboard-card--warning">
             <small>Inventory warning</small><strong>{dashboard.snapshot.inventoryWarningCount}</strong><span>ต่ำ/ใกล้หมดอายุ</span>
           </article> : null}
-          {dashboard.visibility.sales ? <article className="dashboard-card">
-            <small>ยอดขาย / ค้าง</small><strong>{dashboard.snapshot.salesGrossBaht.toLocaleString('th-TH')}</strong><span>ค้าง {dashboard.snapshot.salesOutstandingBaht.toLocaleString('th-TH')} บาท</span>
+          {farm.isOrganizationOwner && dashboard.visibility.sales && dashboard.financial ? <article className="dashboard-card">
+            <small>ยอดขาย / ค้าง · Owner only</small><strong>{dashboard.financial.salesGrossBaht.toLocaleString('th-TH')}</strong><span>ค้าง {dashboard.financial.salesOutstandingBaht.toLocaleString('th-TH')} บาท</span>
           </article> : null}
         </div>
         <p className="dashboard-updated">คำนวณล่าสุด: {dashboard.snapshot.lastCalculatedAtLabel} · SIMULATED/TEST ONLY</p>

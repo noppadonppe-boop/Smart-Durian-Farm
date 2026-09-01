@@ -192,6 +192,11 @@ service cloud.firestore {
         ]);
     }
 
+    function canAccessFinancialData(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && isOrganizationOwner(organizationId);
+    }
+
     function canWriteFruit(organizationId, farmId) {
       return canWriteFarm(organizationId, farmId)
         && hasFarmRole(organizationId, farmId, [
@@ -250,6 +255,11 @@ service cloud.firestore {
       return data.organizationId == organizationId
         && data.farmId == farmId
         && data.exampleData == true;
+    }
+
+    function validFinancialScope(data, organizationId, farmId) {
+      return canAccessFinancialData(organizationId, farmId)
+        && validCommercialScope(data, organizationId, farmId);
     }
 
     function validCommercialCreate(data, organizationId, farmId, recordId, idField) {
@@ -2427,9 +2437,14 @@ service cloud.firestore {
         }
 
         match /annualPlanItems/{planItemId} {
-          allow read: if canReadFarm(organizationId, farmId);
+          allow read: if canReadFarm(organizationId, farmId)
+            && (canAccessFinancialData(organizationId, farmId)
+              || (resource.data.dataClass == 'OPERATIONAL'
+                && !resource.data.keys().hasAny(['plannedDirectCostBaht'])));
           allow create: if canManageAnnualPlan(organizationId, farmId)
             && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.dataClass == 'OPERATIONAL'
+            && !request.resource.data.keys().hasAny(['plannedDirectCostBaht'])
             && request.resource.data.planItemId == planItemId
             && request.resource.data.annualCycleId is string
             && existsAfter(annualCyclePath(organizationId, farmId, request.resource.data.annualCycleId))
@@ -2452,6 +2467,20 @@ service cloud.firestore {
             && request.resource.data.updatedBy == request.auth.uid
             && request.resource.data.createdAt == request.time
             && request.resource.data.updatedAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /annualPlanFinancials/{planItemId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.planItemId == planItemId
+            && request.resource.data.annualCycleId is string
+            && (request.resource.data.plannedDirectCostBaht == null
+              || request.resource.data.plannedDirectCostBaht >= 0)
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.version == 1
+            && request.resource.data.createdAt == request.time;
           allow update, delete: if false;
         }
 
@@ -2630,38 +2659,80 @@ service cloud.firestore {
         }
 
         match /salesLots/{salesLotId} {
-          allow read: if canReadCommercial(organizationId, farmId);
+          allow read: if canReadCommercial(organizationId, farmId)
+            && (canAccessFinancialData(organizationId, farmId)
+              || (resource.data.dataClass == 'OPERATIONAL'
+                && !resource.data.keys().hasAny([
+                  'customerReference', 'unitPriceBahtPerKg', 'depositBaht',
+                  'receivedBaht', 'grossAmountBaht', 'outstandingBaht', 'paymentStatus'
+                ])));
           allow create: if canManageCommercial(organizationId, farmId)
             && validCommercialCreate(
               request.resource.data, organizationId, farmId, salesLotId, 'salesLotId'
             )
-            && request.resource.data.customerReference is string
+            && request.resource.data.keys().hasOnly([
+              'organizationId', 'farmId', 'salesLotId', 'lotCode', 'soldOn',
+              'allocations', 'quantityFruit', 'weightKg', 'note', 'status',
+              'actorUserId', 'createdAtLabel', 'version', 'exampleData', 'audit',
+              'dataClass', 'classification', 'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.dataClass == 'OPERATIONAL'
             && request.resource.data.allocations is list
             && request.resource.data.allocations.size() > 0
             && request.resource.data.weightKg > 0
-            && request.resource.data.grossAmountBaht >= 0
-            && request.resource.data.outstandingBaht >= 0
-            && request.resource.data.status in [
-              'CONFIRMED', 'PARTIALLY_RECEIVED', 'PAID'
-            ];
+            && request.resource.data.status == 'CONFIRMED';
           allow update: if canCorrectCommercial(organizationId, farmId)
             && validCommercialScope(request.resource.data, organizationId, farmId)
             && request.resource.data.salesLotId == resource.data.salesLotId
             && request.resource.data.lotCode == resource.data.lotCode
-            && request.resource.data.customerReference == resource.data.customerReference
             && request.resource.data.allocations == resource.data.allocations
             && request.resource.data.weightKg == resource.data.weightKg
             && request.resource.data.version == resource.data.version + 1
             && request.resource.data.actorUserId == request.auth.uid
             && request.resource.data.updatedAt == request.time
+            && request.resource.data.status in ['CONFIRMED', 'ARCHIVED']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'version', 'audit', 'actorUserId', 'updatedAt'
+            ]);
+          allow delete: if false;
+        }
+
+        match /salesFinancials/{salesLotId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'organizationId', 'farmId', 'salesLotId', 'customerReference',
+              'unitPriceBahtPerKg', 'depositBaht', 'receivedBaht',
+              'grossAmountBaht', 'outstandingBaht', 'paymentStatus',
+              'actorUserId', 'createdAtLabel', 'version', 'exampleData',
+              'classification', 'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.salesLotId == salesLotId
+            && request.resource.data.customerReference is string
+            && request.resource.data.unitPriceBahtPerKg >= 0
+            && request.resource.data.depositBaht >= 0
+            && request.resource.data.receivedBaht >= 0
+            && request.resource.data.grossAmountBaht >= 0
             && request.resource.data.outstandingBaht >= 0
-            && request.resource.data.status in [
-              'CONFIRMED', 'PARTIALLY_RECEIVED', 'PAID', 'ARCHIVED'
-            ]
+            && request.resource.data.paymentStatus in ['UNPAID', 'PARTIALLY_RECEIVED', 'PAID']
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.version == 1
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time;
+          allow update: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.salesLotId == resource.data.salesLotId
+            && request.resource.data.customerReference == resource.data.customerReference
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.outstandingBaht >= 0
+            && request.resource.data.paymentStatus in ['UNPAID', 'PARTIALLY_RECEIVED', 'PAID']
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               'unitPriceBahtPerKg', 'depositBaht', 'receivedBaht',
-              'grossAmountBaht', 'outstandingBaht', 'status', 'version',
-              'audit', 'actorUserId', 'updatedAt'
+              'grossAmountBaht', 'outstandingBaht', 'paymentStatus',
+              'version', 'actorUserId', 'updatedAt'
             ]);
           allow delete: if false;
         }
@@ -2686,7 +2757,10 @@ service cloud.firestore {
         }
 
         match /inventoryMovements/{movementId} {
-          allow read: if canReadCommercial(organizationId, farmId);
+          allow read: if canReadCommercial(organizationId, farmId)
+            && (canAccessFinancialData(organizationId, farmId)
+              || (resource.data.dataClass == 'OPERATIONAL'
+                && !resource.data.keys().hasAny(['directUnitCostBaht', 'directCostBaht'])));
           allow create: if canManageCommercial(organizationId, farmId)
             && validCommercialCreate(
               request.resource.data, organizationId, farmId, movementId, 'movementId'
@@ -2699,8 +2773,37 @@ service cloud.firestore {
             && request.resource.data.unit is string
             && request.resource.data.reason is string
             && request.resource.data.referenceId is string
+            && request.resource.data.keys().hasOnly([
+              'organizationId', 'farmId', 'movementId', 'itemId', 'lotId',
+              'effectiveOn', 'movementType', 'quantity', 'quantityDelta', 'unit',
+              'reason', 'referenceType', 'referenceId', 'actorUserId',
+              'createdAtLabel', 'version', 'exampleData', 'audit',
+              'dataClass', 'classification', 'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.dataClass == 'OPERATIONAL'
             && (request.resource.data.movementType != 'ADJUSTMENT'
               || canCorrectCommercial(organizationId, farmId));
+          allow update, delete: if false;
+        }
+
+        match /inventoryMovementFinancials/{movementId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'organizationId', 'farmId', 'movementId', 'directUnitCostBaht',
+              'directCostBaht', 'actorUserId', 'createdAtLabel', 'version',
+              'exampleData', 'classification', 'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.movementId == movementId
+            && (request.resource.data.directUnitCostBaht == null
+              || request.resource.data.directUnitCostBaht >= 0)
+            && (request.resource.data.directCostBaht == null
+              || request.resource.data.directCostBaht >= 0)
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.version == 1
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time;
           allow update, delete: if false;
         }
 
@@ -2719,7 +2822,10 @@ service cloud.firestore {
         }
 
         match /commercialOperations/{operationId} {
-          allow get: if canReadCommercial(organizationId, farmId);
+          allow get: if canReadCommercial(organizationId, farmId)
+            && (!exists(/databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/commercialOperations/$(operationId))
+              || resource.data.resultCollection != 'salesFinancials'
+              || canAccessFinancialData(organizationId, farmId));
           allow list: if false;
           allow create: if canWriteFarm(organizationId, farmId)
             && validCommercialScope(request.resource.data, organizationId, farmId)
@@ -2727,8 +2833,10 @@ service cloud.firestore {
             && request.resource.data.actorUserId == request.auth.uid
             && request.resource.data.resultCollection in [
               'cropCycles', 'fruitObservations', 'harvestLots',
-              'salesLots', 'inventoryMovements'
+              'salesLots', 'salesFinancials', 'inventoryMovements'
             ]
+            && (request.resource.data.resultCollection != 'salesFinancials'
+              || canAccessFinancialData(organizationId, farmId))
             && request.resource.data.resultId is string
             && request.resource.data.createdAt == request.time;
           allow update, delete: if false;
@@ -2737,9 +2845,28 @@ service cloud.firestore {
         match /commercialAuditEvents/{eventId} {
           allow read: if canReadFarm(organizationId, farmId)
             && (isOrganizationOwner(organizationId)
-              || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR']));
+              || (hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR'])
+                && resource.data.dataClass == 'OPERATIONAL'));
           allow create: if canWriteFarm(organizationId, farmId)
             && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.dataClass == 'OPERATIONAL'
+            && !request.resource.data.keys().hasAny([
+              'amountBaht', 'unitPriceBahtPerKg', 'depositBaht', 'receivedBaht',
+              'grossAmountBaht', 'outstandingBaht', 'directUnitCostBaht', 'directCostBaht'
+            ])
+            && request.resource.data.eventId == eventId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.eventType in [
+              'CREATED', 'CORRECTED', 'ARCHIVED', 'STOCK_RECORDED'
+            ]
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /commercialFinancialAuditEvents/{eventId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
             && request.resource.data.eventId == eventId
             && request.resource.data.actorUserId == request.auth.uid
             && request.resource.data.eventType in [
@@ -2751,6 +2878,8 @@ service cloud.firestore {
 
         match /dashboardViews/{roleBucket} {
           allow get: if canReadFarm(organizationId, farmId)
+            && (canAccessFinancialData(organizationId, farmId)
+              || !resource.data.keys().hasAny(['salesGrossBaht', 'salesOutstandingBaht']))
             && roleBucket in [
               'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST',
               'WORKER', 'SALES_INVENTORY', 'VIEWER'
@@ -2760,6 +2889,42 @@ service cloud.firestore {
               || roleBucket == currentFarmRole(organizationId, farmId)
             );
           allow list, create, update, delete: if false;
+        }
+
+        match /financialDashboardViews/{viewId} {
+          allow get: if viewId == 'summary'
+            && canAccessFinancialData(organizationId, farmId);
+          allow list, create, update, delete: if false;
+        }
+
+        match /managementLaborCosts/{costId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.laborCostId == costId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /managementOperatingExpenses/{expenseId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.expenseId == expenseId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /managementFinancialAuditEvents/{eventId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.eventId == eventId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
         }
 
         match /offlineOperations/{operationId} {

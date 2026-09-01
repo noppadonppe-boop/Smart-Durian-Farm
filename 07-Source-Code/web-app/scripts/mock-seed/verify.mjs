@@ -84,8 +84,10 @@ export async function verifySeed({ firestore, storage, packs, rootSegments = [],
     assertEqual(await countGroup(firestore, 'fruitObservations'), results.commercial.fruitObservations, 'Fruit observations')
     assertEqual(await countGroup(firestore, 'harvestLots'), results.commercial.harvestLots, 'Harvest lots')
     assertEqual(await countGroup(firestore, 'salesLots'), results.commercial.salesLots, 'Sales lots')
+    assertEqual(await countGroup(firestore, 'salesFinancials'), results.commercial.salesFinancials, 'Sales financials')
     assertEqual(await countGroup(firestore, 'inventoryItems'), results.commercial.inventoryItems, 'Inventory items')
     assertEqual(await countGroup(firestore, 'inventoryMovements'), results.commercial.inventoryMovements, 'Inventory movements')
+    assertEqual(await countGroup(firestore, 'inventoryMovementFinancials'), results.commercial.inventoryMovementFinancials, 'Inventory movement financials')
     for (const observation of packs.commercial.fruitObservations.filter((item) => item.countingMode === 'AI_ASSISTED')) {
       if (observation.valueQuality !== 'ESTIMATED' || observation.countMethod === 'FULL_COUNT') {
         throw new Error(`Unsafe AIFC fixture: ${observation.observationId}`)
@@ -95,6 +97,7 @@ export async function verifySeed({ firestore, storage, packs, rootSegments = [],
 
   if (modules.includes('operations')) {
     assertEqual(await countGroup(firestore, 'dashboardViews'), results.operations.dashboardViews, 'Dashboard views')
+    assertEqual(await countGroup(firestore, 'financialDashboardViews'), results.operations.financialDashboardViews, 'Financial dashboard views')
     assertEqual(await countGroup(firestore, 'offlineOperations'), results.operations.offlineOperations, 'Offline operations')
     assertEqual(await countGroup(firestore, 'masterConflicts'), results.operations.masterConflicts, 'Master conflicts')
     assertEqual(await countGroup(firestore, 'photoRecoveries'), results.operations.photoRecoveries, 'Photo recoveries')

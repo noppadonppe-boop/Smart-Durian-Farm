@@ -3,8 +3,10 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   runTransaction,
   serverTimestamp,
+  where,
   type DocumentData,
   type DocumentReference,
   type Firestore,
@@ -36,6 +38,7 @@ import {
   type AnnualPlanItemRecord,
 } from '../../domain/annualFarmCycle'
 import { rootDoc } from './firebaseDataRoot'
+import { canAccessFinancialData } from '../../domain/farm'
 
 const emulatorTimeLabel = '1 ก.ย. 2569 · Local Emulator'
 
@@ -97,8 +100,12 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
   private async listCollection<T extends { organizationId: string; farmId: string; exampleData: true }>(
     context: AnnualCycleMutationContext,
     collectionName: string,
+    operationalOnly = false,
   ): Promise<T[]> {
-    const snapshots = await getDocs(collection(this.farmReference(context), collectionName))
+    const reference = collection(this.farmReference(context), collectionName)
+    const snapshots = await getDocs(operationalOnly
+      ? query(reference, where('dataClass', '==', 'OPERATIONAL'))
+      : reference)
     return snapshots.docs.map((snapshot) => parseScoped<T>(snapshot.data(), context))
   }
 
@@ -175,7 +182,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       ?? null
     if (!selectedCycle) return { cycles, selectedCycle: null, planItems: [], corrections: [], audit: [] }
     const [plans, corrections, audit] = await Promise.all([
-      this.listCollection<AnnualPlanItemRecord>(context, 'annualPlanItems'),
+      this.listCollection<AnnualPlanItemRecord>(context, 'annualPlanItems', !canAccessFinancialData(context.farm)),
       this.listCollection<AnnualCycleCorrection>(context, 'annualCycleCorrections'),
       this.listCollection<AnnualCycleAuditEvent>(context, 'annualCycleAuditEvents'),
     ])
@@ -496,7 +503,8 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       const event = this.audit(context, annualCycleId, 'PLAN_CREATED', record.planItemId,
         'สร้าง Annual Plan Item แบบจำลอง', '', `${record.title}|${record.target.scope}`, record.version)
       transaction.set(this.reference(context, 'annualPlanItems', record.planItemId), {
-        ...record, actorUserId: context.actor.userId, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        ...record, dataClass: 'OPERATIONAL', actorUserId: context.actor.userId,
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       })
       this.setAudit(transaction, context, event)
       this.setOperation(transaction, context, idempotencyKey, 'annualPlanItems', record.planItemId)

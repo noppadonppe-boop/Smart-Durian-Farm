@@ -203,7 +203,7 @@ describe('Annual Cycle Firebase Emulator rules and repository', () => {
         triggerType: 'DATE_WINDOW', plannedStart: '2026-09-01',
         plannedEndExclusive: '2026-10-01', cropStage: null, conditionNote: '',
         responsibleRole: 'FARM_MANAGER', plannedQuantity: null, plannedUnit: '',
-        plannedDirectCostBaht: null, notes: 'SIMULATED/TEST ONLY',
+        notes: 'SIMULATED/TEST ONLY',
       },
     )
     expect(result.target.scope).toBe('FARM')
@@ -326,7 +326,7 @@ describe('Annual Cycle Firebase Emulator rules and repository', () => {
       triggerType: 'DATE_WINDOW', plannedStart: '2026-09-01',
       plannedEndExclusive: '2026-10-01', cropStage: null, conditionNote: '',
       responsibleRole: 'FARM_MANAGER', plannedQuantity: null, plannedUnit: '',
-      plannedDirectCostBaht: null, notes: 'SIMULATED/TEST ONLY',
+      notes: 'SIMULATED/TEST ONLY',
       status: 'PLANNED', copiedFromPlanItemId: null, linkedWorkOrderIds: [],
       version: 1, createdBy: ownerId, updatedBy: ownerId,
       createdAtLabel: 'forged', updatedAtLabel: 'forged', exampleData: true,

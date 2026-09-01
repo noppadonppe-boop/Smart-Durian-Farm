@@ -52,7 +52,16 @@ const cycle = (annualSeed.cycles as unknown as AnnualCycleRecord[])
   .find((record) => record.annualCycleId === 'annual_demo_north_2026_06')!
 
 function commercialSnapshot(): CommercialSnapshot {
-  const source = structuredClone(commercialSeed) as unknown as CommercialSnapshot
+  const source = structuredClone(commercialSeed) as unknown as {
+    cropCycles: CommercialSnapshot['cropCycles']
+    fruitObservations: CommercialSnapshot['fruitObservations']
+    harvestLots: CommercialSnapshot['harvestLots']
+    salesLots: CommercialSnapshot['salesLots']
+    salesFinancials: NonNullable<CommercialSnapshot['financial']>['salesLots']
+    inventoryItems: CommercialSnapshot['inventoryItems']
+    inventoryMovements: CommercialSnapshot['inventoryMovements']
+    inventoryMovementFinancials: NonNullable<CommercialSnapshot['financial']>['inventoryMovements']
+  }
   const scoped = {
     ...source,
     cropCycles: source.cropCycles.filter((record) => record.farmId === farm.farmId),
@@ -65,7 +74,16 @@ function commercialSnapshot(): CommercialSnapshot {
   return {
     ...scoped,
     inventoryBalances: calculateInventoryBalances(scoped.inventoryItems, scoped.inventoryMovements),
-    directCostSummary: calculateDirectCostSummary(scoped.inventoryMovements),
+    alerts: [],
+    financial: {
+      salesLots: source.salesFinancials.filter((record) => record.farmId === farm.farmId),
+      inventoryMovements: source.inventoryMovementFinancials.filter((record) => record.farmId === farm.farmId),
+      directCostSummary: calculateDirectCostSummary(
+        scoped.inventoryMovements,
+        source.inventoryMovementFinancials.filter((record) => record.farmId === farm.farmId),
+      ),
+      audit: [],
+    },
     traceability: buildTraceability(
       scoped.cropCycles,
       scoped.harvestLots,
@@ -87,6 +105,7 @@ function buildReport() {
     costs: {
       laborCosts: (costSeed as unknown as ManagementCostSnapshot).laborCosts.filter((record) => record.farmId === farm.farmId),
       operatingExpenses: (costSeed as unknown as ManagementCostSnapshot).operatingExpenses.filter((record) => record.farmId === farm.farmId),
+      annualPlanFinancials: [],
       audit: [],
     },
   })
@@ -185,7 +204,7 @@ describe('DEC-049 farm management report', () => {
       workOrders: [],
       diseaseIncidents: [],
       commercial: input,
-      costs: { laborCosts: [], operatingExpenses: [], audit: [] },
+      costs: { laborCosts: [], operatingExpenses: [], annualPlanFinancials: [], audit: [] },
     })).toThrow(/ข้าม Farm/u)
   })
 

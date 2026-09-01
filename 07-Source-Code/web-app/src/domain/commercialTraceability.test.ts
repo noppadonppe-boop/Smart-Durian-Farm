@@ -4,6 +4,7 @@ import {
   buildTraceability,
   assertCropStageTransition,
   calculateInventoryBalances,
+  calculateDirectCostSummary,
   calculateSaleAmounts,
   roundMoney,
   validateFruitObservation,
@@ -28,9 +29,9 @@ describe('Phase 5 commercial calculations', () => {
     expect(calculateSaleAmounts(12.345, 120.5, 200, 500)).toEqual({
       grossAmountBaht: 1487.57,
       outstandingBaht: 787.57,
-      status: 'PARTIALLY_RECEIVED',
+      paymentStatus: 'PARTIALLY_RECEIVED',
     })
-    expect(calculateSaleAmounts(10, 100, 200, 800).status).toBe('PAID')
+    expect(calculateSaleAmounts(10, 100, 200, 800).paymentStatus).toBe('PAID')
     expect(() => calculateSaleAmounts(10, 100, 600, 500)).toThrow('เกินมูลค่า')
   })
 
@@ -116,25 +117,19 @@ describe('Phase 5 commercial calculations', () => {
     }).grades[0]!.weightKg).toBe(110)
     expect(validateSalesLot({
       lotCode: 'S-DEMO-01',
-      customerReference: 'BUYER-DEMO-01',
       allocations: [{ harvestLotId: 'harvest_demo_001', weightKg: 50 }],
       quantityFruit: 20,
       weightKg: 50,
-      unitPriceBahtPerKg: 150,
-      depositBaht: 500,
-      receivedBaht: 0,
       note: '',
+      financial: { customerReference: 'BUYER-DEMO-01', unitPriceBahtPerKg: 150, depositBaht: 500, receivedBaht: 0 },
     }).weightKg).toBe(50)
     expect(() => validateSalesLot({
       lotCode: 'S-DEMO-02',
-      customerReference: 'buyer@example.test',
       allocations: [{ harvestLotId: 'harvest_demo_001', weightKg: 50 }],
       quantityFruit: null,
       weightKg: 50,
-      unitPriceBahtPerKg: 150,
-      depositBaht: 0,
-      receivedBaht: 0,
       note: '',
+      financial: { customerReference: 'buyer@example.test', unitPriceBahtPerKg: 150, depositBaht: 0, receivedBaht: 0 },
     })).toThrow('ห้ามใส่อีเมล')
   })
 
@@ -148,15 +143,22 @@ describe('Phase 5 commercial calculations', () => {
     const receipt = validateInventoryMovement(item, {
       itemId: item.itemId, lotId: 'lot_demo', movementType: 'RECEIPT', quantity: 10,
       unit: 'kg', reason: 'SIMULATED receipt', referenceType: 'PURCHASE_REFERENCE',
-      referenceId: 'REF-DEMO', directUnitCostBaht: 20,
+      referenceId: 'REF-DEMO', financial: { directUnitCostBaht: 20 },
     })
     expect(receipt.quantityDelta).toBe(10)
-    expect(receipt.directCostBaht).toBe(200)
-    const movements = [{ ...receipt, organizationId: 'org_demo', farmId: 'farm_demo',
+    expect(receipt.financial?.directUnitCostBaht).toBe(20)
+    const operational = structuredClone(receipt)
+    delete operational.financial
+    const movements = [{ ...operational, organizationId: 'org_demo', farmId: 'farm_demo',
       movementId: 'move_demo', actorUserId: 'user_demo', createdAtLabel: 'fixed',
       version: 1 as const, exampleData: true as const, audit: [],
     }] satisfies InventoryMovementRecord[]
     expect(calculateInventoryBalances([item], movements)[0]!.balance).toBe(10)
+    expect(calculateDirectCostSummary(movements, [{
+      organizationId: 'org_demo', farmId: 'farm_demo', movementId: 'move_demo',
+      directUnitCostBaht: 20, directCostBaht: 200, actorUserId: 'user_demo',
+      createdAtLabel: 'fixed', version: 1, exampleData: true,
+    }]).totalIssuedCostBaht).toBe(0)
     expect(() => validateInventoryMovement(item, { ...receipt, unit: 'bag' })).toThrow('ห้ามคาดเดา')
   })
 
@@ -170,9 +172,8 @@ describe('Phase 5 commercial calculations', () => {
       grades: [], note: '', status: 'GRADED', soldWeightKg: 50, actorUserId: 'u',
       createdAtLabel: 'fixed', version: 1, exampleData: true, audit: [] } satisfies HarvestLotRecord
     const sale = { organizationId: 'o', farmId: 'f', salesLotId: 's', lotCode: 'S-01',
-      customerReference: 'BUYER-DEMO', allocations: [{ harvestLotId: 'h', weightKg: 50 }],
-      quantityFruit: 20, weightKg: 50, unitPriceBahtPerKg: 100, depositBaht: 0,
-      receivedBaht: 0, note: '', grossAmountBaht: 5000, outstandingBaht: 5000,
+      allocations: [{ harvestLotId: 'h', weightKg: 50 }],
+      quantityFruit: 20, weightKg: 50, note: '',
       status: 'CONFIRMED', actorUserId: 'u', createdAtLabel: 'fixed', version: 1,
       exampleData: true, audit: [] } satisfies SalesLotRecord
     expect(buildTraceability([cycle], [harvest], [sale])[0]!).toMatchObject({

@@ -39,10 +39,10 @@ export function PortfolioPage() {
         <article><small>Inventory warning</small><strong>{portfolio.totals.inventoryWarningCount}</strong></article>
       </div>
       <div className="portfolio-farms">
-        {portfolio.farms.map((farm) => <article key={farm.farmId}>
-          <span className="status-pill">{farm.farmCode}</span><h2>{farm.farmName}</h2>
-          <p>เร่งด่วน {farm.urgentDiseaseCount} · งานเกิน {farm.overdueWorkCount} · Harvest {farm.harvestAvailableKg} kg</p>
-          <small>ยอดขาย {farm.salesGrossBaht.toLocaleString('th-TH')} · ค้าง {farm.salesOutstandingBaht.toLocaleString('th-TH')} บาท</small>
+        {portfolio.farms.map(({ snapshot, financial }) => <article key={snapshot.farmId}>
+          <span className="status-pill">{snapshot.farmCode}</span><h2>{snapshot.farmName}</h2>
+          <p>เร่งด่วน {snapshot.urgentDiseaseCount} · งานเกิน {snapshot.overdueWorkCount} · Harvest {snapshot.harvestAvailableKg} kg</p>
+          <small>ยอดขาย {financial.salesGrossBaht.toLocaleString('th-TH')} · ค้าง {financial.salesOutstandingBaht.toLocaleString('th-TH')} บาท · Owner only</small>
         </article>)}
       </div>
       <p className="security-evidence">Security evidence: unauthorized fixture และตัวระบุของสวนที่ไม่มีสิทธิ์ไม่ปรากฏในผลลัพธ์</p>

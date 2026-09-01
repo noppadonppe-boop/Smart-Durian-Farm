@@ -8,6 +8,7 @@ import {
   normalizeOperatingExpenseDraft,
   type LaborCostDraft,
   type LaborCostRecord,
+  type AnnualPlanFinancialRecord,
   type ManagementCostAuditEvent,
   type ManagementCostSnapshot,
   type ManagementReportContext,
@@ -19,6 +20,7 @@ import seed from '../../demo/management-reporting-mock-data-pack-v1.0.json'
 interface ReportingSeed {
   laborCosts: LaborCostRecord[]
   operatingExpenses: OperatingExpenseRecord[]
+  annualPlanFinancials: AnnualPlanFinancialRecord[]
   audit: ManagementCostAuditEvent[]
 }
 
@@ -72,23 +74,25 @@ export class MockManagementReportingRepository implements ManagementReportingRep
     }
   }
 
-  listSnapshot(
+  async listSnapshot(
     context: ManagementReportContext,
     annualCycleId?: string,
   ): Promise<ManagementCostSnapshot> {
+    await Promise.resolve()
     this.assertContext(context)
-    if (!canViewManagementReports(context.farm.role)) {
-      throw new Error('บทบาทนี้ไม่มีสิทธิ์ดูรายงานการจัดการสวน')
+    if (!canViewManagementReports(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
     }
     const sameScope = <T extends { organizationId: string; farmId: string; annualCycleId: string }>(record: T) =>
       record.organizationId === context.farm.organizationId &&
       record.farmId === context.farm.farmId &&
       (!annualCycleId || record.annualCycleId === annualCycleId)
-    return Promise.resolve({
+    return {
       laborCosts: this.state.laborCosts.filter(sameScope).map((record) => structuredClone(record)),
       operatingExpenses: this.state.operatingExpenses.filter(sameScope).map((record) => structuredClone(record)),
+      annualPlanFinancials: this.state.annualPlanFinancials.filter(sameScope).map((record) => structuredClone(record)),
       audit: this.state.audit.filter(sameScope).map((record) => structuredClone(record)),
-    })
+    }
   }
 
   async createLaborCost(
@@ -100,8 +104,8 @@ export class MockManagementReportingRepository implements ManagementReportingRep
     await Promise.resolve()
     this.assertContext(context)
     this.assertCycle(context, cycle)
-    if (!canRecordLaborCost(context.farm.role)) {
-      throw new Error('เฉพาะ Owner/Manager ที่บันทึกต้นทุนแรงงานได้')
+    if (!canRecordLaborCost(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
     }
     const key = this.operationKey(context, idempotencyKey)
     const remembered = this.operations.get(key)
@@ -151,8 +155,8 @@ export class MockManagementReportingRepository implements ManagementReportingRep
     await Promise.resolve()
     this.assertContext(context)
     this.assertCycle(context, cycle)
-    if (!canRecordOperatingExpense(context.farm.role)) {
-      throw new Error('บทบาทนี้ไม่มีสิทธิ์บันทึกค่าใช้จ่ายดำเนินงาน')
+    if (!canRecordOperatingExpense(context.farm)) {
+      throw new Error('ข้อมูลการเงินเปิดให้เฉพาะเจ้าขององค์กรเท่านั้น')
     }
     const key = this.operationKey(context, idempotencyKey)
     const remembered = this.operations.get(key)

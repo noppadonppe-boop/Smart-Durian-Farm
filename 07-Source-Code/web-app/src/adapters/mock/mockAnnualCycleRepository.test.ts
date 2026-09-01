@@ -161,7 +161,7 @@ describe('MockAnnualCycleRepository', () => {
       triggerType: 'DATE_WINDOW', plannedStart: '2026-09-01',
       plannedEndExclusive: '2026-10-01', cropStage: null, conditionNote: '',
       responsibleRole: 'WORKER', plannedQuantity: null, plannedUnit: '',
-      plannedDirectCostBaht: null, notes: '',
+      notes: '',
     }))
       .rejects.toThrow('ไม่มีสิทธิ์จัดทำแผน')
   })
