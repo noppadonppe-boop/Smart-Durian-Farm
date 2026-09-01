@@ -2,20 +2,20 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1 |
-| สถานะ | Proposed — Owner Review Required; Periodic Reports Not Implemented |
+| เวอร์ชัน | 0.2.0 |
+| สถานะ | Approved Unified Management Report Development Baseline (DEC-049); Specialized KPI/Finalization Policy remains Proposed |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| ขอบเขต | Weekly/Monthly operational reports, KPI definitions, period, Farm scope, role access, drill-down, review และ export |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md`, `06-System-Architecture/Phase-4-Work-Care-Disease-Architecture_v0.1.md`, `06-System-Architecture/Phase-5-Commercial-Traceability-Architecture_v0.1.md`, `06-System-Architecture/Phase-6-Operational-Hardening-Architecture_v0.1.md`, `00-Project-Management/Decision-Log.md` |
+| ขอบเขต | Weekly/Monthly/Three-month/Annual operational reports, KPI definitions, period, Farm scope, role access, drill-down, review และ export |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md`, `06-System-Architecture/Management-Reporting-and-Cost-Architecture_v0.1.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `06-System-Architecture/Phase-4-Work-Care-Disease-Architecture_v0.1.md`, `06-System-Architecture/Phase-5-Commercial-Traceability-Architecture_v0.1.md`, `06-System-Architecture/Phase-6-Operational-Hardening-Architecture_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-048, DEC-049) |
 | คู่มือผู้ใช้ | `10-Operations/KDOMS_User_Manual_v1.0.md` |
 | Owner Policy Mockup | `10-Operations/KDOMS_Report_Policy_Owner_Mockup_v0.1.md` และ `08-Testing/fixtures/report-policy-owner-mock-v0.1.json` |
 
-> เอกสารนี้เป็น **ข้อเสนอเชิงนิยาม** สำหรับ Owner Review การมีสูตรในเอกสารไม่แปลว่า
-> ระบบสร้างรายงานนั้นได้แล้ว ปัจจุบันแอปมี Local/Mock Farm Dashboard, Portfolio
-> Dashboard และ Farm-scoped Audit CSV บางส่วนเท่านั้น Periodic Report, scheduler,
-> finalization, distribution และ export เพิ่มเติมยังไม่ implemented และไม่อนุญาต
-> External Action ตาม DEC-038
+> DEC-049 อนุมัติและระบบรองรับ **Unified Farm Management Report** แบบ On-demand
+> รายสัปดาห์ รายเดือน ราย 3 เดือน และรายปี พร้อม Management Cost/CSV เฉพาะ
+> Local/Mock/Firebase Emulator ส่วน Specialized Report, scheduler, finalization,
+> restatement, retention, distribution และ policy `RPD-01`–`RPD-08` ในเอกสารนี้
+> ยังคง Proposed/Not Active และไม่อนุญาต External Action ตาม DEC-038
 
 ## 1. วัตถุประสงค์
 
@@ -55,6 +55,7 @@
 | `organizationId` | R | Organization scope ที่ trusted service กำหนด |
 | `farmId` | R/C | บังคับสำหรับ Farm report; Portfolio ใช้ Farm list ที่ได้รับสิทธิ์ |
 | `farmCode` | R/C | เพื่ออ่านง่าย ไม่ใช้เป็น authorization |
+| `annualCycleId` | R/C | บังคับสำหรับ Annual report และ report run ที่เลือกจากรอบปี; ต้องเป็นรอบของ Farm เดียวกัน |
 | `periodStart` | R | เวลาเริ่มแบบ inclusive |
 | `periodEnd` | R | เวลาสิ้นสุดแบบ exclusive |
 | `asOf` | R | เวลาที่ snapshot ถูกคำนวณ |
@@ -73,11 +74,15 @@
 - **Weekly:** วันจันทร์ `00:00:00` ถึงวันจันทร์ถัดไป `00:00:00` แบบ `[start, end)`
 - **Monthly:** วันที่ 1 `00:00:00` ถึงวันที่ 1 ของเดือนถัดไป `00:00:00` แบบ
   `[start, end)`
+- **Three-month:** แบ่งช่วงละ 3 เดือนนับจากวันเริ่ม Annual Cycle ของ Farm
+- **Annual:** ใช้ `[periodStart, periodEndExclusive)` ของ Annual Cycle ที่เลือก
 - ใช้ timezone ที่กำหนดใน Farm profile; หากไม่มี timezone ให้ Report เป็น
   `BLOCKED_TZ_TBD` ห้ามสมมติ timezone
 - Event ใช้ trusted/server timestamp สำหรับการเข้าช่วง; วันที่จากอุปกรณ์เป็น
   supporting context ไม่ใช่ตัวตัดช่วงหลัก
 - Field แบบวันที่ล้วน เช่น Due date/Harvested on ใช้วันใน Farm timezone
+- **Annual Cycle:** ใช้ `[periodStart, periodEndExclusive)` จาก Annual Cycle ที่เลือก
+  ซึ่ง default คือ 1 มิ.ย.–1 มิ.ย. ปีถัดไป และอาจเริ่มวันอื่นเฉพาะ Farm ตาม DEC-048
 
 **Owner decision required:** ยืนยันวันเริ่มสัปดาห์ เวลา cutoff, timezone fallback
 และเวลาปิดรับ late data
@@ -141,12 +146,46 @@ DRAFT → REVIEWED → FINALIZED
 
 | Code | Report | รอบ | Primary scope | Primary roles | Implementation status |
 |---|---|---|---|---|---|
+| `RPT-A-MGMT` | Annual Farm Management Cycle Summary | Annual Cycle | Farm/Annual Cycle | Owner, Manager; Auditor read by assignment | Basic Local/Mock cycle/plan summary implemented; finalized report/export not implemented |
 | `RPT-W-WORK` | Weekly Work & Workforce Report | Weekly | Farm | Owner, Manager; role-limited views | Not implemented |
 | `RPT-W-HEALTH` | Weekly Tree Health, Disease & Care Report | Weekly | Farm | Owner, Manager, Agronomist | Not implemented |
 | `RPT-M-COMM` | Monthly Fruit, Harvest & Sales Report | Monthly | Farm/Crop Cycle | Owner, Manager, Agronomist, Sales Inventory | Not implemented |
 | `RPT-M-INV` | Monthly Inventory & Direct Cost Report | Monthly | Farm | Owner, Manager, Sales Inventory | Not implemented |
 | `RPT-M-DQ` | Monthly Data Quality & Audit Report | Monthly | Farm/Assignment | Owner, Manager, Auditor | Not implemented |
 | `RPT-P-OWNER` | Portfolio Report for Owner | Weekly/Monthly/On-demand | Authorized Farms in one Organization | Owner only | Current snapshot exists; periodic report not implemented |
+| `RPT-W-FARM` | Unified Farm Management Report | Weekly | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
+| `RPT-M-FARM` | Unified Farm Management Report | Monthly | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
+| `RPT-Q-FARM` | Unified Farm Management Report | Three-month from Annual Cycle start | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
+| `RPT-A-FARM` | Unified Farm Management Report | Annual Cycle | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
+
+### 4.1 `RPT-A-MGMT` — Annual Farm Management Cycle Summary
+
+- Grain: Farm + `annualCycleId` + revision
+- Header: Cycle code/name/status, period/timezone, revision, source watermark และ
+  `SIMULATED/TEST ONLY` ตาม environment
+- Summary ขั้นต่ำ: Annual Plan planned/in-progress/completed/cancelled, Crop Cycles
+  ที่อ้างรอบนี้, Work/Care/Disease/Harvest/Sales/Inventory ที่ resolve รอบได้,
+  carry-over open items และ Data Quality flags
+- Plan variance แสดงได้เฉพาะเมื่อ planned/actual ใช้หน่วยและ source definition
+  เดียวกัน; `UNKNOWN` ห้ามแทนด้วย 0
+- รอบ `CLOSED` ห้ามเขียนทับรายงานเดิม; Correction/Restatement สร้าง revision ใหม่
+  และอ้าง `supersedesReportId`/Annual Cycle correction
+- implementation ปัจจุบันเป็น Basic Cycle/Plan summary แบบ Local/Mock/Emulator;
+  finalization, scheduled generation, external distribution และ Production export
+  ยังไม่อนุมัติ
+
+### 4.2 `RPT-W/M/Q/A-FARM` — Unified Farm Management Report
+
+- Grain: Farm + Annual Cycle + Report period + On-demand run
+- Summary: งาน โรค/ติดตาม Fruit Observation ผลเก็บเกี่ยว ยอดขาย ต้นทุนวัสดุ
+  ต้นทุนแรงงาน ค่าใช้จ่ายดำเนินงาน สินทรัพย์ลงทุน และ Management Margin
+- Material cost ใช้ Inventory `ISSUE` เท่านั้น; Receipt ไม่ถูกรวมซ้ำ
+- Labor cost รองรับ Hour/Day/Piece/Lump sum และผูก Farm operation/Work/Harvest
+- Capital แสดงแยกและไม่รวมใน Total management cost/Management Margin
+- Drill-down: Labor, Expense, Material, Harvest และ Sale ภายใต้ Farm เดียวกัน
+- CSV: UTF-8 BOM, allowlisted columns, neutralize formula-shaped value, no public link
+- Implementation เป็น On-demand draft `SIMULATED/TEST ONLY`; ไม่ใช่ Payroll,
+  Accounting profit, Finalized report หรือ external distribution
 
 ## 5. Proposed role access matrix สำหรับ Report
 
@@ -638,10 +677,11 @@ Machine-readable fixture ใช้ deterministic seed และติดป้�
 | Owner Portfolio snapshot | Implemented/validated with authorized Farm filtering |
 | Minimal Audit CSV | Implemented/validated Local Mock/Emulator |
 | Owner Policy Mockup/config fixture | Documented and schema-validated; `SIMULATED/TEST ONLY`; Not Approved/Not Active |
-| Weekly/Monthly query engine | Not implemented |
+| Weekly/Monthly/Three-month/Annual unified query engine | Implemented/validated Local Mock under DEC-049 |
 | Period cutoff/finalization/revision | Not implemented; Recommended Mock ready; Owner decision `TBD` |
-| Periodic report UI/drill-down | Not implemented |
-| Periodic CSV package/PDF/XLSX | Not implemented |
+| Unified periodic report UI/drill-down | Implemented/validated Local Mock under DEC-049 |
+| Periodic CSV package/PDF/XLSX | Farm-level CSV implemented locally; PDF/XLSX not implemented |
+| Labor/operating expense record | Append-only Mock repository implemented; Production adapter/rules not approved |
 | Scheduler/distribution/external destination | Not Approved |
 
 - Gate 6: **Passed**

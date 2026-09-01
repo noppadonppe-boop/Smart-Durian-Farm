@@ -2,12 +2,12 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1.1 |
-| สถานะ | Approved Development Baseline — Mock Farm Management (DEC-043) + Trusted Operational Farm Boundary (DEC-046) |
+| เวอร์ชัน | 0.1.2 |
+| สถานะ | Approved Development Baseline — Mock Farm Management + Annual Cycle Defaults (DEC-048) + Trusted Operational Farm Boundary |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
 | ขอบเขต | Farm Profile, เพิ่ม/แก้ไข/ระงับ/เก็บถาวรสวนแบบจำลอง และการอ่าน Farm ใช้งานจริงที่ trusted-provision ตาม DEC-046 |
-| Source of Truth | คำสั่งล่าสุดของ Project Owner, `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-043, DEC-046) |
+| Source of Truth | คำสั่งล่าสุดของ Project Owner, `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-043, DEC-046, DEC-048) |
 
 ## 1. คำตัดสิน
 
@@ -51,8 +51,8 @@ Farm Switcher ใช้สำหรับสลับสวนที่มีส
 | `subdistrict` | O | Owner | ตำบล/แขวง; ใช้ `TBD` ได้ |
 | `locationNote` | O | Owner | คำอธิบายพื้นที่แบบสั้น; ห้าม secret/ข้อมูลส่วนบุคคลเกินจำเป็น |
 | `timezone` | R | Owner | IANA timezone; Mock เริ่มที่ `Asia/Bangkok` |
-| `seasonStartMonth` | O | Owner | 1–12; ต้องกรอกคู่กับ `seasonEndMonth` |
-| `seasonEndMonth` | O | Owner | 1–12; เป็นข้อมูลวางแผน ไม่แทน Crop Cycle จริง |
+| `seasonStartMonth` | O | Owner | 1–12; ต้องกรอกคู่กับ `seasonEndMonth`; DEC-048 แนะนำค่าเริ่มต้น 6 สำหรับ Annual Cycle แต่แก้เฉพาะ Farm ได้ |
+| `seasonEndMonth` | O | Owner | 1–12; เป็นข้อมูลวางแผน ไม่แทน Annual Cycle/Crop Cycle จริง; ค่าเริ่มต้นที่แนะนำคือ 5 |
 | `seasonNote` | O | Owner | คำอธิบายฤดูกาลแบบสั้น; ค่าไม่ทราบใช้ `TBD` |
 | `status` | S/R | ระบบ/Owner | สร้างใหม่เป็น `ACTIVE`; เปลี่ยนเป็น `SUSPENDED` หรือ `ARCHIVED` ตาม flow |
 | `notes` | O | Owner | หมายเหตุทั่วไปไม่เกิน 500 ตัวอักษร |
@@ -85,6 +85,8 @@ Farm Switcher ใช้สำหรับสลับสวนที่มีส
   repository ต้องอ่านและคงค่า Farm `OPERATIONAL` ที่ trusted-provision ไว้
 - ทุกการแก้ไขเพิ่ม `version` และสร้าง Audit before/after
 - การแก้ Location/Season ไม่เปลี่ยน Zone/Row/Tree/Crop Cycle ที่มีอยู่โดยอัตโนมัติ
+- การแก้ Farm season เป็น default สำหรับสร้าง Annual Cycle ใหม่เท่านั้น ห้ามเปลี่ยน
+  ช่วงของ Annual Cycle ที่ Active/Closed โดยอัตโนมัติ; ใช้ Correction ตาม DEC-048
 
 ### ระงับและเปิดใช้งานใหม่
 

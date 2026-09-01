@@ -1,15 +1,15 @@
-# KDOMS UX/UI Knowledge v0.1.6
+# KDOMS UX/UI Knowledge v0.1.8
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1.6 |
-| สถานะ | Approved Development Baseline — Orchard Two-View Selector/Complete Actions (DEC-047) and Limited Operational Tree Register Form (DEC-046); Field Usability Deferred |
+| เวอร์ชัน | 0.1.8 |
+| สถานะ | Approved Development Baseline — Annual Cycle and Management Reporting/Cost (DEC-048/049), Orchard Target Actions and Limited Operational Tree Register; Field Usability Deferred |
 | เจ้าของเอกสาร | Project Owner |
 | Primary platform | Mobile web / PWA |
 | Secondary platform | Tablet and desktop management |
 | ภาษา | ไทยเป็นหลัก |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047) |
+| Source of Truth | `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047, DEC-048, DEC-049) |
 
 ## 1. UX goal
 
@@ -37,6 +37,7 @@ Bottom navigation สำหรับมือถือ:
 - `เพิ่มเติม` — สวน วัสดุ ผลผลิต การขาย รายงาน ผู้ใช้ ตั้งค่า ตามสิทธิ์
 
 Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต่ละโมดูล
+Year Switcher อยู่ถัดจาก Farm context และแสดงเฉพาะรอบของ Farm ปัจจุบัน
 
 ## 4. Core screens
 
@@ -157,6 +158,33 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 - Archive ถูกปฏิเสธเมื่อยังมีงานเปิด/Pending และไม่มีปุ่ม Hard delete
 - อยู่ใน More/Admin ไม่อยู่ใน bottom nav สำหรับ Worker
 
+### 4.11 รอบบริหารสวนรายปี
+
+- เมนู `เพิ่มเติม → รอบบริหารสวนรายปี`
+- Header แสดง Farm และ Annual Cycle เป็น context แยกกัน พร้อมสถานะและช่วงวันที่
+- Year Switcher แสดงรอบปัจจุบัน รอบอนาคต และรอบปิดแล้วของ Farm ปัจจุบันเท่านั้น
+- เปลี่ยน Farm แล้วต้องล้าง/โหลด Annual Cycle ใหม่; ห้ามคง Cycle ID จาก Farm เดิม
+- ค่าเริ่มต้นแบบฟอร์มคือ 1 มิถุนายนและแสดงวันสิ้นสุด 31 พฤษภาคมของปีถัดไป
+- Owner เลือกวันเริ่มเฉพาะ Farm ได้; วันสิ้นสุดเป็น read-only derived 12 เดือน
+- หน้าแยก Summary, Annual Plan, Carry-over และ Close/Correction
+- Plan ระดับ Farm/Zone เป็นค่าเริ่มต้น; Tree Set ใช้ Shared Target Selector เมื่อจำเป็น
+- Closed Cycle ไม่มีปุ่มแก้ปกติ มี action `บันทึก Correction` พร้อมเหตุผลและสรุป
+  before/after เท่านั้น
+- ทุกหน้า Development แสดง `SIMULATED/TEST ONLY`; mobile 320px ไม่มี overflow
+
+### 4.12 รายงานการจัดการสวนและต้นทุน
+
+- เมนู `เพิ่มเติม → รายงานผลสวนและต้นทุน` ตาม Role
+- Header แสดง Farm, Annual Cycle และ `SIMULATED/TEST ONLY` ชัดเจน
+- ตัวเลือกรอบมีรายสัปดาห์ รายเดือน ราย 3 เดือน รายปี และวันที่อ้างอิง
+- Summary แยกผลผลิต ยอดขาย ต้นทุนบริหาร และ Management Margin; แสดง
+  `N/A`, `UNKNOWN`, `ESTIMATED` โดยไม่ใช้ศูนย์แทนค่าที่ไม่ทราบ
+- Cost breakdown แยก Material, Labor, Operating และ Capital พร้อมข้อความ
+  `ไม่ใช่ Payroll/บัญชี/ภาษี`
+- Drill-down เป็นตารางที่ยังอ่าน/เลื่อนได้บนมือถือ
+- Form ค่าแรง/ค่าใช้จ่ายเป็น Append-only ไม่มีปุ่มแก้/ลบใน Baseline
+- CSV เป็น action รองและแสดงว่าไม่มี public link/external distribution
+
 ## 5. Content and terminology
 
 - ใช้ `สวน`, `โซน`, `แถว`, `ต้น`, `งาน`, `รายงานผล`, `รอตรวจ`, `ซิงก์แล้ว`
@@ -182,6 +210,7 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 | Disease | เปิดเคส / รอวินิจฉัย / กำลังรักษา / รอติดตาม / ปิดเคส |
 | Sync | ออฟไลน์ / บันทึกในเครื่อง / กำลังซิงก์ / ซิงก์แล้ว / ข้อมูลขัดแย้ง |
 | Farm | ใช้งาน / ระงับ / เก็บถาวร |
+| Annual Cycle | ร่าง / วางแผนแล้ว / กำลังดำเนินการ / กำลังปิดรอบ / ปิดรอบแล้ว |
 
 ## 7. Offline UX
 
@@ -251,6 +280,8 @@ UX Preview ต้องสาธิตอย่างน้อย:
 - ผู้ใช้แยกได้ว่ารูปใดเป็นรูปประกอบจากผู้มอบหมาย และรูปใดเป็นหลักฐานก่อน–หลัง
 - Role ที่ไม่มีสิทธิ์ไม่เห็น destructive/admin action
 - Farm Management แยกจาก Farm Switcher และไม่มี Hard delete action
+- ผู้ใช้บอกได้ว่ากำลังดู Farm และรอบปีใด; Year Switcher ไม่ปะปนข้าม Farm
+- รอบ Closed แสดง Correction-only และไม่เปิด edit ปกติ
 - Shared Target Selector ใช้คำและพฤติกรรมเดียวกันใน Work, Disease, Fruit และ Harvest
 - แปลนเรียง Row ซ้าย→ขวาและ Position บน→ล่าง พร้อม list fallback และไม่มี
   horizontal scroll ทั้งหน้าที่ 320px
@@ -258,6 +289,8 @@ UX Preview ต้องสาธิตอย่างน้อย:
   ก่อนบันทึก และไม่ยอมให้ `ไม่มีต้น` มีข้อมูลต้นปัจจุบันที่ขัดแย้งกัน
 - runtime/Farm ที่ไม่ผ่านเงื่อนไข DEC-046 ต้องยังแสดง `SIMULATED/TEST ONLY` และ
   ไม่สร้าง record ที่มี `exampleData=false`
+- หน้ารายงานแสดงตัวเลือกรอบครบ 4 ค่า, แยก Capital, มี Data quality flags และ
+  ผู้ใช้เข้าใจว่า Management Margin ไม่ใช่กำไรบัญชี
 - ระหว่าง Development ตรวจ UX ด้วย Mock Data, browser และ viewport simulation
 - ทดสอบกับผู้ใช้/อุปกรณ์จริงระหว่าง Controlled Pilot และแก้ผลก่อน Production
   rollout; การไม่มี field usability evidence ไม่ block การสร้างหน้าจอ

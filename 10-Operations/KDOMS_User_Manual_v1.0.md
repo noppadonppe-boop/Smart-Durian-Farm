@@ -2,13 +2,13 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.0 |
-| สถานะ | Draft — Local/Mock User Guide; Owner Review and Controlled Pilot Validation Required |
+| เวอร์ชัน | 1.1 |
+| สถานะ | Approved Development Guide — Management Reporting/Cost Local/Mock Baseline; Controlled Pilot Validation Required |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
 | ขอบเขต | การเริ่มใช้งาน หน้าที่ตามบทบาท Workflow การกรอกข้อมูล Offline/Sync, QR, รูปภาพ, Conflict, Correction, Audit, Export และการแก้ปัญหา |
 | ใช้กับ | KDOMS Local/Mock/Firebase Emulator Candidate เท่านั้น จนกว่า Owner จะอนุมัติสภาพแวดล้อม Pilot |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-009–012, DEC-017, DEC-027, DEC-030, DEC-033–038), `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md` |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-009–012, DEC-017, DEC-027, DEC-030, DEC-033–049), `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md` |
 
 > **ขอบเขตสำคัญ:** เอกสารนี้อธิบายการใช้งาน Candidate ที่ผ่านการตรวจแบบ
 > Local/Mock/Emulator เท่านั้น ข้อมูลและตัวอย่างทั้งหมดเป็น
@@ -380,6 +380,17 @@ AI_ASSISTED ห้ามใช้ใน `FLOWERING`, ต้องเป็น `E
 6. ระบุเหตุผลแล้วบันทึก Movement/Audit
 7. ตรวจยอดคงเหลือ Low-stock/Expiry และ unknown-cost count
 
+### 6.13 รายงานการจัดการสวนและต้นทุน
+
+1. เลือก Farm และ Annual Cycle ที่ต้องการ
+2. เปิด `เพิ่มเติม → รายงานผลสวนและต้นทุน`
+3. เลือก `รายสัปดาห์`, `รายเดือน`, `ราย 3 เดือน` หรือ `รายปี` และวันที่อ้างอิง
+4. ตรวจผลผลิต ยอดขาย ต้นทุนวัสดุ ค่าแรง ค่าใช้จ่าย และ Capital ที่แยกไว้
+5. ตรวจ Data quality flags และ Drill-down ก่อนใช้ตัวเลข
+6. Owner/Manager บันทึกค่าแรงได้; Owner/Manager/Sales Inventory บันทึกค่าใช้จ่ายได้
+7. ค่าแรงเป็น Management Cost ไม่ใช่ Payroll และส่วนต่างไม่ใช่กำไรบัญชี
+8. Owner/Manager ดาวน์โหลด CSV ในเครื่องได้; ไม่มี public link หรือ external delivery
+
 ห้ามคาดเดาการแปลงหน่วย ห้ามยอดคงเหลือติดลบ และ Adjustment ใช้ได้เฉพาะ
 Owner/Manager ตาม baseline
 
@@ -567,8 +578,8 @@ Audit ต้องตอบได้ว่า **ใคร ทำอะไร เ
 - ใช้ได้เฉพาะ role/policy ที่อนุญาตและทุก Export ต้องสร้าง Audit event
 - ตรวจชื่อ Farm, ช่วงเวลา, row count และ column allowlist ก่อนดาวน์โหลด
 - ห้ามสร้าง public link หรือรวมข้อมูลหลายสวนโดยไม่มี Portfolio policy
-- Periodic Report CSV/PDF ยังไม่ implemented; ใช้ Report Catalogue เป็นข้อกำหนด
-  สำหรับการพัฒนาต่อ ไม่ใช่คำยืนยันว่าปุ่ม Export มีแล้ว
+- Unified Farm Management Report มี CSV ในเครื่องสำหรับ Owner/Manager ภายใต้
+  DEC-049; PDF/XLSX, finalized package และ external distribution ยังไม่ implemented
 
 ## 12. Dashboard และรายงาน
 
@@ -584,10 +595,11 @@ authoritative field evidence โดยอาจแสดงตามสิทธ
 
 Portfolio ใช้ได้เฉพาะ `ORG_OWNER` และรวมเฉพาะสวนที่มี membership
 
-Weekly/Monthly Report ให้ใช้คำจำกัดความ สูตร สิทธิ์ drill-down และ export จาก
-`01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md` ซึ่งยังเป็น
-`Proposed — Owner Review Required` ห้ามคำนวณตัวเลขบริหารนอกสูตรแล้วอ้างเป็น
-รายงาน KDOMS ที่อนุมัติ
+Unified Farm Management Report ตาม DEC-049 ใช้งานแบบ On-demand ได้ 4 รอบใน
+Local/Mock ได้แก่ Weekly, Monthly, Three-month และ Annual พร้อม Drill-down/CSV
+โดยทุกตัวเลขต้องติดป้าย `SIMULATED/TEST ONLY` ค่าแรงและค่าใช้จ่ายที่เพิ่มเป็น
+Append-only Mock record ส่วน Specialized KPI, Finalization, Restatement,
+Scheduler/Distribution และ policy `RPD-01`–`RPD-08` ยังเป็น Proposed/Not Active
 
 ### 12.1 การตั้งค่า Report Policy ในอนาคตสำหรับ Owner
 
@@ -630,12 +642,11 @@ Wrong-Tree stop, Correction/Audit แบบ append-only และ no public Expo
 
 ### 13.3 สิ้นสัปดาห์/สิ้นเดือน
 
-- ใช้ Period และ cutoff ที่ Report Catalogue กำหนด
+- เลือก Farm/Annual Cycle และสร้าง Unified report ตามรอบที่ต้องการ
 - ตรวจ Data Quality ก่อนอ่าน KPI
-- Drill-down รายการผิดปกติและบันทึก Correction ก่อน finalize
-- ผู้มีสิทธิ์ Review/Approve รายงานโดยไม่แก้ข้อมูลต้นทางในรายงาน
-- หาก Periodic Report ยังไม่ implemented ให้ระบุ `NOT IMPLEMENTED` ห้ามประกอบ
-  ตัวเลขจากหน้าจอหลายหน้าแล้วเรียกว่า Official KDOMS Report
+- Drill-down รายการผิดปกติและแก้ข้อมูลต้นทางด้วย Workflow/Audit ที่อนุมัติ
+- ใช้ CSV ในเครื่องเฉพาะตามสิทธิ์และอย่าเรียก Draft ว่า Finalized/Official report
+- การ Review/Approve/Finalize/Restate ยังไม่เปิดใช้จนกว่าจะมี Policy approval
 
 ## 14. Troubleshooting
 
@@ -666,7 +677,8 @@ Wrong-Tree stop, Correction/Audit แบบ append-only และ no public Expo
 - อธิบายรูป INSTRUCTION กับ BEFORE/AFTER แยกกันและเงื่อนไข Submit ถูกต้อง
 - ไม่อ้าง Local/Mock/Simulation เป็นข้อมูลจริง Physical evidence หรือ Production
 - ทุก Cross-Farm/Wrong-Tree/Critical case มีคำสั่งหยุดและรายงาน Owner
-- อ้าง Report Catalogue สำหรับ Weekly/Monthly Report โดยไม่อ้างว่าฟังก์ชันมีแล้ว
+- อ้าง Report Catalogue สำหรับ Unified 4-period baseline และไม่อ้างว่า
+  Specialized/Finalized report หรือ external distribution มีแล้ว
 
 ## 16. คำถามที่ต้อง Owner ตัดสินใจก่อน Pilot/Production
 

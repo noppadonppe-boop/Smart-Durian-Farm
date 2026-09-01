@@ -1,14 +1,14 @@
-# KDOMS Codex Master Prompt v1.1.4
+# KDOMS Codex Master Prompt v1.1.6
 
 | รายการ | ค่า |
 |---|---|
 | ผลิตภัณฑ์ | Smart Durian Farm / KongLak Durian Orchard Management System (KDOMS) |
-| เวอร์ชัน | 1.1.4 — Multi-Farm baseline + Limited Operational Tree Register |
-| สถานะ | Approved Baseline — Updated by DEC-027, DEC-030, DEC-043 and DEC-046 |
+| เวอร์ชัน | 1.1.6 — Multi-Farm + Annual Cycle + Management Reporting/Cost + Limited Operational Tree Register |
+| สถานะ | Approved Baseline — Updated by DEC-027, DEC-030, DEC-043, DEC-046, DEC-048 and DEC-049 |
 | เจ้าของเอกสาร | Project Owner |
 | Technology target | Vite + React + TypeScript + Firebase |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Management-Reporting-and-Cost_2026-09-01.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` |
 
 ## 1. บทบาทของ Codex
 
@@ -52,6 +52,22 @@ Role Matrix นี้เป็น Working Proposal ตาม
 - internal Organization/Farm ID สร้างโดยระบบ; Farm create + Owner membership +
   Audit ต้อง atomic/idempotent และปฏิเสธ sequence/code ซ้ำ
 - Portfolio summary สำหรับ Owner โดยไม่รวมข้อมูลสวนที่ไม่มีสิทธิ์
+
+### 4.1.1 Annual Farm Management Cycle
+
+- รอบบริหาร Farm หนึ่งรอบยาว 12 เดือน ค่าเริ่มต้น 1 มิถุนายน–31 พฤษภาคม
+- Owner กำหนดวันเริ่มเฉพาะ Farm ได้และระบบ derive วันสิ้นสุดอัตโนมัติ
+- รอบไม่ทับกันและ Active/Closing รวมกันได้ไม่เกินหนึ่งรอบต่อ Farm
+- สถานะ Draft → Planned → Active → Closing → Closed
+- Owner สร้าง/แก้/เปลี่ยนสถานะ/ปิด/Correction; Manager วางแผนตามสิทธิ์
+- Annual Plan ใช้ Farm/Zone เป็นหลักและ Tree Set เฉพาะข้อยกเว้น
+- Annual Cycle เป็น parent ของ Crop Cycle หนึ่งหรือหลายรายการ แต่ไม่ใช่
+  Crop Cycle หรือ Planting Cycle
+- Closed Cycle แก้เฉพาะ Correction พร้อม reason, before/after, actor/time,
+  idempotency และ revision; original close snapshot ต้องคงอยู่
+- Carry-over ไม่ clone actual Work/Disease/Inventory/Sales history และ copy ได้เฉพาะ Plan
+- Year Switcher ต้องผูก current Farm และล้าง Cycle selection เมื่อเปลี่ยน Farm
+- DEC-048 อนุมัติเฉพาะ Mock/local/Firebase Emulator ไม่อนุมัติข้อมูลจริง/deploy
 
 ### 4.2 Farm topology & tree register
 
@@ -182,6 +198,9 @@ organizations/{organizationId}
   members/{userId}
   farms/{farmId}
     members/{userId}
+    annualCycles/{annualCycleId}
+    annualPlanItems/{planItemId}
+    annualCycleCorrections/{correctionId}
     zones/{zoneId}
     rows/{rowId}
     positions/{positionId}
@@ -299,6 +318,12 @@ Crop cycle, fruit counts, harvest lots, sales lots, inventory movements แล�
 
 Farm/Portfolio dashboard, conflict workflow, performance, audit/export และ security hardening
 
+### Cross-phase enhancement — Annual Farm Management Cycle (DEC-048)
+
+เพิ่ม Farm-scoped Annual Cycle, Annual Plan, Year Switcher, Crop Cycle linkage,
+Close/Correction และ annual summary แบบ Mock/local/Firebase Emulator โดยคง Gate 6
+และ External PA-1/PA-2/deployment/real-data boundary เดิม
+
 ### Phase 7 — Operational Application Pilot, Rollout & Operations
 
 Deploy แอปที่ผ่าน Engineering Gate ที่กำหนดเป็น access-controlled Pilot Candidate
@@ -336,6 +361,13 @@ deploy, ใช้ข้อมูลจริง หรือเปิด Product
 4. อ่าน 01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md
 5. อ่านเอกสารเฉพาะโดเมนที่เกี่ยวข้อง
 6. ตรวจ Working Directory และสถานะไฟล์
+
+หากงานเกี่ยวกับรอบปี แผนประจำปี การเลือกรอบ การปิดรอบ หรือรายงานรายปี ให้อ่าน
+01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md
+
+หากงานเกี่ยวกับรายงานการจัดการสวน ต้นทุนแรงงาน ค่าใช้จ่าย หรือยอดขายเทียบต้นทุน
+ให้อ่าน 01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md
+และ 01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md
 
 หากงานเกี่ยวกับ Tree Register ที่ใช้งานจริง ให้อ่าน
 00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md

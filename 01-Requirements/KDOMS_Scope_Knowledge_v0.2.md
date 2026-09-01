@@ -1,14 +1,14 @@
-# KDOMS Scope Knowledge v0.2.5 — Multi-Farm
+# KDOMS Scope Knowledge v0.2.8 — Multi-Farm
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2.6 |
-| สถานะ | Approved Baseline — Orchard Two-View Target Actions (DEC-047) and Limited Operational Tree Register (DEC-046) |
+| เวอร์ชัน | 0.2.8 |
+| สถานะ | Approved Baseline — Annual Cycle and Management Reporting/Cost (DEC-048/049), Orchard Target Actions and Limited Operational Tree Register |
 | เจ้าของเอกสาร | Project Owner |
 | แทนที่ | Scope v0.1 single-farm concept |
 | วันที่ปรับปรุง | 2026-09-01 |
 | Gate | Gate 0 review |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047) |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047, DEC-048, DEC-049) |
 
 ## 1. Product statement
 
@@ -42,6 +42,7 @@ Organization
 ├── Organization members
 └── Farm
     ├── Farm members and roles
+    ├── Annual Farm Management Cycles → Annual Plan Items / Corrections
     ├── Zone → Row → Planting Position → Planting Cycle
     ├── Work Orders → Worker Reports
     ├── Care Events / Disease Incidents
@@ -58,6 +59,8 @@ Organization
 - **Planting Position**: จุดปลูกถาวรที่ป้ายอ้างถึง
 - **Planting Cycle**: ต้นชีวภาพแต่ละรุ่นที่เคยอยู่ ณ ตำแหน่งนั้น
 - **Crop Cycle**: ฤดู/รุ่นผลผลิต ไม่ใช่ Planting Cycle
+- **Annual Farm Management Cycle**: รอบบริหาร Farm ระยะ 12 เดือนสำหรับแผน
+  กิจกรรมและสรุปรายปี ไม่ใช่ Crop Cycle หรือ Planting Cycle
 
 ## 5. Multi-Farm rules
 
@@ -108,6 +111,20 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 - Farm Switcher ใช้สลับสวนที่มี membership ไม่ใช้แทนหน้าจัดการสวน
 - Member invitation/removal และ role assignment รายสวน
 - Portfolio overview ที่ไม่เปิดเผยข้อมูลเกินสิทธิ์
+
+### 7.1.1 Annual Farm Management Cycle
+
+- หนึ่งรอบยาว 12 เดือน ค่าเริ่มต้น 1 มิถุนายน–31 พฤษภาคม
+- Owner กำหนดวันเริ่มเฉพาะ Farm ได้; วันสิ้นสุด derive อัตโนมัติ
+- รอบไม่ทับกันและมี Active/Closing รวมกันไม่เกินหนึ่งรอบต่อ Farm
+- สถานะ Draft → Planned → Active → Closing → Closed
+- วางแผนระดับ Farm/Zone เป็นหลัก และ Tree Set เฉพาะกรณีจำเป็น
+- Annual Cycle เป็น parent ของ Crop Cycle หนึ่งหรือหลายรายการ
+- Master data/Position/Planting Cycle ไม่สร้างซ้ำเมื่อเปิดปีใหม่
+- รอบ Closed อ่านได้และแก้เฉพาะ Correction พร้อม Audit/revision
+- Carry-over ไม่ clone Work/Disease actual history; copy ได้เฉพาะ Plan
+- เมนูและ Year Switcher ต้องคง Farm context และล้าง Cycle เมื่อเปลี่ยน Farm
+- implementation/test ตาม DEC-048 เป็น Mock/local/Firebase Emulator เท่านั้น
 
 ### 7.2 Orchard Map and Tree Register
 
@@ -191,6 +208,18 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 - Notifications ที่ actionable และเปิดกลับไปยัง record ที่เกี่ยวข้อง
 - Audit timeline และ export ตามสิทธิ์
 
+### 7.9 Management Reporting and Cost
+
+- Unified Farm report แบบ On-demand: รายสัปดาห์ รายเดือน ราย 3 เดือน และรายปี
+- ผูก Farm + Annual Cycle และปฏิเสธแหล่งข้อมูลข้าม Farm แบบ Fail closed
+- รวมงาน โรค/ติดตาม Fruit/Harvest/Sales และแยกต้นทุนวัสดุ แรงงาน ดำเนินงาน ลงทุน
+- ต้นทุนแรงงานรองรับ Hour/Day/Piece/Lump sum พร้อม Audit/Idempotency
+- ค่าใช้จ่ายครอบคลุมปุ๋ย สารป้องกันกำจัดศัตรูพืช ฮอร์โมน น้ำไฟ เชื้อเพลิง
+  ซ่อมบำรุง บริการ เก็บเกี่ยว/บรรจุ ขนส่ง ค่าขาย overhead อื่น และ Capital
+- Management Margin เป็นยอดขายที่บันทึกลบต้นทุนบริหาร ไม่ใช่กำไรบัญชี
+- DEC-049 อนุมัติเฉพาะ Mock-first Local/Firebase Emulator; ไม่รวมข้อมูลจริง,
+  Payroll/บัญชี/ภาษี Production write/rules Scheduler/Distribution หรือ Deployment
+
 ## 8. Core workflows
 
 ### 8.1 Worker completes a tree task
@@ -230,6 +259,9 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 - ห้าม reuse Tag Code
 - ห้ามบันทึกจำนวนผลโดยไม่ระบุ stage และ Crop Cycle
 - ห้าม Inventory movement ไม่มี unit, quantity และ reason/reference
+- ข้อมูลปฏิบัติการรายปีต้องอ้าง Annual Cycle ของ Farm เดียวกัน; รอบที่ไม่พบ,
+  ทับช่วง หรือ forged Cross-Farm ID ต้องถูกปฏิเสธ
+- รอบ Closed ห้ามแก้ข้อมูลหรือ summary เดิมแบบเงียบ ๆ ให้ใช้ Correction/revision
 - การเพิ่ม/แก้ไข/เปลี่ยนสถานะสวน การเปลี่ยนบทบาท สถานะโรค ปิดงาน ปรับ stock
   และแก้ยอดขายต้อง audit
 
@@ -327,6 +359,10 @@ evidence เป็นหลัก โดย Physical Device/Field evidence ไ�
 ชนิดข้อมูลแล้วเฉพาะ Firebase Production + Farm จริง แต่ source รุ่นนี้ยังรอคำสั่ง
 Deploy แยก และไม่ยกระดับ Physical/Field, Storage/รูปจริง, QR/ป้ายถาวร, PA-2,
 Controlled Pilot หรือโมดูลอื่นเป็น Approved
+
+DEC-048 อนุมัติ Annual Farm Management Cycle เฉพาะ Mock-first Local/Firebase
+Emulator ไม่ขยายข้อมูลจริงของ DEC-046 ไปยัง Annual Plan, Work, Disease, Crop,
+Inventory, Report หรือ Correction และไม่ใช่ deployment approval
 
 รายละเอียด Mock Data และ timing ใช้
 `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`

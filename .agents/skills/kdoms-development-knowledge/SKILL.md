@@ -25,6 +25,15 @@ For operational Tree Register data entry, also read
 For Farm Profile or Farm Management work, also read
 [`KDOMS Farm Profile and Management Knowledge v0.1`](../../../01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md).
 
+For annual planning, year selection, annual close/correction, carry-over, or any
+change that assigns operational data to a management year, also read
+[`KDOMS Annual Farm Management Cycle Knowledge v0.1`](../../../01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md).
+
+For periodic farm reports, labor cost, operating expense, or sales-versus-cost
+work, also read
+[`KDOMS Management Reporting and Cost Knowledge v0.1`](../../../01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md)
+and the current Report Catalogue.
+
 ## Operating policy
 
 - Use versioned, deterministic, resettable `SIMULATED/TEST ONLY` data throughout
@@ -67,6 +76,27 @@ For Farm Profile or Farm Management work, also read
 - Real photo retention, backup and export require PA-2 approval. Camera/upload,
   metadata removal and interruption recovery must be evidenced on both Android
   and iPhone during the Controlled Pilot before Production readiness is claimed.
+- Keep Annual Farm Management Cycle, Crop Cycle, and Planting Cycle distinct.
+  Annual Cycle is a Farm-scoped 12-month management boundary; Crop Cycle is a
+  production season/batch within it; Planting Cycle is the biological history at
+  a permanent position.
+- Annual Cycle defaults to June–May, but Owner may set a Farm-specific start date.
+  Derive the exclusive end exactly one calendar year later, reject overlapping
+  Farm periods, and allow at most one Active/Closing cycle per Farm.
+- A Closed Annual Cycle is correction-only. Preserve the original close revision
+  and append reason, actor, time, before/after, idempotency and supersession audit.
+- Plan at Farm/Zone scope by default. Use Tree Set only for exceptions and never
+  copy actual results, evidence, diagnosis or sales outcomes into a new year.
+- Under DEC-049, unified weekly, monthly, three-month, and annual management
+  reports plus labor/operating-cost entry are approved only for Local/Mock/Firebase
+  Emulator development. Treat labor as management cost, not Payroll; treat
+  sales minus management cost as Management Margin, not accounting profit.
+- Material direct cost must use Inventory ISSUE effective dates without adding
+  receipts again. Keep capital assets separate, preserve Unknown/N/A/Estimated,
+  and fail closed if any report source record belongs to another Farm.
+- DEC-049 does not approve real cost/personnel/customer data, Production cost
+  writes or Rules, payroll/accounting/tax, report finalization, scheduler,
+  external distribution, deployment, PA-2, Controlled Pilot, or Production.
 
 ## Mock data quality
 
@@ -79,6 +109,16 @@ Farm Management mock data should additionally keep stable Farm IDs and cover at
 least two Active Farms, one Suspended Farm, and one Archived Farm. Farm creation,
 profile updates, and status transitions must be auditable and resettable; Farm
 hard delete is not an approved development or operational workflow.
+
+Annual Cycle mock data should cover a prior Closed cycle, current Active cycle,
+future Draft cycle, a Farm-specific custom start date, Farm/Zone/Tree Set plans,
+overlap and duplicate denial, carry-over, closed-cycle correction, and explicit
+Cross-Farm/role denial.
+
+Management Reporting mock data should cover at least two isolated Farms, labor
+bases, material issue cost, operating categories, a capital item, Sales/Inventory
+effective dates, idempotent retry, role denial, CSV injection protection, and
+Cross-Farm fail-closed report generation.
 
 Prefer fixture builders or generators with stable IDs and documented scenario
 labels over scattered hard-coded examples. Keep mock records free of real people,
