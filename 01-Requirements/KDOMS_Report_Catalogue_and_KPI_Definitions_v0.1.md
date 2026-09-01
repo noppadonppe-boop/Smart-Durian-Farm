@@ -2,8 +2,8 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2.0 |
-| สถานะ | Approved Unified Management Report Development Baseline (DEC-049); Specialized KPI/Finalization Policy remains Proposed |
+| เวอร์ชัน | 0.2.1 |
+| สถานะ | Approved Unified Management Report Development Baseline with Owner-only Financial Data (DEC-049/050); Specialized KPI/Finalization Policy remains Proposed |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
 | ขอบเขต | Weekly/Monthly/Three-month/Annual operational reports, KPI definitions, period, Farm scope, role access, drill-down, review และ export |
@@ -16,6 +16,8 @@
 > Local/Mock/Firebase Emulator ส่วน Specialized Report, scheduler, finalization,
 > restatement, retention, distribution และ policy `RPD-01`–`RPD-08` ในเอกสารนี้
 > ยังคง Proposed/Not Active และไม่อนุญาต External Action ตาม DEC-038
+> DEC-050 จำกัด Report, KPI, Drill-down และ Export ที่มีหรืออนุมาน Financial Data
+> ได้ให้ Organization Owner ที่ trusted `isOwner=true` เท่านั้น
 
 ## 1. วัตถุประสงค์
 
@@ -138,7 +140,7 @@ DRAFT → REVIEWED → FINALIZED
 - ห้ามให้ hidden Farm ส่งผลแม้เพียง aggregate count
 - ผู้ใช้คนเดียวที่มี role ต่าง Farm ต้องถูกประเมินสิทธิ์ใหม่ทุก Farm
 - Workforce breakdown ใช้ approved user reference/display name ที่ลดข้อมูลส่วนบุคคล
-- Customer แสดงเฉพาะ Customer reference code
+- Customer แสดงเฉพาะ Customer reference code และเฉพาะ Owner
 - Export ต้องใช้ column allowlist, ป้องกัน spreadsheet formula injection และสร้าง Audit
 - ไม่มี public link; destination/retention/key custody ยังต้อง approval แยก
 
@@ -149,14 +151,14 @@ DRAFT → REVIEWED → FINALIZED
 | `RPT-A-MGMT` | Annual Farm Management Cycle Summary | Annual Cycle | Farm/Annual Cycle | Owner, Manager; Auditor read by assignment | Basic Local/Mock cycle/plan summary implemented; finalized report/export not implemented |
 | `RPT-W-WORK` | Weekly Work & Workforce Report | Weekly | Farm | Owner, Manager; role-limited views | Not implemented |
 | `RPT-W-HEALTH` | Weekly Tree Health, Disease & Care Report | Weekly | Farm | Owner, Manager, Agronomist | Not implemented |
-| `RPT-M-COMM` | Monthly Fruit, Harvest & Sales Report | Monthly | Farm/Crop Cycle | Owner, Manager, Agronomist, Sales Inventory | Not implemented |
-| `RPT-M-INV` | Monthly Inventory & Direct Cost Report | Monthly | Farm | Owner, Manager, Sales Inventory | Not implemented |
+| `RPT-M-COMM` | Monthly Fruit, Harvest & Sales Report | Monthly | Farm/Crop Cycle | Owner only เมื่อมีราคา/ยอดเงิน; Role เดิมใช้ operational-only view ที่ไม่มี Financial fields | Not implemented |
+| `RPT-M-INV` | Monthly Inventory & Direct Cost Report | Monthly | Farm | Owner only; operational inventory quantity view แยกต่างหาก | Not implemented |
 | `RPT-M-DQ` | Monthly Data Quality & Audit Report | Monthly | Farm/Assignment | Owner, Manager, Auditor | Not implemented |
 | `RPT-P-OWNER` | Portfolio Report for Owner | Weekly/Monthly/On-demand | Authorized Farms in one Organization | Owner only | Current snapshot exists; periodic report not implemented |
-| `RPT-W-FARM` | Unified Farm Management Report | Weekly | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
-| `RPT-M-FARM` | Unified Farm Management Report | Monthly | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
-| `RPT-Q-FARM` | Unified Farm Management Report | Three-month from Annual Cycle start | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
-| `RPT-A-FARM` | Unified Farm Management Report | Annual Cycle | Farm/Annual Cycle | Owner, Manager, Sales Inventory, Viewer, Auditor; Worker denied | Implemented Local/Mock on-demand under DEC-049 |
+| `RPT-W-FARM` | Unified Farm Management Report | Weekly | Farm/Annual Cycle | Organization Owner only | Implemented Local/Mock on-demand under DEC-049/050 |
+| `RPT-M-FARM` | Unified Farm Management Report | Monthly | Farm/Annual Cycle | Organization Owner only | Implemented Local/Mock on-demand under DEC-049/050 |
+| `RPT-Q-FARM` | Unified Farm Management Report | Three-month from Annual Cycle start | Farm/Annual Cycle | Organization Owner only | Implemented Local/Mock on-demand under DEC-049/050 |
+| `RPT-A-FARM` | Unified Farm Management Report | Annual Cycle | Farm/Annual Cycle | Organization Owner only | Implemented Local/Mock on-demand under DEC-049/050 |
 
 ### 4.1 `RPT-A-MGMT` — Annual Farm Management Cycle Summary
 
@@ -187,21 +189,22 @@ DRAFT → REVIEWED → FINALIZED
 - Implementation เป็น On-demand draft `SIMULATED/TEST ONLY`; ไม่ใช่ Payroll,
   Accounting profit, Finalized report หรือ external distribution
 
-## 5. Proposed role access matrix สำหรับ Report
+## 5. Role access matrix สำหรับ Report
 
 `View` คืออ่าน Summary/Drill-down ตาม scope; `Export` ยังขึ้นกับ policy รายละเอียด
 
 | Role | Work | Health/Care | Fruit/Sales | Inventory/Cost | Data Quality/Audit | Portfolio | Export baseline |
 |---|---|---|---|---|---|---|---|
 | `ORG_OWNER` | View | View | View | View | View | View | Farm-scoped/Portfolio ตาม approved policy |
-| `FARM_MANAGER` | View Farm | View Farm | View Farm | View Farm | View Farm | — | Farm-scoped; final scope `TBD` |
+| `FARM_MANAGER` | View Farm | View Farm | Operational-only | Operational-only ไม่มีต้นทุน | View Farm ที่ไม่มี Financial payload | — | ปฏิเสธ Financial export |
 | `AGRONOMIST` | Care/Disease work | View Farm | Crop/Fruit view | Reference-only ตามงาน | Own/domain audit only | — | ปิดโดย default |
 | `WORKER` | Own-work summary only | Own observations/tasks | — | Own work usage only | Own sync/status only | — | ปฏิเสธ |
-| `SALES_INVENTORY` | Assigned commercial work only | — | View/manage Farm | View/manage Farm | Related audit only | — | `TBD`; ปิด bulk export โดย default |
-| `VIEWER` | Read-only summary | Read-only summary | Read-only business summary | Read-only summary | — | — | ปฏิเสธโดย default |
-| `AUDITOR` | Evidence by assignment | Evidence by assignment | Read by assignment | Read by assignment | View | — | Audit/export ตาม assignment |
+| `SALES_INVENTORY` | Assigned commercial work only | — | Operational quantity/status | Inventory quantity/status ไม่มีต้นทุน | Operational audit only | — | ปฏิเสธ Financial export |
+| `VIEWER` | Read-only summary | Read-only summary | Operational-only summary | Operational-only summary | — | — | ปฏิเสธ |
+| `AUDITOR` | Evidence by assignment | Evidence by assignment | Operational evidence only | Operational evidence only | Operational audit only | — | ปฏิเสธ Financial export |
 
-สิทธิ์นี้ไม่เพิ่มสิทธิ์จาก Role Matrix เดิม รายการที่ยัง `TBD` ต้องใช้ least privilege
+ทุกช่องที่มีราคา ยอดขาย ยอดรับ/ค้าง ต้นทุน ค่าแรง ค่าใช้จ่าย Margin หรือ Financial
+Audit เป็น Owner-only แม้ Role อื่นจะอ่านข้อมูลปฏิบัติการของ Report เดียวกันได้
 
 ## 6. `RPT-W-WORK` — Weekly Work & Workforce Report
 
@@ -422,7 +425,8 @@ KPI → Item → Lot → Movement → Reference Work/Care/Purchase/Correction �
 ### 9.5 Export
 
 - Summary Item/Lot CSV และ Movement detail CSV
-- Owner/Manager/Sales Inventory ตาม policy; Viewer read-only; Auditor assignment
+- Financial cost export: Owner only; Role อื่นใช้ operational Item/Lot/Movement view
+  ที่ไม่มี cost fields ตามสิทธิ์เดิม
 - ไม่มี cross-farm transfer rows เพราะอยู่นอก MVP
 - ไม่แสดงเป็นงบการเงิน/ต้นทุนบัญชี; ใช้คำว่า `Direct cost เท่าที่มีข้อมูล`
 
@@ -643,7 +647,7 @@ Approval จนกว่าจะมี Decision reference และ Gate approv
 
 ### 17.3 Access/export
 
-- Manager/Sales Inventory/Auditor export scope
+- รูปแบบ operational-only report/export ที่ไม่สามารถอนุมานข้อมูลการเงินได้
 - Workforce identity/detail ที่แต่ละ role เห็นได้
 - Bulk photo/evidence export และ dual approval
 - CSV/PDF/XLSX/scheduled delivery destination, region และ key custody

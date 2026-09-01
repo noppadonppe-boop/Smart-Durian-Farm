@@ -32,7 +32,8 @@ change that assigns operational data to a management year, also read
 For periodic farm reports, labor cost, operating expense, or sales-versus-cost
 work, also read
 [`KDOMS Management Reporting and Cost Knowledge v0.1`](../../../01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md)
-and the current Report Catalogue.
+and the current Report Catalogue. For any financial field or report, also read
+[`Owner Review Addendum — Owner-only Financial Access`](../../../00-Project-Management/Owner-Review-Addendum_Owner-Only-Financial-Access_2026-09-01.md).
 
 ## Operating policy
 
@@ -97,6 +98,12 @@ and the current Report Catalogue.
 - DEC-049 does not approve real cost/personnel/customer data, Production cost
   writes or Rules, payroll/accounting/tax, report finalization, scheduler,
   external distribution, deployment, PA-2, Controlled Pilot, or Production.
+- Under DEC-050, all Financial Data is Owner-only. Authorize it only from an
+  active trusted Organization membership with `isOwner=true`; never from a role
+  string or client flag. Split operational and financial records/collections,
+  do not query financial payloads for non-owners, and fail closed for legacy
+  mixed records. This includes price, customer reference, receipts/outstanding,
+  sales totals, costs, labor, expenses, plans, financial KPI/report/audit/export.
 
 ## Mock data quality
 

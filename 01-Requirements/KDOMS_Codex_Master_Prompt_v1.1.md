@@ -1,10 +1,10 @@
-# KDOMS Codex Master Prompt v1.1.6
+# KDOMS Codex Master Prompt v1.1.7
 
 | รายการ | ค่า |
 |---|---|
 | ผลิตภัณฑ์ | Smart Durian Farm / KongLak Durian Orchard Management System (KDOMS) |
-| เวอร์ชัน | 1.1.6 — Multi-Farm + Annual Cycle + Management Reporting/Cost + Limited Operational Tree Register |
-| สถานะ | Approved Baseline — Updated by DEC-027, DEC-030, DEC-043, DEC-046, DEC-048 and DEC-049 |
+| เวอร์ชัน | 1.1.7 — Multi-Farm + Owner-only Financial Data + Annual Cycle + Management Reporting/Cost + Limited Operational Tree Register |
+| สถานะ | Approved Baseline — Updated by DEC-027, DEC-030, DEC-043, DEC-046, DEC-048, DEC-049 and DEC-050 |
 | เจ้าของเอกสาร | Project Owner |
 | Technology target | Vite + React + TypeScript + Firebase |
 | วันที่ปรับปรุง | 2026-09-01 |
@@ -30,7 +30,7 @@
 | `FARM_MANAGER` | Farm | วางแผน อนุมัติ มอบหมาย และตรวจรับงานในสวน |
 | `AGRONOMIST` | Farm | ตรวจสุขภาพ วินิจฉัย วางแผนรักษา และติดตามผล |
 | `WORKER` | Farm | ดูงาน ค้นหาต้น สแกน QR บันทึกผลและภาพถ่าย |
-| `SALES_INVENTORY` | Farm | ดูแลล็อตผลผลิต การขาย วัสดุ และต้นทุนตามสิทธิ์ |
+| `SALES_INVENTORY` | Farm | ดูแลล็อตผลผลิต การขายและวัสดุเชิงปฏิบัติการโดยไม่เห็น Financial Data |
 | `VIEWER` | Farm | อ่านข้อมูลธุรกิจตามสิทธิ์โดยไม่แก้ไข |
 | `AUDITOR` | Organization/Farm ตาม assignment | อ่าน audit/export ตาม scope โดยไม่แก้ข้อมูลปฏิบัติการ |
 
@@ -238,6 +238,10 @@ organizations/{organizationId}
 - Client ห้ามกำหนด role, organizationId หรือ farmId ที่ trusted backend ยังไม่ตรวจ
 - เขียน emulator tests อย่างน้อย: same-farm allow, cross-farm deny, revoked member deny, archived farm policy, role downgrade และ forged payload
 - Signed-in ไม่ได้แปลว่ามีสิทธิ์ทุกสวน
+- Financial Data ทั้งหมดเป็น Owner-only โดยตรวจ trusted Organization membership
+  `ACTIVE` + `isOwner=true`; ห้ามเชื่อ Role `ORG_OWNER` จาก Client เพียงอย่างเดียว
+- แยก Financial record/collection จาก operational record และ Non-owner adapter
+  ต้องไม่โหลด Financial payload; legacy mixed record ต้อง Fail closed
 - จำกัดการเข้าถึงรูปและ export ตาม Farm/Role
 - บันทึก audit เมื่อเพิ่ม/ลดสิทธิ์หรือ export ข้อมูลสำคัญ
 - Export ต้องจำกัด Farm/Role, ใช้ data minimization และสร้าง audit event

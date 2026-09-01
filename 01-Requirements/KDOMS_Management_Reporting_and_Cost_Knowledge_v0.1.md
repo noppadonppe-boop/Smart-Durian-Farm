@@ -2,12 +2,12 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1.0 |
-| สถานะ | Approved Development Baseline — Mock-first Local/Firebase Emulator only (DEC-049) |
+| เวอร์ชัน | 0.1.1 |
+| สถานะ | Approved Development Baseline — Owner-only Financial Data (DEC-049/050), Mock-first Local/Firebase Emulator only |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
 | ขอบเขต | รายงานการจัดการสวนรายสัปดาห์ รายเดือน ราย 3 เดือน และรายปี พร้อมต้นทุนแรงงาน วัสดุ ค่าใช้จ่าย และผลขายเทียบต้นทุน |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-049) |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Owner-Only-Financial-Access_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-049/050) |
 
 > การอนุมัตินี้เป็น Development Baseline แบบ `SIMULATED/TEST ONLY` สำหรับ Local,
 > Mock และ Firebase Emulator ไม่ใช่การอนุมัติ Deployment, การบันทึกค่าใช้จ่ายจริง,
@@ -99,14 +99,19 @@ Cycle เดียวกัน ค่าเริ่มต้น Annual Cycle �
 
 | ความสามารถ | บทบาท |
 |---|---|
-| ดูรายงาน | `ORG_OWNER`, `FARM_MANAGER`, `SALES_INVENTORY`, `VIEWER`, `AUDITOR` ภายใน Farm ที่ได้รับสิทธิ์ |
-| บันทึกค่าแรง | `ORG_OWNER`, `FARM_MANAGER` |
-| บันทึกค่าใช้จ่าย | `ORG_OWNER`, `FARM_MANAGER`, `SALES_INVENTORY` |
-| Export CSV | `ORG_OWNER`, `FARM_MANAGER` |
-| ปฏิเสธ | `WORKER` ไม่มีสิทธิ์ดูรายงานต้นทุนระดับ Farm หรือบันทึกต้นทุน |
+| ดู Summary/Drill-down ที่มีข้อมูลการเงิน | Organization Owner ที่ trusted membership เป็น `ACTIVE` และ `isOwner=true` เท่านั้น |
+| บันทึก/แก้ไขข้อมูลการเงิน ค่าแรง ค่าใช้จ่าย แผนต้นทุน | Organization Owner เท่านั้น |
+| Export CSV ที่มีข้อมูลการเงิน | Organization Owner เท่านั้น |
+| ข้อมูลปฏิบัติการ Sales/Inventory | Role เดิมทำงานได้ตาม least privilege แต่ payload ต้องไม่มีราคา ยอดเงิน ต้นทุน หรือลูกค้าอ้างอิง |
+| ปฏิเสธ | ผู้ใช้อื่นทุก Role รวม Role `ORG_OWNER` ที่ trusted `isOwner=false` |
 
 ทุกแหล่งข้อมูลต้องตรง `organizationId` และ `farmId`; หากพบข้อมูลข้าม Farm ให้
-หยุดสร้างรายงานแบบ Fail closed
+หยุดสร้างรายงานแบบ Fail closed การซ่อนเมนูไม่ใช่ Security Boundary และห้ามโหลด
+Financial collection ให้ Non-owner แล้วค่อยซ่อนภายหลัง
+
+Financial Data รวมราคา ลูกค้าอ้างอิง มัดจำ ยอดรับ ยอดค้าง ยอดขาย ต้นทุนวัสดุ
+แผนต้นทุน ค่าแรง ค่าใช้จ่าย Capital/Operating, Management Margin, Financial KPI,
+Financial Audit และข้อมูลใดที่ใช้อนุมานจำนวนเงินดังกล่าวได้
 
 ## 6. Data quality และข้อจำกัด
 
@@ -128,7 +133,7 @@ Cycle เดียวกัน ค่าเริ่มต้น Annual Cycle �
 - [x] แยก Material, Labor, Operating และ Capital โดยไม่ double count
 - [x] แสดงยอดขายเทียบต้นทุนและ Management Margin พร้อม N/A/Unknown guard
 - [x] Drill-down และ CSV UTF-8 ป้องกัน formula-shaped cell
-- [x] Role denial และ Cross-Farm fail-closed มี automated test
+- [x] Owner-only denial ครบทุก Canonical Role, forged Owner และ Cross-Farm fail-closed มี automated test
 - [ ] Firebase Production data model/rules และการบันทึกต้นทุนจริง — Not Approved
 - [ ] Finalized report, correction/restatement, scheduler, distribution และ retention — ต้องขอ Owner approval แยก
 

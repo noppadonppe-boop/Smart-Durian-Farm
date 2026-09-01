@@ -2,13 +2,13 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.1 |
-| สถานะ | Approved Development Guide — Management Reporting/Cost Local/Mock Baseline; Controlled Pilot Validation Required |
+| เวอร์ชัน | 1.2 |
+| สถานะ | Approved Development Guide — Owner-only Financial Data (DEC-050); Management Reporting/Cost Local/Mock Baseline; Controlled Pilot Validation Required |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
 | ขอบเขต | การเริ่มใช้งาน หน้าที่ตามบทบาท Workflow การกรอกข้อมูล Offline/Sync, QR, รูปภาพ, Conflict, Correction, Audit, Export และการแก้ปัญหา |
 | ใช้กับ | KDOMS Local/Mock/Firebase Emulator Candidate เท่านั้น จนกว่า Owner จะอนุมัติสภาพแวดล้อม Pilot |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-009–012, DEC-017, DEC-027, DEC-030, DEC-033–049), `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md` |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-009–012, DEC-017, DEC-027, DEC-030, DEC-033–050), `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md` |
 
 > **ขอบเขตสำคัญ:** เอกสารนี้อธิบายการใช้งาน Candidate ที่ผ่านการตรวจแบบ
 > Local/Mock/Emulator เท่านั้น ข้อมูลและตัวอย่างทั้งหมดเป็น
@@ -214,13 +214,13 @@ Manager ห้ามเลือกให้ระบบถือว่าต้
 
 - สร้าง Harvest/Sales Lot และ Inventory Receipt/Issue ตาม Farm
 - ตรวจ traceability `Crop Cycle → Harvest Lot → Sales Lot`
-- ใช้ Customer reference แบบรหัสย่อและไม่เก็บข้อมูลส่วนบุคคลเกินจำเป็น
-- ตรวจ Monthly Fruit/Harvest/Sales และ Inventory/Direct Cost Report ตามสิทธิ์
+- บันทึกเฉพาะ Lot, จำนวน/น้ำหนัก, สถานะ และ Movement quantity เชิงปฏิบัติการ
+- ไม่เห็น Customer reference, ราคา, ยอดรับ/ค้าง, ต้นทุน หรือ Financial Report
 
 ห้าม:
 
 - โอนสต็อก/ผลผลิต/เงินข้ามสวนใน MVP
-- แก้ Sales correction หรือ Stock adjustment หากไม่มีสิทธิ์ Owner/Manager
+- แก้ Sales financial correction ไม่ได้; Stock adjustment เชิงปฏิบัติการใช้สิทธิ์เดิม
 - ใช้ระบบนี้แทนบัญชี ภาษี เงินเดือน ธนาคาร หรือ Cash receipt ledger
 
 ### 5.6 `VIEWER` — ผู้ดูข้อมูล
@@ -228,7 +228,7 @@ Manager ห้ามเลือกให้ระบบถือว่าต้
 หน้าที่หลัก:
 
 - อ่านข้อมูลธุรกิจและ Dashboard ที่ Farm/Role อนุญาต
-- ใช้ drill-down เพื่อตรวจที่มาของตัวเลขโดยไม่แก้ต้นทาง
+- ใช้ operational drill-down ที่ไม่มี Financial fields โดยไม่แก้ต้นทาง
 - แจ้ง Manager เมื่อข้อมูลดูผิดสวน ผิดช่วง หรือไม่สอดคล้องกับสถานะ
 
 สิทธิ์เริ่มต้นเป็น Read-only ไม่มี Audit/Export/Admin โดยอัตโนมัติ และห้ามขอให้ผู้ใช้
@@ -366,9 +366,10 @@ AI_ASSISTED ห้ามใช้ใน `FLOWERING`, ต้องเป็น `E
 2. ระบุวันที่เก็บ จำนวนผลหรือน้ำหนัก คุณภาพค่า เกรด และหมายเหตุ
 3. ตรวจว่าน้ำหนัก/จำนวนรวมตามเกรดไม่เกินยอด Lot
 4. สร้าง Sales Lot โดยแบ่งน้ำหนักจาก Harvest Lot ที่ยังเหลือ
-5. ระบุ Customer reference แบบรหัสย่อ จำนวน/น้ำหนัก ราคา มัดจำ และรับแล้ว
-6. ระบบคำนวณ Gross/Outstanding และเชื่อม Traceability
-7. หากต้องแก้ ให้ Owner/Manager ใช้ Correction Event พร้อมเหตุผล
+5. Role ปฏิบัติการระบุจำนวน/น้ำหนักเท่านั้น; เฉพาะ Owner ระบุ Customer reference
+   ราคา มัดจำ และรับแล้วใน Financial record ที่แยกต่างหาก
+6. ระบบคำนวณ Gross/Outstanding ให้ Owner; Traceability เชิงปฏิบัติการไม่มีตัวเลขการเงิน
+7. Sales financial correction ให้ Owner ใช้ Correction Event พร้อมเหตุผลเท่านั้น
 
 ### 6.12 Inventory และต้นทุนตรง
 
@@ -376,20 +377,26 @@ AI_ASSISTED ห้ามใช้ใน `FLOWERING`, ต้องเป็น `E
 2. เลือก `RECEIPT`, `ISSUE` หรือ `ADJUSTMENT`
 3. กรอกจำนวนด้วยหน่วยฐานที่ระบบกำหนด
 4. เลือก Reference type และระบุ Reference ID
-5. กรอกต้นทุนต่อหน่วยเมื่อทราบ; ไม่ทราบให้เว้นว่าง
+5. เฉพาะ Owner กรอกต้นทุนต่อหน่วย; Role อื่นไม่เห็นช่องหรือค่าเดิม
 6. ระบุเหตุผลแล้วบันทึก Movement/Audit
 7. ตรวจยอดคงเหลือ Low-stock/Expiry และ unknown-cost count
 
 ### 6.13 รายงานการจัดการสวนและต้นทุน
+
+ผู้มีสิทธิ์: trusted Organization Owner (`ACTIVE` + `isOwner=true`) เท่านั้น
 
 1. เลือก Farm และ Annual Cycle ที่ต้องการ
 2. เปิด `เพิ่มเติม → รายงานผลสวนและต้นทุน`
 3. เลือก `รายสัปดาห์`, `รายเดือน`, `ราย 3 เดือน` หรือ `รายปี` และวันที่อ้างอิง
 4. ตรวจผลผลิต ยอดขาย ต้นทุนวัสดุ ค่าแรง ค่าใช้จ่าย และ Capital ที่แยกไว้
 5. ตรวจ Data quality flags และ Drill-down ก่อนใช้ตัวเลข
-6. Owner/Manager บันทึกค่าแรงได้; Owner/Manager/Sales Inventory บันทึกค่าใช้จ่ายได้
+6. Owner บันทึกค่าแรง ค่าใช้จ่าย และแผนต้นทุนได้
 7. ค่าแรงเป็น Management Cost ไม่ใช่ Payroll และส่วนต่างไม่ใช่กำไรบัญชี
-8. Owner/Manager ดาวน์โหลด CSV ในเครื่องได้; ไม่มี public link หรือ external delivery
+8. Owner ดาวน์โหลด CSV ในเครื่องได้; ไม่มี public link หรือ external delivery
+
+ผู้ใช้อื่นทุก Role ต้องไม่เห็นเมนู ตัวเลข ช่องกรอก Drill-down, Audit หรือ Export
+ที่มี/อนุมาน Financial Data ได้ หากเคยเห็นข้อมูลแล้วสิทธิ์ถูกถอน ให้หยุดใช้หน้าจอ
+ออกจากระบบหรือโหลดสิทธิ์ใหม่ และแจ้ง Owner หากข้อมูลยังคงปรากฏ
 
 ห้ามคาดเดาการแปลงหน่วย ห้ามยอดคงเหลือติดลบ และ Adjustment ใช้ได้เฉพาะ
 Owner/Manager ตาม baseline
@@ -466,9 +473,10 @@ Owner/Manager ตาม baseline
 | Observed count | C | จำนวนเต็ม ≥0; UNKNOWN ต้องเป็นค่าว่าง |
 | Confidence note | R | วิธี แหล่ง และข้อจำกัด |
 | Harvest quantity/weight | C | ต้องมีอย่างน้อยหนึ่งค่าเมื่อไม่ใช่ UNKNOWN |
-| Sales weight/price | R | ≥0 และ weight ต้องตรง allocation |
-| Customer reference | R | รหัสย่อ ห้ามอีเมล/เบอร์โทร |
-| Deposit/Received | R | ≥0 และรวมต้องไม่เกิน Gross |
+| Sales weight | R | ≥0 และต้องตรง allocation; เป็นข้อมูลปฏิบัติการ |
+| Sales price | R — Owner only | ≥0 และอยู่ใน Financial record |
+| Customer reference | R — Owner only | รหัสย่อ ห้ามอีเมล/เบอร์โทร |
+| Deposit/Received | R — Owner only | ≥0 และรวมต้องไม่เกิน Gross |
 
 ### 7.6 ช่องหลักของ Inventory
 

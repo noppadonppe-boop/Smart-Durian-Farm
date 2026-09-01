@@ -2,8 +2,8 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1.8 |
-| สถานะ | Approved Development Baseline — Annual Cycle and Management Reporting/Cost (DEC-048/049), Orchard Target Actions and Limited Operational Tree Register; Field Usability Deferred |
+| เวอร์ชัน | 0.1.9 |
+| สถานะ | Approved Development Baseline — Owner-only Financial Data (DEC-050), Annual Cycle and Management Reporting/Cost, Orchard Target Actions and Limited Operational Tree Register; Field Usability Deferred |
 | เจ้าของเอกสาร | Project Owner |
 | Primary platform | Mobile web / PWA |
 | Secondary platform | Tablet and desktop management |
@@ -174,7 +174,7 @@ Year Switcher อยู่ถัดจาก Farm context และแสดง�
 
 ### 4.12 รายงานการจัดการสวนและต้นทุน
 
-- เมนู `เพิ่มเติม → รายงานผลสวนและต้นทุน` ตาม Role
+- เมนู `เพิ่มเติม → รายงานผลสวนและต้นทุน` แสดงเฉพาะ trusted Organization Owner
 - Header แสดง Farm, Annual Cycle และ `SIMULATED/TEST ONLY` ชัดเจน
 - ตัวเลือกรอบมีรายสัปดาห์ รายเดือน ราย 3 เดือน รายปี และวันที่อ้างอิง
 - Summary แยกผลผลิต ยอดขาย ต้นทุนบริหาร และ Management Margin; แสดง
@@ -184,6 +184,10 @@ Year Switcher อยู่ถัดจาก Farm context และแสดง�
 - Drill-down เป็นตารางที่ยังอ่าน/เลื่อนได้บนมือถือ
 - Form ค่าแรง/ค่าใช้จ่ายเป็น Append-only ไม่มีปุ่มแก้/ลบใน Baseline
 - CSV เป็น action รองและแสดงว่าไม่มี public link/external distribution
+- Non-owner เห็นหน้า Sales/Inventory เชิงปฏิบัติการได้ตาม Role แต่ไม่มีราคา ลูกค้า
+  อ้างอิง ยอดเงิน ต้นทุน หรือ Financial action ใน DOM/payload
+- หากสิทธิ์ Owner ถูกถอนระหว่าง session ให้ปิดหน้า ล้าง Financial state และแจ้งให้
+  เข้าสู่ระบบ/โหลดสิทธิ์ใหม่ ห้ามคงตัวเลขล่าสุดบนหน้าจอ
 
 ## 5. Content and terminology
 
@@ -240,10 +244,10 @@ Year Switcher อยู่ถัดจาก Farm context และแสดง�
 - `WORKER`: Home เน้นงานของฉันและ Scan
 - `FARM_MANAGER`: เพิ่มงานทีม Verify และปัญหาเร่งด่วน
 - `AGRONOMIST`: เพิ่ม Disease queue และ Follow-up
-- `ORG_OWNER`: Farm/Portfolio switch และภาพรวมหลายสวน
-- `SALES_INVENTORY`: Harvest/Sales/Inventory ตาม Farm และ policy
+- `ORG_OWNER`: Farm/Portfolio switch ภาพรวมหลายสวน และ Financial Data เมื่อ trusted `isOwner=true`
+- `SALES_INVENTORY`: Harvest/Sales/Inventory เชิงปฏิบัติการตาม Farm โดยไม่มี Financial Data
 - `VIEWER`: read-only state ชัดเจน ไม่มีปุ่มแก้ไข, audit หรือ export โดยอัตโนมัติ
-- `AUDITOR`: read-only audit/export ตาม assignment ไม่มีปุ่มแก้ข้อมูลปฏิบัติการ
+- `AUDITOR`: read-only operational audit ตาม assignment ไม่มี Financial audit/export
 
 Role เปลี่ยนความสามารถ ไม่เปลี่ยนคำศัพท์หลักหรือโครงสร้างแบบทำให้ผู้ใช้หลง
 

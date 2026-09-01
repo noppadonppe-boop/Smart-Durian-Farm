@@ -1,9 +1,9 @@
-# KDOMS Scope Knowledge v0.2.8 — Multi-Farm
+# KDOMS Scope Knowledge v0.2.9 — Multi-Farm
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2.8 |
-| สถานะ | Approved Baseline — Annual Cycle and Management Reporting/Cost (DEC-048/049), Orchard Target Actions and Limited Operational Tree Register |
+| เวอร์ชัน | 0.2.9 |
+| สถานะ | Approved Baseline — Owner-only Financial Data (DEC-050), Annual Cycle and Management Reporting/Cost, Orchard Target Actions and Limited Operational Tree Register |
 | เจ้าของเอกสาร | Project Owner |
 | แทนที่ | Scope v0.1 single-farm concept |
 | วันที่ปรับปรุง | 2026-09-01 |
@@ -92,6 +92,9 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 - `VIEWER` อ่านข้อมูลธุรกิจตามสิทธิ์ แต่ไม่มีสิทธิ์ audit/export โดยอัตโนมัติ
 - `AUDITOR` อ่าน audit/export ตาม scope ที่กำหนดและไม่แก้ข้อมูลปฏิบัติการ
 - `SALES_INVENTORY` ดูแล Harvest/Sales/Inventory ตาม least privilege
+- เฉพาะ trusted Organization Owner (`ACTIVE` + `isOwner=true`) เห็น/เขียนราคา
+  ยอดเงิน ต้นทุน ค่าแรง ค่าใช้จ่าย Financial Dashboard/Report/Audit/Export;
+  Role อื่นเห็นเฉพาะข้อมูลปฏิบัติการที่ไม่มี Financial fields
 
 รายละเอียด permission อยู่ที่
 `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md` ซึ่งยังเป็น `Proposed`
@@ -187,9 +190,10 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 
 - Harvest plan และ lot
 - จำนวน น้ำหนัก เกรด แหล่งต้น/โซน และภาพ
-- Sales lot, customer reference, quantity/weight, price, deposit, received, outstanding
+- Sales lot เชิงปฏิบัติการเก็บ quantity/weight/status แยกจาก Owner-only financial
+  record ที่เก็บ customer reference, price, deposit, received และ outstanding
 - Traceability ระหว่าง Crop Cycle → Harvest Lot → Sales Lot
-- Customer reference เก็บข้อมูลขั้นต่ำเท่าที่จำเป็น
+- Customer reference เป็น Owner-only และเก็บข้อมูลขั้นต่ำเท่าที่จำเป็น
 - ไม่รวม accounting, tax, payroll หรือ banking ใน MVP
 
 ### 7.7 Inventory and Cost

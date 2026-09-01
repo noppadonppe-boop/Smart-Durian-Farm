@@ -2,12 +2,12 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 4.3 |
-| สถานะ | Gate 6 Passed — Annual Cycle and Management Reporting/Cost Approved Mock-first; Limited Tree Register Operational Data Authorized; Deployment/PA-2/Broader Production Not Approved |
+| เวอร์ชัน | 4.4 |
+| สถานะ | Gate 6 Passed — Owner-only Financial Data Approved; Annual Cycle and Management Reporting/Cost Approved Mock-first; Limited Tree Register Operational Data Authorized; Deployment/PA-2/Broader Production Not Approved |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
 | Annual Cycle Source | `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `08-Testing/Annual-Farm-Management-Cycle-Validation-Report_v1.0.md` |
-| Reporting Source | `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Management-Reporting-and-Cost-Architecture_v0.1.md`, `08-Testing/Management-Reporting-and-Cost-Validation-Report_v0.1.md` |
+| Reporting Source | `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Management-Reporting-and-Cost-Architecture_v0.1.md`, `08-Testing/Management-Reporting-and-Cost-Validation-Report_v0.1.md`, `08-Testing/Owner-Only-Financial-Access-Validation-Report_v1.0.md` |
 | Source of Truth | `.agents/skills/kdoms-development-knowledge/SKILL.md`, `.agents/skills/kdoms-disease-analysis-development/SKILL.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Phase-2-Farm-Management-Remediation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `08-Testing/Phase-3-Operational-Tree-Register-Form-Validation_v1.0.md`, `01-Requirements/KDOMS_AI_Fruit_Counting_Feasibility_Knowledge_v0.1.md`, `00-Project-Management/AI-Fruit-Counting-Feasibility-Plan_v0.1.md`, `08-Testing/AI-Fruit-Counting-WP1-Partial-Validation-Report_v0.1.md`, `00-Project-Management/Decision-Log.md`, `00-Project-Management/Owner-Review-Addendum_Disease-Analysis-P1_2026-09-01.md`, `06-System-Architecture/Disease-Analysis-P1-Deterministic-Mock-Architecture_v0.1.md`, `08-Testing/Disease-Analysis-P1-Validation-Report_v0.1.md`, `00-Project-Management/Owner-Review-Decision_Phase-7-External-PA1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Development-Mock-Data-and-Pilot-Timing_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-2_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Phase-3-Field-Validation-Pack_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-3_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-4_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-5_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-6_2026-08-31.md`, `00-Project-Management/Phase-7-Plan.md`, `09-Deployment/phase7-pa1-local-rehearsal-approval-v1.1.json`, `08-Testing/Phase-7-PA1-Local-Emulator-Rehearsal-Report_v1.1.md`, `06-System-Architecture/Phase-7-Work-Photo-Durable-Queue-and-Lifecycle-Architecture_v1.0.md`, `10-Operations/Phase-7-Photo-Data-Governance-Decision-Sheet_v1.0.md`, `08-Testing/Phase-7-Work-Photo-Physical-Device-Test-Protocol_v1.0.md`, `08-Testing/Phase-7-Pilot-Readiness-Checklist.md` |
 
 ## 1. เป้าหมาย
@@ -140,6 +140,11 @@
   ยอดขายเทียบต้นทุน Drill-down/CSV/Audit แบบ Mock-first Local/Firebase Emulator;
   ค่าแรงเป็น Management Cost ไม่ใช่ Payroll และไม่อนุมัติ Production cost write,
   ข้อมูลจริง บัญชี ภาษี Scheduler/Distribution Deployment PA-2/Pilot/Production
+- Owner อนุมัติ DEC-050 เมื่อ 2026-09-01 ให้เจ้าขององค์กรเห็นข้อมูลทั้งหมด และ
+  ผู้ใช้อื่นทุกคนไม่เห็นข้อมูลการเงิน; ต้องตรวจ trusted Organization membership
+  `ACTIVE` + `isOwner=true`, แยก Financial record/collection จากข้อมูลปฏิบัติการ,
+  ปฏิเสธ forged Owner และให้ legacy mixed document Fail closed; อนุมัติเฉพาะ
+  Local/Mock/Firebase Emulator และเอกสาร ไม่อนุมัติ Deploy/Migration Production
 - AIFC-01 ไม่อนุมัติภาพ/ข้อมูลจริง, public dataset, external AI/API/model,
   deployment, Production, Controlled Pilot, External Pilot Action, Phase 7
   execution หรือ commercial use; `AIFC-G1` ยังไม่ผ่าน
@@ -247,6 +252,8 @@
 - สิทธิ์ของผู้ใช้ในสวนหนึ่งต้องไม่เปิดเผยข้อมูลอีกสวนหนึ่ง
 - ผู้ใช้คนเดียวอาจมีบทบาทต่างกันในแต่ละสวน
 - Dashboard รวมหลายสวนแสดงได้เฉพาะข้อมูลที่ผู้ใช้มีสิทธิ์
+- ราคา ยอดขาย ยอดรับ/ค้าง ต้นทุน ค่าแรง ค่าใช้จ่าย แผนต้นทุน Financial KPI,
+  Report, Audit, Drill-down และ Export เป็น Owner-only ตาม DEC-050
 - การย้ายต้น วัสดุ หรือธุรกรรมระหว่างสวนอยู่นอก MVP จนกว่าจะอนุมัติเพิ่ม
 
 ### Tree identity
@@ -275,6 +282,8 @@
 - ใช้ TypeScript strict mode เมื่อเริ่มเขียนแอป
 - Validation ต้องมีทั้งฝั่งผู้ใช้และฝั่งที่เชื่อถือได้
 - Firebase Security Rules ต้องมี emulator tests โดยเฉพาะ Cross-Farm denial
+- UI hiding ไม่ใช่ Financial security boundary; Non-owner ต้องไม่ query/receive
+  Financial payload และ Rules ต้องปฏิเสธทุก Canonical Role รวม forged `ORG_OWNER`
 - ห้ามเก็บ secret, service-account key หรือข้อมูลส่วนบุคคลจริงไว้ใน repository
 - ใช้ข้อมูลจำลองในตัวอย่าง UX และการทดสอบ
 - ค่า Mock ต้องติดป้าย `SIMULATED/TEST ONLY`; ข้อมูลจริงอนุญาตเฉพาะ Controlled
