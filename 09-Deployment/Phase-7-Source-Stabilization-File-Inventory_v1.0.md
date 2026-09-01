@@ -1,14 +1,14 @@
-# Phase 7 Source Stabilization File Inventory v1.0
+# Phase 7 Source Stabilization File Inventory v1.1
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.0 |
-| สถานะ | Inventory Reviewed — No Ambiguous Ownership at Checkpoint |
+| เวอร์ชัน | 1.1 |
+| สถานะ | Completed — No Ambiguous Ownership; Candidate Source and Evidence Committed Locally |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ตรวจ | 2026-09-01 |
 | Classification | `OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY` |
 | Approval effect | Local source stabilization/freeze only; no push/tag/deploy/external action |
-| Source of Truth | `AGENTS.md`, Phase 7 Plan v2.0, DEC-037, DEC-038, Owner instruction for Source Stabilization |
+| Source of Truth | `AGENTS.md` v4.3, Phase 7 Plan v2.2, DEC-037, DEC-038, DEC-048, DEC-049, Owner instruction for Source Stabilization |
 
 ## 1. วิธีตรวจ
 
@@ -16,15 +16,16 @@
 ร่วมกับการตรวจชนิดไฟล์, ignored local environment, credential/phone pattern,
 ภาพ/ไฟล์ binary และความสอดคล้องกับ Decision/Validation artifacts ที่มีอยู่
 
-หลังเพิ่มไฟล์ stabilization ที่ตรวจสอบแล้ว 4 ไฟล์ รายการก่อน commit เป็น 228 ไฟล์:
-Intended 226, Generated 2 และ Ambiguous 0
+หลังเพิ่มไฟล์ stabilization ที่ตรวจสอบแล้ว 4 ไฟล์, Owner Review Mockup 1 ไฟล์
+และไฟล์ใหม่ของ DEC-048/049 จำนวน 25 ไฟล์ รายการที่ติดตามรวมเป็น 254 ไฟล์:
+Intended 252, Generated 2 และ Ambiguous 0
 
 หลักการ: ไม่ลบ ไม่ reset ไม่ checkout และไม่ overwrite ไฟล์เดิมของผู้ใช้
 
-## 2. Intended source/document/test (226 ไฟล์)
+## 2. Intended source/document/test (252 ไฟล์)
 
 รายการต่อไปนี้สอดคล้องกับ implementation, requirements, architecture, operations,
-test evidence และ Owner decisions ตั้งแต่ Gate 1–6/Phase 7/DEC-027–DEC-047
+test evidence และ Owner decisions ตั้งแต่ Gate 1–6/Phase 7/DEC-027–DEC-049
 จึงอนุญาตให้นำเข้า local commits แบบแยกกลุ่มหลัง validation:
 
 - ` M` `.gitignore`
@@ -254,6 +255,55 @@ test evidence และ Owner decisions ตั้งแต่ Gate 1–6/Phase 7
 - `??` `10-Operations/Phase-7-Role-Training-Guide_v1.0.md`
 - `??` `10-Operations/Phase-7-Support-Incident-and-Rollback-Plan_v1.0.md`
 
+Post-freeze evidence ที่เพิ่มหลัง initial checkpoint และนำเข้า evidence commit:
+
+- `00-Project-Management/Owner-Review-Mockup_Phase-7-Source-Stabilization-and-Local-Candidate-Freeze_2026-09-01.md`
+
+Concurrent Owner document/source sets ที่ตรวจพบหลัง Candidate `...-03` และนำเข้า
+local commits แยกตาม provenance; ชุด source เปลี่ยน Candidate hash จึง freeze ใหม่เป็น
+`KDOMS-PC-SIM-20260901-04`:
+
+- `.agents/skills/kdoms-development-knowledge/SKILL.md` — เพิ่ม Annual Cycle boundary
+- `AGENTS.md` — v4.3 / DEC-048 และ DEC-049
+- `00-Project-Management/Decision-Log.md` — DEC-048/049 Approved
+- `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md` — v1.1.5
+- `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md` — v0.1.2
+- `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md` — v0.2.7
+- `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md` — v0.1.7
+- `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`
+- `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`
+- `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`
+- `08-Testing/Annual-Farm-Management-Cycle-Validation-Report_v1.0.md`
+- `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`
+- `00-Project-Management/Owner-Review-Addendum_Management-Reporting-and-Cost_2026-09-01.md`
+- `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`
+- `06-System-Architecture/Management-Reporting-and-Cost-Architecture_v0.1.md`
+- `08-Testing/Management-Reporting-and-Cost-Validation-Report_v0.1.md`
+- `07-Source-Code/web-app/src/adapters/mock/mockAnnualCycleRepository.test.ts`
+- `07-Source-Code/web-app/src/adapters/mock/mockAnnualCycleRepository.ts`
+- `07-Source-Code/web-app/src/adapters/mock/mockManagementReportingRepository.test.ts`
+- `07-Source-Code/web-app/src/adapters/mock/mockManagementReportingRepository.ts`
+- `07-Source-Code/web-app/src/app/AnnualCyclePage.test.tsx`
+- `07-Source-Code/web-app/src/app/AnnualCycleSwitcher.tsx`
+- `07-Source-Code/web-app/src/demo/annual-cycle-mock-data-pack-v1.0.json`
+- `07-Source-Code/web-app/src/demo/management-reporting-mock-data-pack-v1.0.json`
+- `07-Source-Code/web-app/src/domain/annualFarmCycle.test.ts`
+- `07-Source-Code/web-app/src/domain/annualFarmCycle.ts`
+- `07-Source-Code/web-app/src/domain/managementReporting.test.ts`
+- `07-Source-Code/web-app/src/domain/managementReporting.ts`
+- `07-Source-Code/web-app/src/infrastructure/firebase/firebaseAnnualCycleRepository.ts`
+- `07-Source-Code/web-app/src/pages/AnnualCyclePage.tsx`
+- `07-Source-Code/web-app/src/pages/ManagementReportsPage.tsx`
+- `07-Source-Code/web-app/src/security/firebaseAnnualCycle.emulator.test.ts`
+
+ชุดนี้ระบุ Project Owner, `OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY`, Mock/local/Firebase Emulator,
+ไม่อนุมัติ deployment/ข้อมูลจริง/PA-2/Pilot/Production และผ่าน credential/real-data
+scan จึงจัดเป็น Intended; ไม่มีรายการ ownership กำกวม
+
+ไฟล์ tracked ที่แก้เพื่อเชื่อม Annual Cycle/Reporting/Rules/seed/UI อยู่ใน initial
+inventory เดิมแล้ว จึงไม่เพิ่มจำนวน path; commit แยกคือ `2a614ed` สำหรับเอกสารและ
+`483bb41` สำหรับ application source/tests
+
 ## 3. Generated output (2 ไฟล์)
 
 เก็บไฟล์ไว้ในเครื่องและเพิ่ม ignore rule โดยไม่ลบหรือ commit:
@@ -311,5 +361,5 @@ test evidence และ Owner decisions ตั้งแต่ Gate 1–6/Phase 7
 - [x] Generated/local-only ไม่ถูกลบและไม่ถูก commit
 - [x] ไม่พบรายการ Ambiguous
 - [x] Secret/real-data scan ผ่านระดับ local inventory
-- [ ] รัน scan ซ้ำจาก staged/clean Candidate ก่อน freeze
-- [ ] Working tree สะอาดหลัง local commits
+- [x] รัน scan ซ้ำจาก staged/clean Candidate ก่อน freeze
+- [x] Working tree สะอาดที่ source commit และหลัง evidence commit

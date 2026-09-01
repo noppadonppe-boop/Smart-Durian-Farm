@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.9 |
-| สถานะ | External PA-1 Owner Decision = NO-GO/BLOCKED; No Deployment |
+| เวอร์ชัน | 2.1 |
+| สถานะ | Clean Local Candidate Frozen; External PA-1 Remains NO-GO/BLOCKED; No Deployment |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.0, External PA-1 Owner Review Decision v1.2, Pilot Impact & Approval Pack v1.8, PA-1 Local Rehearsal Report v1.1, Controlled Pilot Runbook v1.3, Work Photo Physical Device Protocol v1.1, Governance Decision Sheet v1.1, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038 |
+| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.2, External PA-1 Owner Review Decision v1.2, Pilot Impact & Approval Pack v2.0, Candidate Manifest v0.9, Local Pilot Readiness Report v1.4, Source Stabilization Inventory v1.1, Governance Decision Sheet v1.3, DEC-031, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049 |
 
 ## A. Authorization and boundary
 
@@ -40,22 +40,30 @@
 
 ## C. Local Candidate readiness
 
-- [x] Source snapshot/Candidate ID frozen สำหรับ Local Rehearsal เท่านั้น
+- [x] Candidate `KDOMS-PC-SIM-20260901-04` frozen จาก clean source commit สำหรับ Local Rehearsal เท่านั้น
 - [x] ESLint และ TypeScript strict ผ่าน
-- [x] Unit/component suite ผ่าน 124/124 ใน 17 test files
-- [x] Firebase Emulator/security/integration suite ผ่าน 45/45 ใน 7 test files
+- [x] Unit/component suite ผ่าน 229/229 ใน 29 test files
+- [x] Firebase Emulator/security/integration suite ผ่าน 67/67 ใน 9 test files;
+  Cross-Farm allow/disclosure = 0
+- [x] Deterministic seed ผ่าน 148 records ใน 7 modules และ 4 Farm Profiles
 - [x] Work photo resize/compress/metadata policy และ automatic Retry/Orphan ผ่าน local/emulator
 - [x] Durable queue/checkpoint/replay และ metadata-only Retry block ผ่าน; local desktop
   IndexedDB interruption/reload/retry/commit/cleanup ผ่าน ส่วน Android/iPhone WP-09/WP-11 ยังเปิด
 - [x] Lifecycle worker core: dry-run, approval separation, reference check, retention และ Cross-Farm stop ผ่าน local
 - [x] HEIC fail-closed พร้อม JPEG/approved on-device conversion guidance ผ่าน unit test
-- [x] Production build/PWA/offline runtime/performance budget ผ่าน
-- [x] Initial JavaScript ผ่านหลัง remediation: 331,113/350,000 bytes
+- [x] Mock-only build/PWA/offline runtime/performance budget ผ่าน; precache 82 entries
+- [x] Initial JavaScript 348,801/350,000 bytes, Initial CSS 56,239/60,000 bytes
+  และ total offline runtime 1,718,980/1,800,000 bytes ผ่าน
+- [x] Browser responsive ผ่าน 320px, Android 360×800 และ iPhone 390×844;
+  Light/Dark, touch target, Offline UX และ console error = 0
 - [x] Historical Candidate `...-01` ถูกเก็บเป็นหลักฐานเดิมและ superseded
 - [x] Candidate `KDOMS-PC-SIM-20260831-02` เก็บเป็น historical local evidence;
-  Owner ยืนยัน Current source ไม่ตรง frozen snapshot เดิมและยังไม่มี clean deployable Candidate
+  source drift เดิมถูก remediated ด้วย Candidate ใหม่ แต่ External decision ไม่เปลี่ยน
 - [x] Dependency audit high/critical = 0; moderate 2 dev-only บันทึกแล้ว
-- [x] ไม่มี secret, Production URL หรือข้อมูลจริงใน Phase 7 artifacts
+- [x] ไม่พบ credential/ข้อมูลจริงใน commit; production/local phone allowlist อยู่เฉพาะ
+  ignored `.env` และไม่อยู่ใน Candidate
+- [x] File inventory จำแนก Intended/Generated/Local-only/Ambiguous ครบ; Ambiguous = 0
+- [x] Source/build/lock SHA-256 และ clean source commit บันทึกตรวจย้อนกลับได้
 - [x] `git diff --check` ผ่าน
 
 ## D. PA-1 — Pilot environment/deployment
@@ -94,5 +102,5 @@
 - [ ] Final Pilot Report มี GO/CONDITIONAL GO/NO-GO
 - [ ] Owner อนุมัติ PA-3 ก่อน Production/permanent tags/scale-up
 
-Current decision: **LOCAL/EMULATOR REHEARSAL PASSED — EXTERNAL PA-1 NO-GO/BLOCKED;
-NO DEPLOYMENT, NO REAL DATA, NO FIELD EXECUTION**
+Current decision: **SOURCE STABILIZED; LOCAL CANDIDATE FROZEN — EXTERNAL PA-1
+NO-GO/BLOCKED; NO DEPLOYMENT, NO REAL DATA, NO FIELD EXECUTION**

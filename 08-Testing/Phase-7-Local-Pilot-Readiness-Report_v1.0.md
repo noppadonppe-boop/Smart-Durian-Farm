@@ -2,17 +2,18 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.2 |
-| สถานะ | Passed PA-1 Local/Emulator Rehearsal after Remediation; No Deployment |
+| เวอร์ชัน | 1.4 |
+| สถานะ | Source Stabilized and Local Candidate Frozen from Clean Commit; No Deployment |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ตรวจ | 2026-08-31 |
-| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v1.9, PA-1 Local Rehearsal Report v1.1, Phase 6 Validation Report v1.0, DEC-031, DEC-036, DEC-037 |
+| วันที่ตรวจ | 2026-09-01 |
+| Source of Truth | Owner Addendum Gate 6, Phase 7 Plan v2.2, Candidate Manifest v0.9, Source Stabilization Inventory v1.1, Phase 6 Validation Report v1.0, DEC-031, DEC-036, DEC-037, DEC-038, DEC-048, DEC-049 |
 
 ## 1. สรุป
 
-Phase 7 stage P7-A และ PA-1 Local/Emulator rehearsal ผ่านแล้ว Candidate ถูก freeze
-เป็น local snapshot ที่ตรวจ checksum ซ้ำได้ หลังแก้ performance และ Work list Rules
-defect แอปผ่าน full local/Mock/Firebase Emulator และ browser durable-queue suite
+Phase 7 Source Stabilization ผ่านแล้ว Candidate `KDOMS-PC-SIM-20260901-04`
+ถูก freeze จาก clean local commit และตรวจ checksum ซ้ำได้ หลังแยก Farm Management,
+Tree form และ Orchard selector CSS ตาม lazy route, แก้ Dark/Light token และแก้
+async test assertion แอปผ่าน Full Validation ด้วย local/Mock/Firebase Emulator
 โดยไม่มีการ Deploy, สร้าง external resource หรือใช้ข้อมูลจริง
 
 ผลนี้หมายถึง **PA-1 Local/Emulator ผ่าน** ไม่ใช่ Pilot deployment,
@@ -24,27 +25,30 @@ Physical Device/Field Validation หรือ Production readiness
 |---|---|
 | ESLint | ผ่าน ไม่มี warning/error |
 | TypeScript strict | ผ่าน |
-| Unit/component | 124/124 ผ่านใน 17 files |
-| Firebase Emulator/security/integration | 45/45 ผ่านใน 7 files |
-| Production build/PWA | ผ่าน; build 53 files; precache 52 entries |
-| Initial JavaScript | 331,113 / 350,000 bytes — ผ่านหลัง remediation |
-| Initial CSS | 41,012 / 60,000 bytes — ผ่าน |
-| Total offline runtime | 1,302,121 / 1,800,000 bytes — ผ่าน |
-| Offline runtime scan | ผ่าน 52 local build files; external runtime = 0 |
+| Unit/component | 229/229 ผ่านใน 29 files |
+| Firebase Emulator/security/integration | 67/67 ผ่านใน 9 files; Cross-Farm allow/disclosure = 0 |
+| Deterministic seed | ผ่าน 148 records ใน 7 modules; Farm 4, farm membership 9, classification `OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY` |
+| Mock-only build/PWA | ผ่าน; build artifact 83 files; precache 82 entries |
+| Initial JavaScript | 348,801 / 350,000 bytes — ผ่าน |
+| Initial CSS | 56,239 / 60,000 bytes — ผ่านและต่ำกว่าเป้าหมาย 58,000 |
+| Total offline runtime | 1,718,980 / 1,800,000 bytes — ผ่าน |
+| Offline runtime scan | ผ่าน 82 local build files; external runtime = 0 |
 | Emulator health | Auth 9099, Firestore 8080, Storage 9199 ผ่าน |
 | Browser durable queue | interruption/reload/retry/commit/cleanup ผ่าน; Queue เหลือ 0 |
 | Dependency audit | high 0, critical 0; moderate 2 dev-only transitive |
 | Documentation/CSV QA | metadata ครบ; CSV header 27/24/24 columns, 0 data rows |
-| Secret/real-data review | ไม่พบ secret, real phone, Production URL หรือข้อมูลจริงใน Phase 7 artifacts |
-| `git diff --check` | ผ่าน ไม่มี whitespace error; มี line-ending informational warnings เท่านั้น |
+| Browser responsive/theme/offline | ผ่าน 320px, 360×800, 390×844; overflow = 0, console error = 0, Light/Dark และ touch target ≥44px ผ่าน |
+| Secret/real-data review | ไม่พบ credential/private key/real data ใน commit; local phone allowlist อยู่เฉพาะ ignored `.env` และไม่ถูก commit |
+| File inventory | 254 paths จำแนกครบ: Intended 252, Generated 2, Ambiguous 0; Generated ถูก ignore โดยไม่ลบ |
+| `git diff --check` | ผ่าน ไม่มี whitespace error |
 
-Moderate findings เดิม:
+Dependency findings เดิมจาก rehearsal ก่อนหน้า (ไม่ได้รัน network audit ใหม่ในงานนี้):
 
 - `uuid@9.0.1` ผ่าน `firebase-tools` development dependency
 - `@opentelemetry/core@1.30.1` ผ่าน `firebase-tools` development dependency
 
-ทั้งสองรายการเป็น dev-only ไม่อยู่ใน browser runtime และต้องตรวจใหม่เมื่อ freeze
-Candidate; ห้ามเพิกเฉยหาก severity หรือ dependency path เปลี่ยน
+ทั้งสองรายการเป็น dev-only ไม่อยู่ใน browser runtime; งานนี้ไม่ใช้ network หรือ
+external package audit ใหม่ จึงไม่ยกระดับผลเดิมเป็นผลตรวจ ณ Candidate `...-04`
 
 ## 3. Phase 7 artifacts
 
@@ -56,16 +60,18 @@ Candidate; ห้ามเพิกเฉยหาก severity หรือ depe
 
 ## 4. สิ่งที่ยังไม่ทดสอบ
 
-- Local Candidate ถูก freeze ด้วย snapshot hash แล้ว แต่ working tree ยังมี
-  uncommitted changes จึงไม่ใช่ deployable source revision
+- Local Candidate ถูก freeze จาก clean source commit แล้ว แต่สถานะตั้งใจเป็น
+  `FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` และไม่มี deployment authorization
 - ไม่มี production-like smoke ใน approved Pilot environment เพราะ External PA-1 ยังไม่ผ่าน
 - ไม่มี Android/iPhone/camera/QR/LAN/Hotspot/field/real-user evidence
 - ไม่มี backup/restore กับ external target และไม่มี real-data/privacy execution
-- QR base URL, retention, RPO/RTO, contacts, environment และ cost ยัง `TBD`
+- QR base URL, retention, RPO/RTO, contacts, environment และ cost actual ยัง `TBD`
+- Firebase Production config ใน ignored local `.env` ไม่อยู่ใน Candidate;
+  validator บังคับ Mock-only build เพื่อป้องกัน external runtime โดยไม่แก้ไฟล์ผู้ใช้
 
 ## 5. Recommendation
 
-**PASS P7-A + PA-1 LOCAL/EMULATOR REHEARSAL**
+**PASS SOURCE STABILIZATION + CLEAN LOCAL CANDIDATE FREEZE**
 
 ยังคงคำตัดสิน **HOLD — NO DEPLOYMENT, NO REAL DATA, NO FIELD EXECUTION** จนกว่า
 Owner จะอนุมัติ External PA-1 และ PA-2 เป็นรายการ

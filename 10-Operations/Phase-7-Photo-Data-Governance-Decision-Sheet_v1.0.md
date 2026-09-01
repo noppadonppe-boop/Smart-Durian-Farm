@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.1 |
+| เวอร์ชัน | 1.3 |
 | สถานะ | External PA-1 NO-GO/BLOCKED — Actual Values TBD; No Real Data/Enforcement Approved |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | External PA-1 Owner Review Decision v1.2, DEC-017, DEC-034, DEC-036, DEC-038, Privacy Review v0.3, Backup Drill v1.2, Photo Lifecycle Architecture v1.0 |
+| Source of Truth | External PA-1 Owner Review Decision v1.2, Candidate Manifest v0.9, DEC-017, DEC-034, DEC-036, DEC-038, Privacy Review v0.3, Backup Drill v1.2, Photo Lifecycle Architecture v1.0 |
 
 ## 1. ผู้รับผิดชอบและ Separation of Duties
 
@@ -80,3 +80,8 @@ Owner ต้องกรอกรหัสที่ map ถึงบุคคล
 
 Current decision: **NO-GO / HOLD ตาม DEC-038 — ห้าม External Resource, Real Data,
 Backup หรือ Lifecycle ENFORCE จนกว่าจะมี Owner Review ใหม่และข้อความ GO**
+
+หมายเหตุ 2026-09-01: Source drift ถูก remediated และมี clean Local Candidate
+`KDOMS-PC-SIM-20260901-04` แล้ว แต่ Candidate เป็น
+`FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE` และไม่เติมค่า `TBD` ใดในเอกสารนี้
+ดังนั้น governance blocker และ DEC-038 ยังคงเดิม
