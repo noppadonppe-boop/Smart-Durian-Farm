@@ -85,6 +85,7 @@ export interface WorkMutationContext {
 export interface WorkTarget {
   kind: WorkTargetKind
   zoneCode: string
+  zoneCodes?: readonly string[]
   rowCode: string | null
   positionIds: readonly string[]
 }
@@ -439,12 +440,20 @@ export function createOpaqueRecordId(prefix: string): string {
 
 export function validateWorkTarget(target: WorkTarget): WorkTarget {
   if (!/^Z\d{2,}$/u.test(target.zoneCode)) throw new Error('Zone code ไม่ถูกต้อง')
+  const zoneCodes = [...new Set(target.zoneCodes ?? [target.zoneCode])]
+  if (zoneCodes.length === 0 || zoneCodes.some((zoneCode) => !/^Z\d{2,}$/u.test(zoneCode))) {
+    throw new Error('รายการ Zone code ของเป้าหมายไม่ถูกต้อง')
+  }
+  if (!zoneCodes.includes(target.zoneCode)) throw new Error('Zone หลักต้องอยู่ในรายการ Zone เป้าหมาย')
   if (!unique(target.positionIds)) throw new Error('Target มี Position ซ้ำ')
   if (target.positionIds.some((id) => !/^pos_[A-Za-z0-9_-]{12,}$/u.test(id))) {
     throw new Error('Target ต้องใช้ opaque Position ID')
   }
   if (target.kind === 'TREE' && target.positionIds.length !== 1) {
     throw new Error('งานรายต้นต้องมี Position เดียว')
+  }
+  if (target.kind !== 'TREE_SET' && zoneCodes.length !== 1) {
+    throw new Error('งานข้ามโซนต้องใช้ประเภทชุดต้น')
   }
   if (target.kind === 'TREE_SET' && target.positionIds.length < 2) {
     throw new Error('งานชุดต้นต้องมีอย่างน้อย 2 Position')
@@ -458,7 +467,7 @@ export function validateWorkTarget(target: WorkTarget): WorkTarget {
   if (target.kind === 'ZONE' && target.positionIds.length === 0) {
     throw new Error('งานระดับโซนต้อง snapshot ต้นเป้าหมาย')
   }
-  return structuredClone(target)
+  return structuredClone({ ...target, zoneCodes })
 }
 
 export function validateWorkDraft(draft: WorkOrderDraft): WorkOrderDraft {

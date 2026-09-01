@@ -1,38 +1,44 @@
-# Smart Durian Farm Web App — Phase 6 + AIFC Mock Feasibility
+# Smart Durian Farm Web App — Phase 6 + Firebase Production Firestore
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.9 |
-| สถานะ | Local Mock Application Ready — ไม่ต้องมี Firebase Project |
+| เวอร์ชัน | 1.2.0 |
+| สถานะ | Firebase Production Firestore Ready; Owner OTP Seed Pending; Storage Provisioning Pending |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | `../../AGENTS.md` v3.3, Development/Mock Data/Pilot Knowledge v1.0.4, DEC-027, DEC-037 และ DEC-038 |
+| Source of Truth | `../../AGENTS.md` v3.6, Development/Mock Data/Pilot Knowledge v1.0.4, DEC-027, DEC-038, DEC-040 และ DEC-041 |
 
-Web App แบบ local/Firebase Emulator only สำหรับ Smart Durian Farm / KDOMS
-ตามแนวทาง Mock-first Development ข้อมูลทุกชุดต้องเป็น
-`SIMULATED/TEST ONLY` และไม่เชื่อม Production
+Web App สำหรับ Smart Durian Farm / KDOMS ตามแนวทาง Mock-first Development
+runtime ปกติเชื่อม Firebase Authentication และ Cloud Firestore ของ project
+`durian-smartfarm` จริงตาม DEC-041 ข้อมูลเริ่มต้นยังเป็น `SIMULATED/TEST ONLY`
+และเก็บใต้ shared document `durian-smartfarm/root`
 
-## เปิดแอปด้วย Mock Data — วิธีที่แนะนำ
+## เปิดแอปด้วย Firebase Production
 
-ไม่ต้องสร้าง Firebase Project, ไม่ต้องเปิด Billing, ไม่ต้องมี Credential และไม่ต้อง
-เปิด Firebase Emulator สำหรับการพัฒนา UI/Workflow ตามปกติ
+runtime ปกติไม่ต้องเปิด Firebase Emulator และอ่านค่า Web config จาก `.env` ที่ Git
+ignore อยู่แล้ว
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-เปิด URL ที่ Vite แสดง แล้วกด **เปิดแอปสาธิตทันที** ระบบจะใช้บัญชีเจ้าของสวน
-จำลองและโหลด Farm, Tree, Work, Care, Disease, Production, Inventory, Dashboard,
-Offline/Conflict, Photo recovery และ Audit จาก Mock Data Pack ภายในเครื่อง
+เปิด URL ที่ Vite แสดง ยืนยัน Phone OTP แล้วกด **Seed Mock Data ไป Firebase**
+ในหน้า No-Farm หรือหน้าหลัก ระบบจะเขียนชุดข้อมูลทุกเมนูไปยัง
+`durian-smartfarm/root` แล้วอ่าน Farm membership กลับด้วย Firebase UID ของผู้ใช้
 
-หากไม่มี `.env.local` แอปเลือก `mock` โดยอัตโนมัติ การ reload หน้าเว็บจะสร้าง
-runtime ใหม่จากชุดข้อมูลตั้งต้น จึงสามารถทดลองแก้ข้อมูลโดยไม่กระทบข้อมูลจริง
+ระหว่างรันด้วย Development Server หน้า Login จะแสดงปุ่ม
+**เข้าสู่ระบบโดยผู้ดูแล** สำหรับตรวจทุกโมดูลโดยไม่ใช้ OTP ปุ่มนี้สลับทั้ง Auth และ
+Data Adapter ไปยังบัญชี `ORG_OWNER` และข้อมูล `SIMULATED/TEST ONLY` ในเครื่อง
+จึงไม่อ่าน/เขียน Firestore Production ส่วน Production build จะไม่แสดงปุ่มและ
+ฟังก์ชันทางลัดจะปฏิเสธการเข้าใช้เสมอ
 
 ## ขอบเขตที่ทำเสร็จ
 
 - Phase 1–3: local foundation, Phone OTP Emulator, Multi-Farm access,
   Tree Register, planting cycle, Tag/QR route และ scan/manual confirmation
+- Tree Register ดาวน์โหลด Excel Template ที่เปิดใน Microsoft Excel/Google Sheets,
+  นำกลับเข้าเป็น `.xlsx`/`.csv`, Preview 49 คอลัมน์ และเขียนแบบ atomic/idempotent
 - Work Order: Draft, Assigned, Accepted, In Progress, pause/resume, Submitted,
   Verified, Rejected, Rework และ Closed
 - target แบบ Tree, Tree Set, Row และ Zone โดย snapshot opaque Position IDs
@@ -72,8 +78,9 @@ runtime ใหม่จากชุดข้อมูลตั้งต้น �
 
 ## Mock Data Pack
 
-ไฟล์หลักคือ
-`src/demo/phase6-mock-data-pack-v1.0.json`
+ไฟล์แพ็กหลักอยู่ใน `src/demo/` ได้แก่ Phase 2, Phase 4, Phase 5, Phase 6 และ
+Disease Analysis P1 โดย Seeder รวมแต่ละแพ็กตาม dependency แล้วตรวจความสัมพันธ์
+ก่อนเขียนลง Emulator
 
 - เวอร์ชัน `1.0.0`
 - ป้ายกำกับ `SIMULATED/TEST ONLY`
@@ -82,11 +89,35 @@ runtime ใหม่จากชุดข้อมูลตั้งต้น �
   role downgrade/revocation, partial/orphan photo, correction audit และ export
 - ไม่มีข้อมูลสวน/ลูกค้า/บุคคลจริง เบอร์/อีเมลจริง พิกัดจริง หรือ Production identifier
 
-รีเซ็ต Firebase Emulator ให้เป็นค่าตั้งต้นของแพ็ก:
+รีเซ็ต Firebase Emulator และ Seed ครบทุกโมดูล:
 
 ```powershell
 pnpm seed:emulator
 ```
+
+หากต้องการทดสอบเป็นช่วง สามารถ Seed แยกตามฟังก์ชันได้ แต่ละคำสั่งจะรีเซ็ตข้อมูล
+ก่อน แล้ว Seed dependency ที่จำเป็นให้อัตโนมัติ:
+
+```powershell
+pnpm seed:emulator:foundation
+pnpm seed:emulator:trees
+pnpm seed:emulator:work
+pnpm seed:emulator:commercial
+pnpm seed:emulator:operations
+pnpm seed:emulator:disease-analysis
+```
+
+ตรวจ Seeder แบบครบวงจรโดยให้คำสั่งเปิดและปิด Emulator เอง:
+
+```powershell
+pnpm test:seed:emulator
+```
+
+Full Seed ประกอบด้วย Auth test accounts, Organization/Farm/Membership,
+Tree/Planting Cycle/Tag/QR route, Work/Care/Disease/รูป Placeholder, Crop/Fruit/
+Harvest/Sales/Inventory, Dashboard/Offline/Conflict/Recovery/Audit และ Disease
+Analysis Session/Human Review รวม 127 records ทุกชุดติดป้าย
+`SIMULATED/TEST ONLY`
 
 Mock adapter ในเบราว์เซอร์จะรีเซ็ตเมื่อสร้าง runtime ใหม่ และใช้ ID ที่สร้างซ้ำได้
 สำหรับ mutation จำลอง
@@ -104,32 +135,72 @@ Mock adapter ในเบราว์เซอร์จะรีเซ็ตเ�
 - `/notifications` — คิวในแอป
 - `/scan` — QR/manual confirmation และ mismatch stop
 - `/trees`, `/trees/:positionId` — Tree Register และ history
+- `/trees/import` — ดาวน์โหลด Template และ Preview/Import Excel หรือ CSV จาก Google Sheets
 - `/members`, `/audit` — Access และ Audit
 
-## Firebase Emulator — ใช้เฉพาะเมื่อต้องการทดสอบ Rules
+## Firebase Emulator — Phone OTP และ Rules แบบ Local
 
-Firebase Project จริงไม่จำเป็นสำหรับขั้นตอนนี้ Local Emulator ใช้เฉพาะการตรวจ
-Firestore/Storage Rules และ adapter integration โดยต้องมี Java 21
-
-```powershell
-Copy-Item .env.example .env.local
-```
-
-แก้ `VITE_DATA_ADAPTER=firebase-emulator` ใน `.env.local` แล้วรัน:
+Firebase Project จริงไม่จำเป็นสำหรับขั้นตอนนี้ Local Emulator รองรับ Phone OTP,
+Firestore/Storage Rules และ adapter integration โดยต้องมี Java 21 การเปิด Phone
+provider หรือกำหนด test phone ใน Firebase Console ไม่มีผลต่อ Auth Emulator
+เพราะ Emulator สร้างรหัสใหม่และแสดงในหน้าต่างที่รัน Emulator เอง
 
 ```powershell
-pnpm install --frozen-lockfile
 pnpm emulators
 ```
 
-อีกหน้าต่างหนึ่ง:
+อีกหน้าต่างหนึ่ง ให้ reset บัญชี/ข้อมูลจำลองแล้วเปิดแอปในโหมด Emulator:
 
 ```powershell
 pnpm seed:emulator
+pnpm dev:emulator
+```
+
+หน้า Login ใช้หมายเลขทดสอบที่แสดงในแอป กดขอรหัส แล้วนำ OTP 6 หลักจาก
+หน้าต่าง `pnpm emulators` มากรอก รหัสจะเปลี่ยนทุกครั้งและไม่มี SMS จริงถูกส่ง
+
+ถ้าต้องการใช้ Mock OTP แบบไม่เปิด Emulator ให้ override เฉพาะ process ปัจจุบัน:
+
+```powershell
+$env:VITE_DATA_ADAPTER='mock'
+$env:VITE_AUTH_ADAPTER='mock'
 pnpm dev
 ```
 
-`.env.example` เริ่มต้นที่ `mock` และมีเฉพาะ local demo identifiers ไม่ใช่ credential
+`pnpm dev:emulator` โหลด `.env.emulator` ซึ่งบังคับ project จำลองและ loopback
+เท่านั้น ส่วน `.env.example` ยังคงเริ่มที่ `mock`; ทั้งสองไฟล์ไม่มี credential จริง
+
+## Firebase Production — DEC-041 Shared Root
+
+คำสั่ง `pnpm dev` ใช้ Firebase Phone Authentication และ Firestore Production จริง
+จาก `.env` ที่ถูก ignore โดย Git ไม่มีการเชื่อม Local Emulator ใน runtime ปกติ
+ผู้ใช้คนแรกยืนยัน Phone OTP แล้วกดปุ่ม Seed ในหน้า No-Farm/หน้าหลักเพื่อสร้าง
+deterministic Mock Data ใต้ `durian-smartfarm/root`
+
+ค่าของ Web App อยู่ใน `.env` ซึ่งถูก ignore โดย Git ต้องกำหนด
+`FIREBASE_LIVE_AUTH_ALLOWED_PHONE_NUMBERS` เฉพาะหมายเลขที่ Owner อนุญาต โดยห้าม
+ใช้ prefix `VITE_` กับหมายเลขจริง จากนั้นรันคำสั่งเตรียม allowlist เพื่อสร้างเฉพาะ
+PBKDF2 digest + random salt สำหรับ browser bundle
+
+```powershell
+pnpm prepare:firebase-auth-allowlist
+pnpm dev
+```
+
+Limited Hosting build ตาม DEC-042 ใช้ `VITE_DATA_ADAPTER=mock` จากไฟล์
+`.env.firebase-live.local` และ Deploy เฉพาะ Hosting:
+
+```powershell
+npm run deploy:firebase-auth-hosting
+```
+
+คำสั่งนี้ build Firebase Phone Auth จริง + Mock Data แล้วเรียก Firebase CLI ด้วย
+`--only hosting --project durian-smartfarm`; ไม่ Deploy Firestore/Storage
+
+ก่อนส่ง OTP ผู้ใช้ต้องรับทราบว่าหมายเลขจะถูกส่งให้ Google Firebase ปุ่ม Seed ต้อง
+พิมพ์ชื่อ project และยืนยันป้าย `SIMULATED/TEST ONLY` ทุกครั้ง Firestore Rules และ
+Indexes Deploy แล้ว แต่ Firebase Storage ยังไม่ผ่าน Get Started จึงตั้ง
+`VITE_FIREBASE_STORAGE_READY=false` และข้าม placeholder 3 ไฟล์ชั่วคราว
 
 ## การตรวจสอบ
 
@@ -141,26 +212,25 @@ pnpm validate
 performance budget, offline runtime scan และ Firebase Auth/Firestore/Storage
 Emulator tests
 
-ผลล่าสุด:
+ผลตรวจเฉพาะ Full Mock Seed ล่าสุด:
 
-- unit/component: 125/125 ใน 17 test files
-- emulator/security/integration: 45/45 ใน 7 test files
-- mobile browser 320×736: หน้าเข้าสู่ระบบและ Dashboard ไม่มี horizontal overflow
-- browser functional: เปิดแอป Mock แบบคลิกเดียวและ Dashboard โหลดโดยไม่มี console warning/error
-- offline runtime scan: ผ่าน 52 ไฟล์
-- performance: JS 332,238/350,000; CSS 41,140/60,000; total 1,303,589/1,800,000 bytes
-- PWA build: ผ่าน; precache 52 entries, 1,254.56 KiB
-- Mock Data Pack reset: ผ่าน
+- unit/component: 171/171 ใน 20 test files
+- emulator/security/integration: 49/49 ใน 8 test files
+- Seeder verification: 127 records ใน 6 โมดูล พร้อม root document, Auth 6 บัญชีและ Storage 3 objects
+- lint และ TypeScript strict: ผ่าน
+- production/PWA build: ผ่าน
+- deterministic reset และ Cross-Farm reference validation: ผ่าน
 
 รายงานอยู่ที่
 `../../08-Testing/Phase-6-Validation-Report_v1.0.md` และส่วนเพิ่มรูป Work Order อยู่ที่
 `../../08-Testing/Phase-4-Work-Photo-Enhancement-Validation_v1.0.md`; ผล AIFC อยู่ที่
-`../../08-Testing/AI-Fruit-Counting-WP1-Partial-Validation-Report_v0.1.md`
+`../../08-Testing/AI-Fruit-Counting-WP1-Partial-Validation-Report_v0.1.md`; ผล Full
+Mock Seed อยู่ที่ `../../08-Testing/Firebase-Emulator-Full-Mock-Seed-Validation_v1.0.md`
 
 ## ข้อห้ามและความเสี่ยงคงค้าง
 
-- ห้าม Firebase Production, billing, public deployment, production domain,
-  credentials/service-account key, SMS จริง และเบอร์จริง
+- Firebase Production Firestore อนุมัติเฉพาะ deterministic Mock Data ตาม DEC-041;
+  ห้ามข้อมูล/ภาพจริง, public deployment, production domain และ service-account key
 - QR base URL ยัง `TBD`; ห้าม encode/พิมพ์ URL ที่ไม่ได้อนุมัติและห้ามผลิตป้ายถาวร
 - Physical Device/Field Validation ถูกเลื่อนไป Controlled Pilot หลัง Owner
   อนุมัติ Pilot Candidate และไม่ block Gate ทางวิศวกรรม Phase 5

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
+import { ProductionSeedPanel } from '../components/ProductionSeedPanel'
 import { roleLabels, type FarmContext, type FarmPermissions, type SyncState } from '../domain/farm'
 import type { FarmDashboardView } from '../domain/operationalHardening'
 import { PageHeader } from './PageHeader'
@@ -14,7 +15,7 @@ interface LayoutContext {
 
 export function HomePage() {
   const { farm, syncState } = useOutletContext<LayoutContext>()
-  const { getFarmDashboard } = usePhase2()
+  const { getFarmDashboard, mode, authMode } = usePhase2()
   const [dashboard, setDashboard] = useState<FarmDashboardView>()
   const [error, setError] = useState<string>()
 
@@ -31,7 +32,11 @@ export function HomePage() {
   return (
     <section className="page-stack dashboard-page">
       <PageHeader
-        eyebrow="Local Mock Dashboard"
+        eyebrow={mode === 'firebase-live'
+          ? 'Firebase Production Dashboard'
+          : mode === 'firebase-emulator'
+            ? 'Firebase Local Emulator Dashboard'
+            : 'Local Mock Dashboard'}
         title="ภาพรวมสวนที่เปิดอยู่"
         description="แสดงเฉพาะข้อมูลและหัวข้อที่บทบาทปัจจุบันได้รับสิทธิ์ พร้อมสถานะ Offline/Sync ที่มองเห็นได้"
       />
@@ -80,13 +85,23 @@ export function HomePage() {
         <p className="dashboard-updated">คำนวณล่าสุด: {dashboard.snapshot.lastCalculatedAtLabel} · SIMULATED/TEST ONLY</p>
       </> : null}
 
+      <ProductionSeedPanel />
+
       <section className="phase-boundary" aria-labelledby="phase-boundary-title">
-        <h2 id="phase-boundary-title">โหมดพัฒนาในเครื่อง</h2>
+        <h2 id="phase-boundary-title">สถานะการเชื่อมต่อข้อมูล</h2>
         <ul>
           <li>Dashboard, Queue, Conflict, Audit และ Export พร้อมใช้ด้วยข้อมูลจำลอง</li>
           <li>Portfolio รวมเฉพาะสวนที่ Owner มี Farm access</li>
           <li>เปลี่ยนข้อมูลระหว่างทดสอบได้ และรีเซ็ตกลับชุดตั้งต้นได้</li>
-          <li>ไม่มีการส่งข้อมูลออกไปยัง Firebase หรือบริการภายนอก</li>
+          <li>
+            {mode === 'firebase-live'
+              ? 'Authentication, Firestore และ Storage เชื่อม Firebase project durian-smartfarm; ข้อมูล Seed ยังคงเป็น SIMULATED/TEST ONLY'
+              : authMode === 'firebase-live'
+              ? 'Authentication เชื่อม Firebase จริงเพื่อส่ง OTP; Dashboard และข้อมูลสวนยังเป็น Mock ในเครื่อง'
+              : mode === 'firebase-emulator'
+              ? 'เชื่อมต่อเฉพาะ Firebase Local Emulator บนเครื่องนี้ และไม่เชื่อม Production'
+              : 'ไม่มีการส่งข้อมูลออกไปยัง Firebase หรือบริการภายนอก'}
+          </li>
         </ul>
       </section>
     </section>

@@ -6,16 +6,20 @@ import { demoAccounts } from '../demo/demoAccounts'
 export function SignInPage() {
   const {
     mode,
+    authMode,
+    developmentAdminSignInAvailable,
     authError,
     otpChallenge,
     requestOtp,
     verifyOtp,
-    signInWithMockAccount,
+    cancelOtp,
+    signInAsDevelopmentAdmin,
   } = usePhase2()
-  const [phoneNumber, setPhoneNumber] = useState(demoAccounts[0]?.phoneNumber ?? '')
+  const [phoneNumber, setPhoneNumber] = useState(
+    authMode === 'firebase-live' ? '' : (demoAccounts[0]?.phoneNumber ?? ''),
+  )
   const [otp, setOtp] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const primaryDemoAccount = demoAccounts[0]
 
   const submitPhone = async (event: FormEvent) => {
     event.preventDefault()
@@ -41,19 +45,33 @@ export function SignInPage() {
     }
   }
 
-  const openMockDemo = async () => {
-    if (!primaryDemoAccount) return
+  const openDevelopmentAdmin = async () => {
     setSubmitting(true)
     try {
-      await signInWithMockAccount(
-        primaryDemoAccount.phoneNumber,
-        primaryDemoAccount.otp,
-      )
+      await signInAsDevelopmentAdmin()
     } catch {
       // The provider exposes the Thai error message in authError.
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const resendOtp = async () => {
+    if (!otpChallenge) return
+    setSubmitting(true)
+    setOtp('')
+    try {
+      await requestOtp(otpChallenge.phoneNumber)
+    } catch {
+      // The provider exposes the Thai error message in authError.
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const changePhoneNumber = () => {
+    cancelOtp()
+    setOtp('')
   }
 
   return (
@@ -62,29 +80,48 @@ export function SignInPage() {
         <div className="brand-mark auth-card__mark" aria-hidden="true">
           ท
         </div>
-        <span className="status-pill">โหมดพัฒนา · Mock Data</span>
+        <span className="status-pill">
+          {authMode === 'firebase-live'
+            ? mode === 'firebase-live'
+              ? 'Firebase Production · Shared Data Root'
+              : 'Firebase Phone Auth จริง · Mock Data'
+            : authMode === 'firebase-emulator'
+              ? 'โหมดพัฒนา · Firebase Auth Emulator'
+              : 'โหมดพัฒนา · Mock Data'}
+        </span>
         <h1 id="sign-in-title">เข้าสู่ Smart Durian Farm</h1>
         <p>
-          เปิดแอปด้วยข้อมูลจำลองได้ทันที ไม่ต้องมี Firebase และไม่มีการส่ง SMS จริง
+          {authMode === 'firebase-live'
+            ? mode === 'firebase-live'
+              ? 'ยืนยันตัวตนด้วย OTP ทาง SMS แล้วอ่านและเขียนข้อมูลจาก Firebase Production โดยตรง'
+              : 'ยืนยันตัวตนด้วย OTP ทาง SMS จาก Firebase จริง แล้วเปิดข้อมูลจำลองในเครื่องเท่านั้น'
+            : authMode === 'firebase-emulator'
+              ? 'เข้าสู่ระบบด้วยหมายเลขทดสอบผ่าน Firebase Authentication Emulator โดยไม่มีการส่ง SMS จริง'
+              : 'เปิดแอปด้วยข้อมูลจำลองได้ทันที ไม่ต้องมี Firebase และไม่มีการส่ง SMS จริง'}
         </p>
 
-        {mode === 'mock' ? (
-          <section className="auth-quick-start" aria-label="เปิดแอปสาธิต">
+        {developmentAdminSignInAvailable ? (
+          <section className="auth-quick-start" aria-label="เข้าสู่ระบบสำหรับผู้ดูแล">
             <button
               className="primary-action"
               disabled={submitting}
-              onClick={() => void openMockDemo()}
+              onClick={() => void openDevelopmentAdmin()}
               type="button"
             >
-              {submitting ? 'กำลังเปิดข้อมูลจำลอง…' : 'เปิดแอปสาธิตทันที'}
+              {submitting ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบโดยผู้ดูแล'}
             </button>
-            <small>ใช้บัญชีเจ้าของสวนจำลองและโหลดข้อมูลครบทุกโมดูลในเครื่อง</small>
+            <small>
+              เฉพาะเครื่องพัฒนา · ไม่ใช้ OTP · สิทธิ์ ORG_OWNER กับข้อมูล{' '}
+              SIMULATED/TEST ONLY ทุกโมดูล และไม่เข้าถึง Firebase Production
+            </small>
           </section>
         ) : null}
 
         {!otpChallenge ? (
           <form className="auth-form" onSubmit={(event) => void submitPhone(event)}>
-            <label htmlFor="phone-number">หมายเลขโทรศัพท์ทดสอบ</label>
+            <label htmlFor="phone-number">
+              {authMode === 'firebase-live' ? 'หมายเลขโทรศัพท์' : 'หมายเลขโทรศัพท์ทดสอบ'}
+            </label>
             <input
               autoComplete="tel"
               id="phone-number"
@@ -94,8 +131,18 @@ export function SignInPage() {
               type="tel"
               value={phoneNumber}
             />
-            <button className={mode === 'mock' ? 'secondary-action' : 'primary-action'} disabled={submitting} type="submit">
-              {submitting ? 'กำลังขอรหัส…' : 'ขอรหัส OTP ทดสอบ'}
+            {authMode === 'firebase-live' ? (
+              <small>
+                เมื่อกดส่ง OTP หมายเลขจะถูกส่งให้ Google Firebase เพื่อป้องกันการทุจริต
+                และอาจมีค่าบริการ SMS ตามผู้ให้บริการ
+              </small>
+            ) : null}
+            <button className={authMode === 'mock' ? 'secondary-action' : 'primary-action'} disabled={submitting} type="submit">
+              {submitting
+                ? 'กำลังขอรหัส…'
+                : authMode === 'firebase-live'
+                  ? 'ส่ง OTP ทาง SMS'
+                  : 'ขอรหัส OTP ทดสอบ'}
             </button>
           </form>
         ) : (
@@ -103,6 +150,13 @@ export function SignInPage() {
             <span className="auth-summary">
               ส่งคำขอไปยัง <code>{otpChallenge.phoneNumber}</code>
             </span>
+            <small>
+              {authMode === 'firebase-live'
+                ? 'กรอกรหัส 6 หลักจาก SMS ที่ Firebase ส่งให้หมายเลขนี้'
+                : authMode === 'firebase-emulator'
+                  ? 'ดูรหัส 6 หลักในหน้าต่างที่กำลังรัน Firebase Emulator แล้วนำมากรอกด้านล่าง'
+                  : 'ใช้รหัส OTP จำลองของบัญชีทดสอบที่เลือก'}
+            </small>
             <label htmlFor="otp-code">รหัส OTP 6 หลัก</label>
             <input
               autoComplete="one-time-code"
@@ -115,16 +169,34 @@ export function SignInPage() {
               type="text"
               value={otp}
             />
-            <button className={mode === 'mock' ? 'secondary-action' : 'primary-action'} disabled={submitting} type="submit">
-              {submitting ? 'กำลังตรวจ…' : 'ยืนยัน OTP'}
-            </button>
+            <div className="form-actions">
+              <button className="primary-action" disabled={submitting} type="submit">
+                {submitting ? 'กำลังตรวจ…' : 'ยืนยัน OTP'}
+              </button>
+              <button
+                className="secondary-action"
+                disabled={submitting}
+                onClick={() => void resendOtp()}
+                type="button"
+              >
+                ขอรหัสใหม่
+              </button>
+              <button
+                className="secondary-action"
+                disabled={submitting}
+                onClick={changePhoneNumber}
+                type="button"
+              >
+                เปลี่ยนหมายเลข
+              </button>
+            </div>
           </form>
         )}
 
         {authError ? <div className="form-error" role="alert">{authError}</div> : null}
         <div id="firebase-recaptcha-container" />
 
-        <details className="demo-accounts">
+        {authMode !== 'firebase-live' ? <details className="demo-accounts">
           <summary>ดูบัญชีทดสอบ</summary>
           <div>
             {demoAccounts.map((account) => (
@@ -132,20 +204,27 @@ export function SignInPage() {
                 key={account.phoneNumber}
                 onClick={() => {
                   setPhoneNumber(account.phoneNumber)
-                  if (mode === 'mock') setOtp(account.otp)
+                  if (authMode === 'mock') setOtp(account.otp)
                 }}
                 type="button"
               >
                 <strong>{account.displayName}</strong>
                 <code>{account.phoneNumber}</code>
-                <span>{mode === 'mock' ? `OTP ${account.otp}` : 'ดู OTP ใน Emulator'}</span>
+                <span>{authMode === 'mock' ? `OTP ${account.otp}` : 'OTP แสดงในหน้าต่าง Emulator'}</span>
               </button>
             ))}
           </div>
-        </details>
+        </details> : null}
 
         <small className="auth-boundary">
-          โหมดปัจจุบัน: {mode === 'firebase-emulator' ? 'Firebase Emulator' : 'Mock สำหรับทดสอบออฟไลน์'}
+          โหมดปัจจุบัน:{' '}
+          {authMode === 'firebase-live'
+            ? mode === 'firebase-live'
+              ? 'Firebase Authentication + Firestore Production · durian-smartfarm/root'
+              : 'Firebase Authentication จริง · ข้อมูลแอปยังเป็น Mock'
+            : authMode === 'firebase-emulator'
+              ? 'Firebase Emulator'
+              : 'Mock สำหรับทดสอบออฟไลน์'}
         </small>
       </section>
     </main>

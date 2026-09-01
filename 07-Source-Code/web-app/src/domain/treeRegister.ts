@@ -10,10 +10,14 @@ export const treeStatuses = [
 ] as const
 export const positionStatuses = ['ACTIVE', 'ARCHIVED'] as const
 export const identityConfidences = ['confirmed', 'estimated', 'unknown'] as const
+export const measurementConfidences = ['measured', 'estimated', 'unknown'] as const
+export const rowCountingDirections = ['ASCENDING', 'DESCENDING', 'TBD'] as const
 
 export type TreeStatus = (typeof treeStatuses)[number]
 export type PositionStatus = (typeof positionStatuses)[number]
 export type IdentityConfidence = (typeof identityConfidences)[number]
+export type MeasurementConfidence = (typeof measurementConfidences)[number]
+export type RowCountingDirection = (typeof rowCountingDirections)[number]
 
 export const treeStatusLabels: Record<TreeStatus, string> = {
   normal: 'ปกติ',
@@ -30,12 +34,79 @@ export const identityConfidenceLabels: Record<IdentityConfidence, string> = {
   unknown: 'ไม่ทราบ',
 }
 
+export const measurementConfidenceLabels: Record<MeasurementConfidence, string> = {
+  measured: 'วัดจริง',
+  estimated: 'ประมาณ',
+  unknown: 'ไม่ทราบ',
+}
+
+export const rowCountingDirectionLabels: Record<RowCountingDirection, string> = {
+  ASCENDING: 'นับจากเลขน้อยไปเลขมาก',
+  DESCENDING: 'นับจากเลขมากไปเลขน้อย',
+  TBD: 'ยังไม่ยืนยัน',
+}
+
 export interface TagParts {
   organizationCode: string
   farmSequence: string
   zoneCode: string
   rowCode: string
   treeSequence: number
+}
+
+export interface GpsMeasurement {
+  latitude: number
+  longitude: number
+  accuracyM: number
+  method: string
+  measuredAt: string
+  measuredBy: string
+  confidence: MeasurementConfidence
+  source: string
+}
+
+export interface TrunkMeasurement {
+  type: 'circumference' | 'diameter'
+  value: number
+  unit: 'cm'
+  heightCm: number
+  method: string
+  measuredAt: string
+  measuredBy: string
+  confidence: MeasurementConfidence
+  source: string
+}
+
+export interface CanopyMeasurement {
+  widthNS: number
+  widthEW: number
+  unit: 'm'
+  method: string
+  measuredAt: string
+  measuredBy: string
+  confidence: MeasurementConfidence
+  source: string
+}
+
+export interface HeightMeasurement {
+  value: number
+  unit: 'm'
+  method: string
+  measuredAt: string
+  measuredBy: string
+  confidence: MeasurementConfidence
+  source: string
+}
+
+export interface TreeBaselineMeasurements {
+  gps: GpsMeasurement | null
+  trunk: TrunkMeasurement | null
+  canopy: CanopyMeasurement | null
+  height: HeightMeasurement | null
+}
+
+export function emptyTreeBaselineMeasurements(): TreeBaselineMeasurements {
+  return { gps: null, trunk: null, canopy: null, height: null }
 }
 
 export interface PlantingCycleRecord {
@@ -46,8 +117,10 @@ export interface PlantingCycleRecord {
   plantingYear: number | null
   plantingYearCalendar: 'BE' | 'CE' | null
   plantingYearConfidence: IdentityConfidence
+  plantSource: string | null
   treeStatus: TreeStatus
   baselineDate: string
+  baselineMeasurements: TreeBaselineMeasurements
   notes: string
   startedAtLabel: string
   endedAtLabel: string | null
@@ -75,6 +148,7 @@ export interface TreePositionSummary extends TagParts {
   farmId: string
   positionId: string
   tagCode: string
+  rowCountingDirection: RowCountingDirection
   positionStatus: PositionStatus
   currentCycleNumber: number
   currentCycle: PlantingCycleRecord
@@ -89,13 +163,16 @@ export interface TreePositionDetail extends TreePositionSummary {
 }
 
 export interface TreePositionDraft extends TagParts {
+  rowCountingDirection: RowCountingDirection
   variety: string | null
   varietyConfidence: IdentityConfidence
   plantingYear: number | null
   plantingYearCalendar: 'BE' | 'CE' | null
   plantingYearConfidence: IdentityConfidence
+  plantSource: string | null
   treeStatus: TreeStatus
   baselineDate: string
+  baselineMeasurements: TreeBaselineMeasurements
   notes: string
 }
 
@@ -110,7 +187,10 @@ export interface UpdatePlantingCycleInput {
   plantingYear: number | null
   plantingYearCalendar: 'BE' | 'CE' | null
   plantingYearConfidence: IdentityConfidence
+  plantSource: string | null
   treeStatus: TreeStatus
+  baselineDate: string
+  baselineMeasurements: TreeBaselineMeasurements
   notes: string
 }
 
@@ -316,8 +396,135 @@ export const treeRegisterCsvHeaders = [
   'notes',
 ] as const
 
-type TreeCsvHeader = (typeof treeRegisterCsvHeaders)[number]
+export const treeRegisterImportLimit = 50
+
+export type TreeCsvHeader = (typeof treeRegisterCsvHeaders)[number]
+
+export const treeRegisterThaiHeaderByField = {
+  recordType: 'ประเภทข้อมูล',
+  organizationCode: 'รหัสองค์กร',
+  farmSequence: 'ลำดับสวน',
+  zoneCode: 'รหัสโซน',
+  rowCode: 'รหัสแถว',
+  treeSequence: 'ลำดับตำแหน่ง',
+  tagCode: 'รหัสป้าย',
+  plantingCycle: 'รอบปลูก',
+  variety: 'พันธุ์',
+  varietyConfidence: 'ความมั่นใจของพันธุ์',
+  plantingYear: 'ปีปลูก',
+  plantingYearCalendar: 'ระบบปีปลูก',
+  plantingYearConfidence: 'ความมั่นใจของปีปลูก',
+  treeStatus: 'สถานะต้น',
+  latitude: 'ละติจูด',
+  longitude: 'ลองจิจูด',
+  gpsAccuracyM: 'ความแม่นยำ GPS (เมตร)',
+  gpsMethod: 'วิธีวัด GPS',
+  gpsMeasuredAt: 'วันที่เวลาวัด GPS',
+  gpsMeasuredBy: 'ผู้วัด GPS',
+  gpsConfidence: 'ความมั่นใจ GPS',
+  gpsSource: 'แหล่งข้อมูล GPS',
+  trunkMeasureType: 'ประเภทการวัดลำต้น',
+  trunkMeasureValue: 'ค่าที่วัดลำต้น',
+  trunkMeasureUnit: 'หน่วยวัดลำต้น',
+  trunkMeasureHeightCm: 'ความสูงจุดวัดจากพื้น (ซม.)',
+  trunkMeasureMethod: 'วิธีวัดลำต้น',
+  trunkMeasuredAt: 'วันที่เวลาวัดลำต้น',
+  trunkMeasuredBy: 'ผู้วัดลำต้น',
+  trunkMeasureConfidence: 'ความมั่นใจการวัดลำต้น',
+  trunkMeasureSource: 'แหล่งข้อมูลการวัดลำต้น',
+  canopyWidthNSValue: 'ความกว้างทรงพุ่ม เหนือ-ใต้',
+  canopyWidthNSUnit: 'หน่วยทรงพุ่ม เหนือ-ใต้',
+  canopyWidthEWValue: 'ความกว้างทรงพุ่ม ตะวันออก-ตะวันตก',
+  canopyWidthEWUnit: 'หน่วยทรงพุ่ม ตะวันออก-ตะวันตก',
+  canopyMeasureMethod: 'วิธีวัดทรงพุ่ม',
+  canopyMeasuredAt: 'วันที่เวลาวัดทรงพุ่ม',
+  canopyMeasuredBy: 'ผู้วัดทรงพุ่ม',
+  canopyMeasureConfidence: 'ความมั่นใจการวัดทรงพุ่ม',
+  canopyMeasureSource: 'แหล่งข้อมูลการวัดทรงพุ่ม',
+  heightValue: 'ความสูงต้น',
+  heightUnit: 'หน่วยความสูงต้น',
+  heightMeasureMethod: 'วิธีวัดความสูง',
+  heightMeasuredAt: 'วันที่เวลาวัดความสูง',
+  heightMeasuredBy: 'ผู้วัดความสูง',
+  heightMeasureConfidence: 'ความมั่นใจการวัดความสูง',
+  heightMeasureSource: 'แหล่งข้อมูลการวัดความสูง',
+  baselineDate: 'วันที่ข้อมูลตั้งต้น',
+  notes: 'หมายเหตุ',
+} as const satisfies Record<TreeCsvHeader, string>
+
+export const treeRegisterThaiCsvHeaders = treeRegisterCsvHeaders.map(
+  (field) => treeRegisterThaiHeaderByField[field],
+)
+
+export const treeRegisterThaiSpreadsheetOptions = {
+  recordTypes: ['ข้อมูลภาคสนาม'],
+  identityConfidences: ['ยืนยันแล้ว', 'ประมาณ', 'ไม่ทราบ'],
+  plantingYearCalendars: ['พ.ศ.', 'ค.ศ.'],
+  treeStatuses: ['ปกติ', 'เฝ้าระวัง', 'ป่วย', 'พักฟื้น', 'ตาย', 'ไม่มีต้น'],
+  measurementConfidences: ['วัดจริง', 'ประมาณ', 'ไม่ทราบ'],
+  trunkMeasureTypes: ['เส้นรอบวง', 'เส้นผ่านศูนย์กลาง'],
+} as const
+
+const thaiHeaderToField = new Map<string, TreeCsvHeader>(
+  treeRegisterCsvHeaders.map((field) => [treeRegisterThaiHeaderByField[field], field]),
+)
+
+const identityConfidenceAliases = {
+  ยืนยันแล้ว: 'confirmed',
+  ประมาณ: 'estimated',
+  ไม่ทราบ: 'unknown',
+} as const
+
+const measurementConfidenceAliases = {
+  วัดจริง: 'measured',
+  ยืนยันแล้ว: 'measured',
+  confirmed: 'measured',
+  ประมาณ: 'estimated',
+  ไม่ทราบ: 'unknown',
+} as const
+
+const thaiSpreadsheetValueAliases: Partial<
+  Record<TreeCsvHeader, Readonly<Record<string, string>>>
+> = {
+  recordType: { ข้อมูลภาคสนาม: 'FIELD_DATA', ตัวอย่าง: 'EXAMPLE' },
+  varietyConfidence: identityConfidenceAliases,
+  plantingYearCalendar: { 'พ.ศ.': 'BE', 'ค.ศ.': 'CE' },
+  plantingYearConfidence: identityConfidenceAliases,
+  treeStatus: {
+    ปกติ: 'normal',
+    เฝ้าระวัง: 'watch',
+    ป่วย: 'sick',
+    พักฟื้น: 'recovering',
+    ตาย: 'dead',
+    'ไม่มีต้น': 'empty',
+  },
+  gpsConfidence: measurementConfidenceAliases,
+  trunkMeasureType: { เส้นรอบวง: 'circumference', เส้นผ่านศูนย์กลาง: 'diameter' },
+  trunkMeasureUnit: { 'ซม.': 'cm', เซนติเมตร: 'cm' },
+  trunkMeasureConfidence: measurementConfidenceAliases,
+  canopyWidthNSUnit: { 'ม.': 'm', เมตร: 'm' },
+  canopyWidthEWUnit: { 'ม.': 'm', เมตร: 'm' },
+  canopyMeasureConfidence: measurementConfidenceAliases,
+  heightUnit: { 'ม.': 'm', เมตร: 'm' },
+  heightMeasureConfidence: measurementConfidenceAliases,
+}
+
+export function resolveTreeRegisterHeader(label: string): TreeCsvHeader | undefined {
+  const normalized = label.trim()
+  if (treeRegisterCsvHeaders.includes(normalized as TreeCsvHeader)) {
+    return normalized as TreeCsvHeader
+  }
+  return thaiHeaderToField.get(normalized)
+}
+
 type TreeCsvRecord = { [Field in TreeCsvHeader]: string }
+
+function normalizeTreeCsvRecord(record: TreeCsvRecord): TreeCsvRecord {
+  return Object.fromEntries(treeRegisterCsvHeaders.map((field) => {
+    const value = record[field]
+    return [field, thaiSpreadsheetValueAliases[field]?.[value] ?? value]
+  })) as TreeCsvRecord
+}
 
 function parseCsvRows(csv: string): string[][] {
   const rows: string[][] = []
@@ -367,9 +574,180 @@ function validIsoDate(value: string): boolean {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().startsWith(value)
 }
 
+function validIsoDateTime(value: string): boolean {
+  return /(?:Z|[+-]\d{2}:\d{2})$/u.test(value) && !Number.isNaN(Date.parse(value))
+}
+
+function requiredMeasurementText(value: string, label: string): void {
+  if (!value.trim()) throw new Error(`${label}ต้องไม่ว่าง`)
+}
+
+function validateMeasurementEvidence(
+  measuredAt: string,
+  measuredBy: string,
+  confidence: MeasurementConfidence,
+  source: string,
+  label: string,
+): void {
+  if (!validIsoDateTime(measuredAt)) {
+    throw new Error(`${label}: วันที่เวลาวัดต้องเป็น ISO 8601 และมีเขตเวลา`)
+  }
+  requiredMeasurementText(measuredBy, `${label}: ผู้วัด`)
+  requiredMeasurementText(source, `${label}: แหล่งข้อมูล`)
+  if (!measurementConfidences.includes(confidence)) {
+    throw new Error(`${label}: ระดับความมั่นใจไม่ถูกต้อง`)
+  }
+}
+
+export function validateTreeCycleInput(
+  input: Pick<
+    TreePositionDraft,
+    | 'variety'
+    | 'varietyConfidence'
+    | 'plantingYear'
+    | 'plantingYearCalendar'
+    | 'plantingYearConfidence'
+    | 'plantSource'
+    | 'treeStatus'
+    | 'baselineDate'
+    | 'baselineMeasurements'
+  >,
+): void {
+  if (!treeStatuses.includes(input.treeStatus)) throw new Error('สถานะต้นไม่ถูกต้อง')
+  if (!validIsoDate(input.baselineDate)) {
+    throw new Error('วันที่ข้อมูลตั้งต้นต้องเป็นวันที่ที่ถูกต้อง')
+  }
+  if (input.variety === null) {
+    if (input.varietyConfidence !== 'unknown') {
+      throw new Error('เมื่อไม่ทราบพันธุ์ ต้องเลือกความมั่นใจเป็น “ไม่ทราบ”')
+    }
+  } else {
+    requiredMeasurementText(input.variety, 'พันธุ์')
+    if (!identityConfidences.includes(input.varietyConfidence)) {
+      throw new Error('ความมั่นใจของพันธุ์ไม่ถูกต้อง')
+    }
+  }
+  if (input.plantingYear === null) {
+    if (input.plantingYearCalendar !== null || input.plantingYearConfidence !== 'unknown') {
+      throw new Error('เมื่อไม่ทราบปีปลูก ต้องเว้นระบบปีและเลือกความมั่นใจเป็น “ไม่ทราบ”')
+    }
+  } else if (
+    !Number.isInteger(input.plantingYear) ||
+    input.plantingYear <= 0 ||
+    !['BE', 'CE'].includes(input.plantingYearCalendar ?? '') ||
+    !identityConfidences.includes(input.plantingYearConfidence)
+  ) {
+    throw new Error('ปีปลูก ระบบปี หรือความมั่นใจของปีปลูกไม่ถูกต้อง')
+  }
+
+  const measurements = input.baselineMeasurements
+  if (measurements.gps) {
+    const value = measurements.gps
+    if (!Number.isFinite(value.latitude) || value.latitude < -90 || value.latitude > 90) {
+      throw new Error('ละติจูดต้องอยู่ระหว่าง -90 ถึง 90')
+    }
+    if (!Number.isFinite(value.longitude) || value.longitude < -180 || value.longitude > 180) {
+      throw new Error('ลองจิจูดต้องอยู่ระหว่าง -180 ถึง 180')
+    }
+    if (!Number.isFinite(value.accuracyM) || value.accuracyM < 0) {
+      throw new Error('ความแม่นยำ GPS ต้องมากกว่าหรือเท่ากับ 0 เมตร')
+    }
+    requiredMeasurementText(value.method, 'วิธีวัด GPS')
+    validateMeasurementEvidence(value.measuredAt, value.measuredBy, value.confidence, value.source, 'GPS')
+  }
+  if (measurements.trunk) {
+    const value = measurements.trunk
+    if (!['circumference', 'diameter'].includes(value.type)) {
+      throw new Error('ประเภทการวัดลำต้นไม่ถูกต้อง')
+    }
+    if (!Number.isFinite(value.value) || value.value <= 0 || value.unit !== 'cm') {
+      throw new Error('ค่าลำต้นต้องมากกว่า 0 และใช้หน่วยเซนติเมตร')
+    }
+    if (!Number.isFinite(value.heightCm) || value.heightCm < 0) {
+      throw new Error('ความสูงจุดวัดลำต้นต้องมากกว่าหรือเท่ากับ 0 เซนติเมตร')
+    }
+    requiredMeasurementText(value.method, 'วิธีวัดลำต้น')
+    validateMeasurementEvidence(value.measuredAt, value.measuredBy, value.confidence, value.source, 'ลำต้น')
+  }
+  if (measurements.canopy) {
+    const value = measurements.canopy
+    if (
+      !Number.isFinite(value.widthNS) || value.widthNS <= 0 ||
+      !Number.isFinite(value.widthEW) || value.widthEW <= 0 ||
+      value.unit !== 'm'
+    ) {
+      throw new Error('ทรงพุ่มสองทิศต้องมากกว่า 0 และใช้หน่วยเมตร')
+    }
+    requiredMeasurementText(value.method, 'วิธีวัดทรงพุ่ม')
+    validateMeasurementEvidence(value.measuredAt, value.measuredBy, value.confidence, value.source, 'ทรงพุ่ม')
+  }
+  if (measurements.height) {
+    const value = measurements.height
+    if (!Number.isFinite(value.value) || value.value <= 0 || value.unit !== 'm') {
+      throw new Error('ความสูงต้นต้องมากกว่า 0 และใช้หน่วยเมตร')
+    }
+    requiredMeasurementText(value.method, 'วิธีวัดความสูง')
+    validateMeasurementEvidence(value.measuredAt, value.measuredBy, value.confidence, value.source, 'ความสูง')
+  }
+
+  if (
+    input.treeStatus === 'empty' &&
+    (input.variety !== null || input.plantingYear !== null || input.plantSource !== null ||
+      measurements.gps !== null || measurements.trunk !== null ||
+      measurements.canopy !== null || measurements.height !== null)
+  ) {
+    throw new Error('สถานะ “ไม่มีต้น” ต้องไม่ระบุพันธุ์ ปีปลูก แหล่งพันธุ์ หรือค่าการวัดต้น')
+  }
+}
+
 function groupComplete(record: TreeCsvRecord, fields: readonly TreeCsvHeader[]): boolean {
   const values = fields.map((field) => record[field])
   return values.every(Boolean) || values.every((value) => value === '')
+}
+
+function baselineMeasurementsFromRecord(record: TreeCsvRecord): TreeBaselineMeasurements {
+  return {
+    gps: record.latitude ? {
+      latitude: Number(record.latitude),
+      longitude: Number(record.longitude),
+      accuracyM: Number(record.gpsAccuracyM),
+      method: record.gpsMethod,
+      measuredAt: record.gpsMeasuredAt,
+      measuredBy: record.gpsMeasuredBy,
+      confidence: record.gpsConfidence as MeasurementConfidence,
+      source: record.gpsSource,
+    } : null,
+    trunk: record.trunkMeasureValue ? {
+      type: record.trunkMeasureType as TrunkMeasurement['type'],
+      value: Number(record.trunkMeasureValue),
+      unit: 'cm',
+      heightCm: Number(record.trunkMeasureHeightCm),
+      method: record.trunkMeasureMethod,
+      measuredAt: record.trunkMeasuredAt,
+      measuredBy: record.trunkMeasuredBy,
+      confidence: record.trunkMeasureConfidence as MeasurementConfidence,
+      source: record.trunkMeasureSource,
+    } : null,
+    canopy: record.canopyWidthNSValue ? {
+      widthNS: Number(record.canopyWidthNSValue),
+      widthEW: Number(record.canopyWidthEWValue),
+      unit: 'm',
+      method: record.canopyMeasureMethod,
+      measuredAt: record.canopyMeasuredAt,
+      measuredBy: record.canopyMeasuredBy,
+      confidence: record.canopyMeasureConfidence as MeasurementConfidence,
+      source: record.canopyMeasureSource,
+    } : null,
+    height: record.heightValue ? {
+      value: Number(record.heightValue),
+      unit: 'm',
+      method: record.heightMeasureMethod,
+      measuredAt: record.heightMeasuredAt,
+      measuredBy: record.heightMeasuredBy,
+      confidence: record.heightMeasureConfidence as MeasurementConfidence,
+      source: record.heightMeasureSource,
+    } : null,
+  }
 }
 
 function candidateFromRecord(
@@ -380,7 +758,7 @@ function candidateFromRecord(
 ): { candidate?: TreeImportCandidate; errors: string[] } {
   const errors: string[] = []
   if (record.recordType !== 'FIELD_DATA') {
-    errors.push('recordType ต้องเป็น FIELD_DATA; แถว EXAMPLE ใช้ตรวจรูปแบบเท่านั้น')
+    errors.push('ประเภทข้อมูลต้องเป็น “ข้อมูลภาคสนาม”; แถว “ตัวอย่าง” ใช้ตรวจรูปแบบเท่านั้น')
   }
   const treeSequence = Number(record.treeSequence)
   const plantingCycle = Number(record.plantingCycle)
@@ -460,6 +838,12 @@ function candidateFromRecord(
   if (record.gpsAccuracyM && !nonNegativeNumber(record.gpsAccuracyM)) {
     errors.push('gpsAccuracyM ต้องมากกว่าหรือเท่ากับ 0')
   }
+  if (
+    record.gpsConfidence &&
+    !measurementConfidences.includes(record.gpsConfidence as (typeof measurementConfidences)[number])
+  ) {
+    errors.push('ความมั่นใจ GPS ต้องเป็น วัดจริง / ประมาณ / ไม่ทราบ')
+  }
 
   const trunkFields: readonly TreeCsvHeader[] = [
     'trunkMeasureType', 'trunkMeasureValue', 'trunkMeasureUnit',
@@ -472,6 +856,12 @@ function candidateFromRecord(
   }
   if (record.trunkMeasureHeightCm && !nonNegativeNumber(record.trunkMeasureHeightCm)) {
     errors.push('trunkMeasureHeightCm ต้องมากกว่าหรือเท่ากับ 0')
+  }
+  if (
+    record.trunkMeasureConfidence &&
+    !measurementConfidences.includes(record.trunkMeasureConfidence as (typeof measurementConfidences)[number])
+  ) {
+    errors.push('ความมั่นใจการวัดลำต้นต้องเป็น วัดจริง / ประมาณ / ไม่ทราบ')
   }
 
   const canopyFields: readonly TreeCsvHeader[] = [
@@ -489,6 +879,12 @@ function candidateFromRecord(
   if (record.canopyWidthNSUnit && record.canopyWidthNSUnit !== record.canopyWidthEWUnit) {
     errors.push('หน่วยทรงพุ่ม NS และ EW ต้องตรงกัน')
   }
+  if (
+    record.canopyMeasureConfidence &&
+    !measurementConfidences.includes(record.canopyMeasureConfidence as (typeof measurementConfidences)[number])
+  ) {
+    errors.push('ความมั่นใจการวัดทรงพุ่มต้องเป็น วัดจริง / ประมาณ / ไม่ทราบ')
+  }
 
   const heightFields: readonly TreeCsvHeader[] = [
     'heightValue', 'heightUnit', 'heightMeasureMethod', 'heightMeasuredAt',
@@ -498,6 +894,31 @@ function candidateFromRecord(
   if (record.heightValue && !positiveNumber(record.heightValue)) {
     errors.push('heightValue ต้องมากกว่า 0')
   }
+  if (
+    record.heightMeasureConfidence &&
+    !measurementConfidences.includes(record.heightMeasureConfidence as (typeof measurementConfidences)[number])
+  ) {
+    errors.push('ความมั่นใจการวัดความสูงต้องเป็น วัดจริง / ประมาณ / ไม่ทราบ')
+  }
+
+  const baselineMeasurements = baselineMeasurementsFromRecord(record)
+  try {
+    validateTreeCycleInput({
+      variety: record.variety || null,
+      varietyConfidence: varietyConfidence as IdentityConfidence,
+      plantingYear,
+      plantingYearCalendar: plantingYear === null
+        ? null
+        : (record.plantingYearCalendar as 'BE' | 'CE'),
+      plantingYearConfidence: plantingYearConfidence as IdentityConfidence,
+      plantSource: null,
+      treeStatus: record.treeStatus as TreeStatus,
+      baselineDate: record.baselineDate,
+      baselineMeasurements,
+    })
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : 'ข้อมูลต้นหรือข้อมูลสำรวจไม่ถูกต้อง')
+  }
 
   if (errors.length > 0 || !parts) return { errors }
   return {
@@ -505,6 +926,7 @@ function candidateFromRecord(
     candidate: {
       sourceRow,
       ...parts,
+      rowCountingDirection: 'TBD',
       plantingCycle,
       tagCode: normalizeTagCode(record.tagCode),
       variety: record.variety || null,
@@ -514,8 +936,10 @@ function candidateFromRecord(
         ? null
         : (record.plantingYearCalendar as 'BE' | 'CE'),
       plantingYearConfidence: plantingYearConfidence as IdentityConfidence,
+      plantSource: null,
       treeStatus: record.treeStatus as TreeStatus,
       baselineDate: record.baselineDate,
+      baselineMeasurements,
       notes: record.notes,
       raw: Object.freeze({ ...record }),
     },
@@ -564,9 +988,13 @@ export function previewTreeRegisterCsv(
   const headerRow = rows[0]
   if (!headerRow) throw new Error('CSV ไม่มี header')
   const header = headerRow.map((value) => value.trim())
-  const headerValid =
+  const englishHeaderValid =
     header.length === treeRegisterCsvHeaders.length &&
     header.every((value, index) => value === treeRegisterCsvHeaders[index])
+  const thaiHeaderValid =
+    header.length === treeRegisterThaiCsvHeaders.length &&
+    header.every((value, index) => value === treeRegisterThaiCsvHeaders[index])
+  const headerValid = englishHeaderValid || thaiHeaderValid
   if (!headerValid) {
     return {
       headerValid: false,
@@ -575,7 +1003,7 @@ export function previewTreeRegisterCsv(
       rejects: [{
         sourceRow: 1,
         tagCode: '',
-        errors: [`CSV header ต้องตรงกับ Data Dictionary ทั้ง ${treeRegisterCsvHeaders.length} columns`],
+        errors: [`หัวคอลัมน์ต้องตรงกับแม่แบบภาษาไทยทั้ง ${treeRegisterCsvHeaders.length} คอลัมน์; ไฟล์ภาษาอังกฤษเดิมยังรองรับ`],
       }],
       idempotencyKey: `import_${stableHash(csv)}`,
     }
@@ -586,17 +1014,25 @@ export function previewTreeRegisterCsv(
   const seenTags = new Map<string, number>()
   rows.slice(1).forEach((cells, index) => {
     const sourceRow = index + 2
+    if (index >= treeRegisterImportLimit) {
+      rejects.push({
+        sourceRow,
+        tagCode: cells[6] ?? '',
+        errors: [`นำเข้าได้ไม่เกิน ${treeRegisterImportLimit} ตำแหน่งต่อไฟล์`],
+      })
+      return
+    }
     if (cells.length !== header.length) {
       rejects.push({
         sourceRow,
         tagCode: cells[6] ?? '',
-        errors: [`จำนวน columns เป็น ${cells.length}; ต้องเป็น ${header.length}`],
+        errors: [`จำนวนคอลัมน์เป็น ${cells.length}; ต้องเป็น ${header.length}`],
       })
       return
     }
-    const record = Object.fromEntries(
-      header.map((field, fieldIndex) => [field, (cells[fieldIndex] ?? '').trim()]),
-    ) as TreeCsvRecord
+    const record = normalizeTreeCsvRecord(Object.fromEntries(
+      treeRegisterCsvHeaders.map((field, fieldIndex) => [field, (cells[fieldIndex] ?? '').trim()]),
+    ) as TreeCsvRecord)
     const validation = candidateFromRecord(
       record,
       sourceRow,

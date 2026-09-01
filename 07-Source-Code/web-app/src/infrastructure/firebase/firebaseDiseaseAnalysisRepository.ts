@@ -36,6 +36,7 @@ import {
   type DiseaseCandidateFinding,
 } from '../../domain/diseaseAnalysis'
 import { createOpaqueRecordId, type WorkMutationContext } from '../../domain/workCareDisease'
+import { rootCollection, rootDoc } from './firebaseDataRoot'
 
 const analysisEventTypes = [
   'MOCK_ANALYSIS_COMPLETED',
@@ -173,7 +174,7 @@ function sessionReference(
   context: WorkMutationContext,
   analysisSessionId: string,
 ) {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -189,7 +190,7 @@ function operationReference(
   context: WorkMutationContext,
   operationId: string,
 ) {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -283,7 +284,7 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
   async listDiseaseAnalysisSessions(
     context: WorkMutationContext,
   ): Promise<readonly DiseaseAnalysisSessionRecord[]> {
-    const snapshot = await getDocs(query(collection(
+    const snapshot = await getDocs(query(rootCollection(
       this.firestore,
       'organizations',
       context.farm.organizationId,

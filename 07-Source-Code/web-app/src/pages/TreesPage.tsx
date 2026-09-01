@@ -9,13 +9,15 @@ import {
   type TreePositionSummary,
   type TreeStatus,
 } from '../domain/treeRegister'
+import { downloadTreeRegisterTemplate } from '../services/treeRegisterSpreadsheet'
 import { PageHeader } from './PageHeader'
 
 export function TreesPage() {
-  const { currentFarm, listTreePositions } = usePhase2()
+  const { currentFarm, listTreePositions, mode } = usePhase2()
   const [positions, setPositions] = useState<readonly TreePositionSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
+  const [templateError, setTemplateError] = useState<string>()
   const [query, setQuery] = useState('')
   const [zone, setZone] = useState('ALL')
   const [status, setStatus] = useState<'ALL' | TreeStatus | PositionStatus>('ALL')
@@ -67,32 +69,46 @@ export function TreesPage() {
   if (!currentFarm) return null
   const canManage = canManageTreeRegister(currentFarm)
 
+  const downloadTemplate = () => {
+    setTemplateError(undefined)
+    try {
+      downloadTreeRegisterTemplate(currentFarm)
+    } catch (cause) {
+      setTemplateError(cause instanceof Error ? cause.message : 'สร้างแม่แบบ Excel ไม่สำเร็จ')
+    }
+  }
+
   return (
     <section className="page-stack">
       <PageHeader
-        eyebrow="Phase 3 · Tree Register"
+        eyebrow="ทะเบียนต้น"
         title="ทะเบียนตำแหน่งต้น"
         description="Tag อ้างถึงตำแหน่งถาวร ส่วนต้นปลูกทดแทนเพิ่ม Planting Cycle โดยไม่ลบประวัติ"
       />
 
-      <div className="field-validation-banner" role="note">
-        <strong>ข้อมูลจำลองและโครงสร้างที่ปรับค่าได้</strong>
-        <span>รหัส topology จริงยังเป็น TBD จนกว่า Field Validation 30–50 ต้นจะผ่าน</span>
-      </div>
+      {mode === 'firebase-live' && !currentFarm.isMock
+        ? <div className="operational-data-banner" role="note"><strong>ทะเบียนข้อมูลภาคสนาม</strong><span>ตำแหน่งใหม่จะบันทึกเป็นข้อมูลใช้งานของสวนปัจจุบัน โปรดตรวจโซน แถว และรหัสป้ายก่อนยืนยัน</span></div>
+        : <div className="field-validation-banner" role="note"><strong>โหมดทดสอบระบบ</strong><span>ข้อมูลในสภาพแวดล้อมนี้ยังเป็น SIMULATED/TEST ONLY</span></div>}
 
       {canManage ? (
         <div className="page-actions">
-          <Link className="primary-action" to="/trees/new">เพิ่มตำแหน่งจำลอง</Link>
-          <Link className="secondary-action" to="/trees/import">ตรวจและนำเข้า CSV</Link>
+          <Link className="secondary-action" to="/orchard-layout">เปิดแปลนสวน</Link>
+          <Link className="primary-action" to="/trees/new">เพิ่มตำแหน่งปลูก</Link>
+          <button className="secondary-action" onClick={downloadTemplate} type="button">
+            ดาวน์โหลดแม่แบบ Excel ภาษาไทย
+          </button>
+          <Link className="secondary-action" to="/trees/import">นำเข้า Excel / Google Sheets / CSV</Link>
         </div>
-      ) : null}
+      ) : <div className="page-actions"><Link className="secondary-action" to="/orchard-layout">เปิดแปลนสวน</Link></div>}
+
+      {templateError ? <div className="form-error" role="alert">{templateError}</div> : null}
 
       <div className="tree-filters" aria-label="ค้นหาและกรองทะเบียนต้น">
         <label>
           ค้นหา Tag หรือพันธุ์
           <input
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="เช่น DEMO-F01 หรือ พันธุ์ตัวอย่าง"
+            placeholder={`เช่น ${currentFarm.farmCode} หรือชื่อพันธุ์`}
             type="search"
             value={query}
           />

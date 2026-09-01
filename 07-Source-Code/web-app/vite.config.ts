@@ -2,7 +2,23 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  define:
+    mode === 'test'
+      ? {
+          'import.meta.env.VITE_DATA_ADAPTER': JSON.stringify('mock'),
+          'import.meta.env.VITE_AUTH_ADAPTER': JSON.stringify('mock'),
+          'import.meta.env.VITE_QR_BASE_URL': JSON.stringify('http://localhost:5173'),
+          'import.meta.env.VITE_FIREBASE_PROJECT_ID': JSON.stringify('demo-smart-durian'),
+          'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(
+            'demo-api-key-not-a-secret',
+          ),
+          'import.meta.env.VITE_FIREBASE_AUTH_DOMAIN': JSON.stringify('localhost'),
+          'import.meta.env.VITE_FIREBASE_STORAGE_BUCKET': JSON.stringify(
+            'demo-smart-durian.appspot.com',
+          ),
+        }
+      : undefined,
   build: {
     manifest: true,
   },
@@ -37,11 +53,11 @@ export default defineConfig({
     }),
   ],
   server: {
-    host: '127.0.0.1',
+    host: mode === 'firebase-live' ? 'localhost' : '127.0.0.1',
     port: 5173,
   },
   preview: {
-    host: '127.0.0.1',
+    host: mode === 'firebase-live' ? 'localhost' : '127.0.0.1',
     port: 4173,
   },
   test: {
@@ -55,4 +71,4 @@ export default defineConfig({
       reporter: ['text', 'html'],
     },
   },
-})
+}))

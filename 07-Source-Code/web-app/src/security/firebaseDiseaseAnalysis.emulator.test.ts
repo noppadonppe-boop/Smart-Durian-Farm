@@ -34,7 +34,7 @@ const symptomB = 'SIMULATED/TEST ONLY — อาการจำลองสว�
 let environment: RulesTestEnvironment
 
 function farmPath(farmId: string): string {
-  return `organizations/${organizationId}/farms/${farmId}`
+  return `durian-smartfarm/root/organizations/${organizationId}/farms/${farmId}`
 }
 
 function identity(userId: string): AuthenticatedIdentity {
@@ -100,8 +100,10 @@ function tree(farmId: string): TreePositionDetail {
     plantingYear: null,
     plantingYearCalendar: null,
     plantingYearConfidence: 'unknown' as const,
+    plantSource: null,
     treeStatus: 'watch' as const,
     baselineDate: '2026-09-01',
+    baselineMeasurements: { gps: null, trunk: null, canopy: null, height: null },
     notes: 'SIMULATED/TEST ONLY',
     startedAtLabel: 'SIMULATED/TEST ONLY',
     endedAtLabel: null,
@@ -117,6 +119,7 @@ function tree(farmId: string): TreePositionDetail {
     rowCode: 'R01',
     treeSequence: 1,
     tagCode: isFarmA ? 'ANALYSIS-F01-Z01-R01-T001' : 'ANALYSIS-F02-Z01-R01-T001',
+    rowCountingDirection: 'TBD',
     positionStatus: 'ACTIVE',
     currentCycleNumber: 1,
     currentCycle,
@@ -163,12 +166,12 @@ async function seed(): Promise<void> {
   await environment.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore() as unknown as Firestore
     const now = Timestamp.fromDate(new Date('2026-09-01T05:00:00.000Z'))
-    await setDoc(doc(firestore, 'organizations', organizationId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId), {
       organizationId, organizationName: 'องค์กร Analysis จำลอง',
       organizationCode: 'ANALYSIS', status: 'ACTIVE', updatedAt: now,
     })
     for (const userId of [ownerId, managerId, agronomistId, workerId]) {
-      await setDoc(doc(firestore, 'organizations', organizationId, 'members', userId), {
+      await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
         organizationId, userId, status: 'ACTIVE', isOwner: userId === ownerId,
         createdAt: now, updatedAt: now,
       })

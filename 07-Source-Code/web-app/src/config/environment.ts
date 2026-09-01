@@ -1,13 +1,22 @@
-export type DataAdapterMode = 'mock' | 'firebase-emulator'
+export type DataAdapterMode = 'mock' | 'firebase-emulator' | 'firebase-live'
+export type AuthAdapterMode = 'mock' | 'firebase-emulator' | 'firebase-live'
 
 export interface AppEnvironment {
   dataAdapter: DataAdapterMode
+  authAdapter: AuthAdapterMode
   qrBaseUrl: string
   firebase: {
     projectId: string
     apiKey: string
     authDomain: string
+    appId: string
+    messagingSenderId: string
     storageBucket: string
+    storageReady: boolean
+    liveAuthDemoUserId: string
+    liveAuthAllowedPhoneHashes: readonly string[]
+    liveAuthAllowlistSalt: string
+    liveAuthAllowlistIterations: number
     authEmulatorHost: string
     firestoreEmulatorHost: string
     storageEmulatorHost: string
@@ -15,20 +24,60 @@ export interface AppEnvironment {
 }
 
 function adapterMode(value: string | undefined): DataAdapterMode {
-  return value === 'firebase-emulator' ? 'firebase-emulator' : 'mock'
+  if (value === 'firebase-emulator') return 'firebase-emulator'
+  if (value === 'firebase-live') return 'firebase-live'
+  return 'mock'
 }
 
+function authAdapterMode(
+  value: string | undefined,
+  dataAdapter: DataAdapterMode,
+): AuthAdapterMode {
+  if (dataAdapter === 'firebase-emulator') return 'firebase-emulator'
+  if (dataAdapter === 'firebase-live') return 'firebase-live'
+  return value === 'firebase-live' ? 'firebase-live' : 'mock'
+}
+
+function commaSeparatedValues(value: string | undefined): readonly string[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const dataAdapter = adapterMode(import.meta.env.VITE_DATA_ADAPTER)
+
 export const appEnvironment: AppEnvironment = Object.freeze({
-  dataAdapter: adapterMode(import.meta.env.VITE_DATA_ADAPTER),
+  dataAdapter,
+  authAdapter: authAdapterMode(import.meta.env.VITE_AUTH_ADAPTER, dataAdapter),
   qrBaseUrl: import.meta.env.VITE_QR_BASE_URL ?? 'http://localhost:5173',
   firebase: {
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'demo-smart-durian',
     apiKey:
       import.meta.env.VITE_FIREBASE_API_KEY ?? 'demo-api-key-not-a-secret',
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? 'localhost',
+    appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
     storageBucket:
       import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ??
       'demo-smart-durian.appspot.com',
+    storageReady: import.meta.env.VITE_FIREBASE_STORAGE_READY === 'true',
+    liveAuthDemoUserId:
+      import.meta.env.VITE_FIREBASE_LIVE_AUTH_DEMO_USER_ID ?? '',
+    liveAuthAllowedPhoneHashes: commaSeparatedValues(
+      import.meta.env.VITE_FIREBASE_LIVE_AUTH_ALLOWED_PHONE_HASHES,
+    ),
+    liveAuthAllowlistSalt:
+      import.meta.env.VITE_FIREBASE_LIVE_AUTH_ALLOWLIST_SALT ?? '',
+    liveAuthAllowlistIterations: positiveInteger(
+      import.meta.env.VITE_FIREBASE_LIVE_AUTH_ALLOWLIST_ITERATIONS,
+      310_000,
+    ),
     authEmulatorHost:
       import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099',
     firestoreEmulatorHost:

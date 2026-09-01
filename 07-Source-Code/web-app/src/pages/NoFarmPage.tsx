@@ -1,7 +1,8 @@
 import { usePhase2 } from '../app/usePhase2'
+import { ProductionSeedPanel } from '../components/ProductionSeedPanel'
 
 export function NoFarmPage() {
-  const { identity, signOut } = usePhase2()
+  const { authError, identity, signOut } = usePhase2()
 
   return (
     <main className="auth-page" id="main-content">
@@ -13,9 +14,11 @@ export function NoFarmPage() {
           Organization/Farm membership ที่ยังใช้งาน
         </p>
         <p>ข้อมูลปลอดภัยและยังไม่มีสิทธิ์เปิดดูสวนใด กรุณาให้เจ้าขององค์กรเพิ่มสิทธิ์</p>
+        {authError ? <p className="form-error" role="alert">{authError}</p> : null}
         <button className="secondary-action" onClick={() => void signOut()} type="button">
           ออกจากระบบ
         </button>
+        <ProductionSeedPanel bootstrap />
       </section>
     </main>
   )

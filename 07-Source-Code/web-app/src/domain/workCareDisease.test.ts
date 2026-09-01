@@ -143,6 +143,12 @@ describe('Phase 4 Work target and state policy', () => {
     expect(
       validateWorkTarget({ kind: 'TREE_SET', zoneCode: 'Z01', rowCode: null, positionIds: [positionA, positionB] }),
     ).toBeTruthy()
+    expect(
+      validateWorkTarget({
+        kind: 'TREE_SET', zoneCode: 'Z01', zoneCodes: ['Z01', 'Z02'], rowCode: null,
+        positionIds: [positionA, positionB],
+      }).zoneCodes,
+    ).toEqual(['Z01', 'Z02'])
     expect(() =>
       validateWorkTarget({ kind: 'TREE', zoneCode: 'Z01', rowCode: 'R01', positionIds: [positionA, positionB] }),
     ).toThrow(/Position เดียว/u)

@@ -2,7 +2,14 @@ import type {
   AuthenticatedIdentity,
   CanonicalRole,
   FarmAccess,
+  FarmArchiveReadiness,
+  FarmAuditEvent,
+  FarmManagementContext,
   FarmMember,
+  FarmMutationResult,
+  FarmProfile,
+  FarmProfileDraft,
+  FarmStatus,
   MembershipAuditEvent,
   MembershipStatus,
 } from '../domain/farm'
@@ -70,6 +77,7 @@ import type {
   DiseaseAnalysisReviewInput,
   DiseaseAnalysisSessionRecord,
 } from '../domain/diseaseAnalysis'
+import type { AuthAdapterMode, DataAdapterMode } from '../config/environment'
 
 export interface PhoneOtpChallenge {
   challengeId: string
@@ -80,6 +88,7 @@ export interface PhoneOtpGateway {
   subscribe(listener: (identity: AuthenticatedIdentity | null) => void): () => void
   requestOtp(phoneNumber: string, verifierContainerId: string): Promise<PhoneOtpChallenge>
   verifyOtp(challenge: PhoneOtpChallenge, code: string): Promise<AuthenticatedIdentity>
+  cancelOtp(): void
   signOut(): Promise<void>
 }
 
@@ -92,8 +101,45 @@ export interface MembershipChangeInput {
   nextStatus: MembershipStatus
 }
 
+export interface CreateFarmInput {
+  context: FarmManagementContext
+  idempotencyKey: string
+  draft: FarmProfileDraft
+}
+
+export interface UpdateFarmProfileInput {
+  context: FarmManagementContext
+  farmId: string
+  idempotencyKey: string
+  draft: FarmProfileDraft
+}
+
+export interface ChangeFarmStatusInput {
+  context: FarmManagementContext
+  farmId: string
+  idempotencyKey: string
+  nextStatus: FarmStatus
+  knownPendingOperationIds: readonly string[]
+}
+
 export interface Phase2Repository {
   listFarmAccess(userId: string): Promise<readonly FarmAccess[]>
+  listFarmProfiles(context: FarmManagementContext): Promise<readonly FarmProfile[]>
+  getFarmProfile(
+    context: FarmManagementContext,
+    farmId: string,
+  ): Promise<FarmProfile | undefined>
+  createFarm(input: CreateFarmInput): Promise<FarmMutationResult>
+  updateFarmProfile(input: UpdateFarmProfileInput): Promise<FarmMutationResult>
+  getFarmArchiveReadiness(
+    context: FarmManagementContext,
+    farmId: string,
+  ): Promise<FarmArchiveReadiness>
+  changeFarmStatus(input: ChangeFarmStatusInput): Promise<FarmMutationResult>
+  listFarmAudit(
+    context: FarmManagementContext,
+    farmId: string,
+  ): Promise<readonly FarmAuditEvent[]>
   listFarmMembers(organizationId: string, farmId: string): Promise<readonly FarmMember[]>
   changeFarmMembership(input: MembershipChangeInput): Promise<MembershipAuditEvent>
   listMembershipAudit(
@@ -105,7 +151,8 @@ export interface Phase2Repository {
 export interface Phase2Adapters {
   auth: PhoneOtpGateway
   repository: Phase2Repository
-  mode: 'mock' | 'firebase-emulator'
+  mode: DataAdapterMode
+  authMode: AuthAdapterMode
 }
 
 export type TreeRouteResolution =
@@ -379,6 +426,20 @@ export interface OperationalHardeningRepository {
 export interface Phase6Adapters extends Phase5Adapters {
   operationalRepository: OperationalHardeningRepository
   diseaseAnalysisRepository: DiseaseAnalysisRepository
+  productionMockSeeder?: ProductionMockSeeder
+}
+
+export interface ProductionMockSeedResult {
+  projectId: 'durian-smartfarm'
+  rootPath: 'durian-smartfarm/root'
+  classification: 'SIMULATED/TEST ONLY'
+  modules: readonly string[]
+  recordCount: number
+  storageUploadsSkipped: number
+}
+
+export interface ProductionMockSeeder {
+  seed(actor: AuthenticatedIdentity): Promise<ProductionMockSeedResult>
 }
 
 export interface DiseaseAnalysisRepository {

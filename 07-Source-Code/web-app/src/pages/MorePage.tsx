@@ -8,6 +8,7 @@ import { PageHeader } from './PageHeader'
 export function MorePage() {
   const {
     mode,
+    authMode,
     currentFarm,
     identity,
     pendingOperations,
@@ -21,10 +22,22 @@ export function MorePage() {
   )
 
   const boundaries = [
-    ['Authentication', 'Mock OTP ในเครื่อง · ไม่ส่ง SMS จริง'],
+    [
+      'Authentication',
+      authMode === 'firebase-live'
+        ? 'Phone OTP ผ่าน Firebase จริง · ส่ง SMS จริง · ข้อมูลสวนยังเป็น Mock'
+        : mode === 'firebase-emulator'
+          ? 'Phone OTP ผ่าน Firebase Local Emulator · ไม่ส่ง SMS จริง'
+          : 'Mock OTP ในเครื่อง · ไม่ส่ง SMS จริง',
+    ],
     ['บทบาทปัจจุบัน', `${roleLabels[currentFarm.role]} · ${currentFarm.farmCode}`],
     ['ข้อมูล', 'ข้อมูลจำลองเท่านั้น · แยกตาม Organization/Farm'],
-    ['การเชื่อมระบบจริง', 'ยังไม่เชื่อมต่อ · ใช้ Mock Data จนกว่าจะพร้อมเปิดแอปจริง'],
+    [
+      'การเชื่อมระบบจริง',
+      authMode === 'firebase-live'
+        ? 'เชื่อมเฉพาะ Firebase Authentication · Firestore/Storage/Hosting ยังไม่เปิดใช้งานจริง'
+        : 'ยังไม่เชื่อมต่อ · ใช้ Mock Data จนกว่าจะพร้อมเปิดแอปจริง',
+    ],
   ] as const
 
   return (
@@ -35,6 +48,11 @@ export function MorePage() {
         description="เมนูปรับตามบทบาทและไม่แสดง action ที่ไม่มีสิทธิ์"
       />
       <div className="admin-links" aria-label="เมนูตามสิทธิ์">
+        <Link to="/orchard-layout">
+          <span aria-hidden="true">▦</span>
+          <div><strong>แปลนสวนและเลือกตำแหน่ง</strong><small>โซน · แถวซ้ายไปขวา · ต้นบนลงล่าง</small></div>
+          <span aria-hidden="true">›</span>
+        </Link>
         <Link to="/sync">
           <span aria-hidden="true">⇄</span>
           <div><strong>ศูนย์ซิงก์และ Conflict</strong><small>Offline queue, Retry, Photo recovery และ Correction</small></div>
@@ -45,6 +63,19 @@ export function MorePage() {
           <div><strong>ภาพรวมหลายสวน</strong><small>Owner only · รวมเฉพาะสวนที่มีสิทธิ์</small></div>
           <span aria-hidden="true">›</span>
         </Link> : null}
+        {currentFarm.isOrganizationOwner ? (
+          <Link to="/farm-management">
+            <span aria-hidden="true">⌂</span>
+            <div><strong>จัดการสวน</strong><small>ORG_OWNER · เพิ่ม แก้ไข ระงับ เปิดใหม่ และเก็บถาวร</small></div>
+            <span aria-hidden="true">›</span>
+          </Link>
+        ) : (
+          <Link to={`/farm-management/${currentFarm.farmId}`}>
+            <span aria-hidden="true">⌂</span>
+            <div><strong>ข้อมูลสวน</strong><small>อ่านอย่างเดียวตาม Farm membership</small></div>
+            <span aria-hidden="true">›</span>
+          </Link>
+        )}
         {canReadCommercial(currentFarm.role) ? <>
           <Link to="/production">
             <span aria-hidden="true">◉</span>

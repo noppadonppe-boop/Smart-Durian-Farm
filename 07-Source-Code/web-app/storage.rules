@@ -6,16 +6,27 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function dataRootPath() {
+      return /databases/(default)/documents/durian-smartfarm/root;
+    }
+
+    function isSeedOperator() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'phone'
+        && firestore.exists(dataRootPath())
+        && firestore.get(dataRootPath()).data.seedOwnerUid == request.auth.uid;
+    }
+
     function organizationMemberPath(organizationId) {
-      return /databases/(default)/documents/organizations/$(organizationId)/members/$(request.auth.uid);
+      return /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/members/$(request.auth.uid);
     }
 
     function farmPath(organizationId, farmId) {
-      return /databases/(default)/documents/organizations/$(organizationId)/farms/$(farmId);
+      return /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId);
     }
 
     function farmMemberPath(organizationId, farmId) {
-      return /databases/(default)/documents/organizations/$(organizationId)/farms/$(farmId)/members/$(request.auth.uid);
+      return /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/members/$(request.auth.uid);
     }
 
     function hasFarmMembership(organizationId, farmId) {
@@ -55,7 +66,7 @@ service firebase.storage {
     }
 
     function workOrderPath(organizationId, farmId, workOrderId) {
-      return /databases/(default)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(workOrderId);
+      return /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(workOrderId);
     }
 
     function canReadWorkEvidence(organizationId, farmId, workOrderId) {
@@ -123,7 +134,14 @@ service firebase.storage {
     }
 
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read: if isSeedOperator();
+      allow create: if isSeedOperator()
+        && request.resource != null
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp']
+        && request.resource.metadata.exampleData == 'true'
+        && request.resource.metadata.classification == 'SIMULATED/TEST ONLY';
+      allow update, delete: if false;
     }
   }
 }

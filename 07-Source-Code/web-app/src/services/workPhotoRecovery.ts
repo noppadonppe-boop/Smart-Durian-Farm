@@ -1,4 +1,5 @@
 import type { FarmAccess } from '../domain/farm'
+import type { DataAdapterMode } from '../config/environment'
 import type { PhotoRecoveryDraft } from '../domain/operationalHardening'
 import type { WorkPhotoEvidence, WorkPhotoPhase } from '../domain/workCareDisease'
 import { withBoundedPhotoRetry } from './workPhotoProcessing'
@@ -11,7 +12,7 @@ export interface WorkPhotoUploadCandidate {
 }
 
 interface UploadAndCommitOptions<T> {
-  mode: 'mock' | 'firebase-emulator'
+  mode: DataAdapterMode
   farm: FarmAccess
   workOrderId: string
   candidates: readonly WorkPhotoUploadCandidate[]
@@ -38,7 +39,7 @@ class PhotoUploadCheckpointError extends Error {
 }
 
 export function expectedWorkPhotoStoragePath(
-  mode: 'mock' | 'firebase-emulator',
+  mode: DataAdapterMode,
   farm: FarmAccess,
   workOrderId: string,
   photoId: string,

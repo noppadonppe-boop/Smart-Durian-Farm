@@ -30,7 +30,7 @@ const lotA = 'inventory_lot_phase5_a_001'
 let environment: RulesTestEnvironment
 
 function farmPath(farmId: string): string {
-  return `organizations/${organizationId}/farms/${farmId}`
+  return `durian-smartfarm/root/organizations/${organizationId}/farms/${farmId}`
 }
 
 function identity(userId: string): AuthenticatedIdentity {
@@ -57,7 +57,7 @@ async function seed() {
   await environment.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore() as unknown as Firestore
     const now = Timestamp.fromDate(new Date('2026-08-31T07:00:00.000Z'))
-    await setDoc(doc(firestore, 'organizations', organizationId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId), {
       organizationId, status: 'ACTIVE', exampleData: true, updatedAt: now,
     })
     const roles = new Map<string, CanonicalRole>([
@@ -65,7 +65,7 @@ async function seed() {
       [agronomistId, 'AGRONOMIST'], [workerId, 'WORKER'], [viewerId, 'VIEWER'],
     ])
     for (const [userId, role] of roles) {
-      await setDoc(doc(firestore, 'organizations', organizationId, 'members', userId), {
+      await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
         organizationId, userId, status: 'ACTIVE', isOwner: userId === ownerId,
         exampleData: true, createdAt: now, updatedAt: now,
       })
@@ -76,7 +76,7 @@ async function seed() {
         createdAt: now, updatedAt: now,
       })
     }
-    await setDoc(doc(firestore, 'organizations', organizationId, 'members', salesId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', salesId), {
       organizationId, userId: salesId, status: 'ACTIVE', isOwner: false,
       exampleData: true, createdAt: now, updatedAt: now,
     })

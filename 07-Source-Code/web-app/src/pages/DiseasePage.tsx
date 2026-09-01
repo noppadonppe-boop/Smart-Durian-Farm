@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
+import { OrchardTargetSelector } from '../components/OrchardTargetSelector'
+import { selectionFromNavigationState } from '../domain/orchardLayout'
 import {
   canAddDiseasePhoto,
   canObserveDisease,
@@ -171,6 +173,7 @@ function DiseaseIncidentCard({
 
 export function DiseasePage() {
   const { incidentId } = useParams()
+  const location = useLocation()
   const {
     currentFarm, listTreePositions, listWorkOrders, listDiseaseIncidents,
     createDiseaseIncident, assessDiseaseIncident, followUpDiseaseIncident,
@@ -197,10 +200,21 @@ export function DiseasePage() {
     const [nextTrees, nextIncidents, nextWorkOrders] = await Promise.all([listTreePositions(), listDiseaseIncidents(), listWorkOrders()])
     const active = nextTrees.filter((tree) => tree.positionStatus === 'ACTIVE')
     setTrees(active)
-    setPositionId((current) => active.some((tree) => tree.positionId === current) ? current : active[0]?.positionId ?? '')
+    const requested = currentFarm
+      ? selectionFromNavigationState(location.state, currentFarm.farmId)
+      : []
+    setPositionId((current) => {
+      const requestedPosition = requested.find((candidate) => active.some((tree) => (
+        tree.positionId === candidate && tree.currentCycle.treeStatus !== 'empty'
+      )))
+      if (requestedPosition) return requestedPosition
+      return active.some((tree) => tree.positionId === current && tree.currentCycle.treeStatus !== 'empty')
+        ? current
+        : active.find((tree) => tree.currentCycle.treeStatus !== 'empty')?.positionId ?? ''
+    })
     setIncidents(nextIncidents)
     setAssigneeSuggestion(nextWorkOrders.find((order) => order.assignedUserId)?.assignedUserId ?? null)
-  }, [listDiseaseIncidents, listTreePositions, listWorkOrders])
+  }, [currentFarm, listDiseaseIncidents, listTreePositions, listWorkOrders, location.state])
 
   useEffect(() => {
     let active = true
@@ -256,7 +270,16 @@ export function DiseasePage() {
     <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY · Local/Emulator</strong><span>ไม่มีภาพจริง กล้อง EXIF/GPS External Storage หรือหลักฐาน Physical Device/Field Validation</span></aside>
     {incidentId ? <div className="page-actions"><Link className="secondary-action" to="/disease">กลับรายการโรคทั้งหมด</Link></div> : null}
     {!incidentId && canReport ? <form className="workflow-panel" onSubmit={(event) => void create(event)}>
-      <h2>รายงานอาการจำลอง</h2><label>ต้น<select disabled={trees.length === 0} value={positionId} onChange={(event) => setPositionId(event.target.value)}>{trees.map((tree) => <option key={tree.positionId} value={tree.positionId}>{tree.tagCode}</option>)}</select></label>
+      <h2>รายงานอาการจำลอง</h2>
+      {currentFarm ? <OrchardTargetSelector
+        disabledReason={(tree) => tree.currentCycle.treeStatus === 'empty' ? 'ตำแหน่งไม่มีต้น จึงรายงานอาการไม่ได้' : undefined}
+        farm={currentFarm}
+        onChange={(positionIds) => setPositionId(positionIds[0] ?? '')}
+        positions={trees}
+        selectedPositionIds={positionId ? [positionId] : []}
+        selectionMode="SINGLE"
+        title="เลือกต้นที่พบอาการ"
+      /> : null}
       <label>Observed symptom<textarea required value={symptom} onChange={(event) => setSymptom(event.target.value)} /></label>
       <div className="form-grid"><label>Severity<select value={severity} onChange={(event) => setSeverity(event.target.value as DiseaseSeverity)}>{Object.entries(diseaseSeverityLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>Follow-up date<input type="date" value={followUpDate} onChange={(event) => setFollowUpDate(event.target.value)} /></label></div>
       {isAgronomist ? <label>Suspected diagnosis<input value={suspectedDiagnosis} onChange={(event) => setSuspectedDiagnosis(event.target.value)} /></label> : <p className="form-warning">บทบาทนี้รายงานอาการได้ แต่ห้ามบันทึก diagnosis/treatment</p>}

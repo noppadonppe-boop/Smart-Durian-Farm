@@ -20,7 +20,14 @@ export interface FirebaseEmulatorClients {
   storage: FirebaseStorage
 }
 
+export interface FirebaseLiveAuthClient {
+  app: FirebaseApp
+  auth: Auth
+}
+
 let clients: FirebaseEmulatorClients | undefined
+let liveAuthClient: FirebaseLiveAuthClient | undefined
+let liveClients: FirebaseEmulatorClients | undefined
 
 function isLoopbackHost(host: string): boolean {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1'
@@ -86,4 +93,93 @@ export function createFirebaseEmulatorClients(
 
   clients = { app, auth, firestore, storage }
   return clients
+}
+
+export function createFirebaseLiveAuthClient(
+  environment: AppEnvironment = appEnvironment,
+): FirebaseLiveAuthClient {
+  if (environment.authAdapter !== 'firebase-live') {
+    throw new Error(
+      'Firebase live Auth is disabled. Set VITE_AUTH_ADAPTER=firebase-live explicitly.',
+    )
+  }
+  if (
+    environment.firebase.projectId === 'demo-smart-durian' ||
+    !environment.firebase.projectId ||
+    !environment.firebase.apiKey ||
+    !environment.firebase.authDomain ||
+    !environment.firebase.appId
+  ) {
+    throw new Error('Firebase Web App config จริงยังไม่ครบ')
+  }
+  if (isLoopbackHost(environment.firebase.authDomain.split(':')[0] ?? '')) {
+    throw new Error('Firebase live Auth ต้องใช้ authDomain ของ Firebase project จริง')
+  }
+  if (environment.dataAdapter === 'firebase-live') {
+    const production = createFirebaseLiveClients(environment)
+    return { app: production.app, auth: production.auth }
+  }
+  if (environment.dataAdapter !== 'mock') {
+    throw new Error('Firebase live Auth ใช้ได้กับ Mock Data หรือ Firebase Production เท่านั้น')
+  }
+  if (liveAuthClient) return liveAuthClient
+
+  const appName = 'kdoms-live-auth'
+  const app =
+    getApps().find((candidate) => candidate.name === appName) ??
+    initializeApp(
+      {
+        projectId: environment.firebase.projectId,
+        apiKey: environment.firebase.apiKey,
+        authDomain: environment.firebase.authDomain,
+        appId: environment.firebase.appId,
+      },
+      appName,
+    )
+  const auth = getAuth(app)
+  auth.languageCode = 'th'
+  liveAuthClient = { app, auth }
+  return liveAuthClient
+}
+
+export function createFirebaseLiveClients(
+  environment: AppEnvironment = appEnvironment,
+): FirebaseEmulatorClients {
+  if (environment.dataAdapter !== 'firebase-live') {
+    throw new Error('Firebase Production data is disabled. Set VITE_DATA_ADAPTER=firebase-live explicitly.')
+  }
+  if (
+    environment.firebase.projectId !== 'durian-smartfarm' ||
+    !environment.firebase.apiKey ||
+    environment.firebase.authDomain !== 'durian-smartfarm.firebaseapp.com' ||
+    !environment.firebase.appId ||
+    !environment.firebase.storageBucket
+  ) {
+    throw new Error('Firebase Production config ต้องตรงกับ project durian-smartfarm และมีค่าครบ')
+  }
+  if (liveClients) return liveClients
+
+  const appName = 'kdoms-production'
+  const app =
+    getApps().find((candidate) => candidate.name === appName) ??
+    initializeApp(
+      {
+        projectId: environment.firebase.projectId,
+        apiKey: environment.firebase.apiKey,
+        authDomain: environment.firebase.authDomain,
+        appId: environment.firebase.appId,
+        messagingSenderId: environment.firebase.messagingSenderId,
+        storageBucket: environment.firebase.storageBucket,
+      },
+      appName,
+    )
+  const auth = getAuth(app)
+  auth.languageCode = 'th'
+  liveClients = {
+    app,
+    auth,
+    firestore: getFirestore(app),
+    storage: getStorage(app),
+  }
+  return liveClients
 }

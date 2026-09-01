@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
+import { OrchardTargetSelector } from '../components/OrchardTargetSelector'
+import {
+  navigationIntentFromState,
+  positionIdsForAnchor,
+  selectionFromNavigationState,
+  selectionZoneCodes,
+  type OrchardSelectionMode,
+} from '../domain/orchardLayout'
 import {
   careTypeLabels,
   type CareEventType,
@@ -27,6 +35,7 @@ export function WorkCreatePage() {
     removeQueuedWorkPhotoBatch,
   } = usePhase2()
   const navigate = useNavigate()
+  const location = useLocation()
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [title, setTitle] = useState('ตรวจดูแลต้นจำลอง')
   const [description, setDescription] = useState('SIMULATED/TEST ONLY — งาน Phase 4 จำลอง')
@@ -44,22 +53,69 @@ export function WorkCreatePage() {
     void listTreePositions().then((items) => {
       const active = items.filter((item) => item.positionStatus === 'ACTIVE')
       setTrees(active)
-      setSelectedIds(active[0] ? [active[0].positionId] : [])
+      const requested = currentFarm
+        ? selectionFromNavigationState(location.state, currentFarm.farmId)
+        : []
+      const intent = currentFarm
+        ? navigationIntentFromState(location.state, currentFarm.farmId)
+        : undefined
+      const validRequested = requested.filter((positionId) => (
+        active.some((position) => position.positionId === positionId)
+      ))
+      setSelectedIds(validRequested.length > 0 ? validRequested : active[0] ? [active[0].positionId] : [])
+      setTargetKind(validRequested.length > 1 ? 'TREE_SET' : 'TREE')
+      if (intent === 'WORK_GENERAL') {
+        setCategory('GENERAL')
+        setTitle('งานทั่วไปจากตำแหน่งที่เลือก')
+      } else if (intent === 'WORK_CARE') {
+        setCategory('CARE')
+        setCareType('INSPECTION')
+        setTitle('ตรวจดูแลต้นจากตำแหน่งที่เลือก')
+      }
     })
-  }, [currentFarm?.farmId, listTreePositions])
+  }, [currentFarm, listTreePositions, location.state])
 
   const selectedTrees = useMemo(
     () => trees.filter((tree) => selectedIds.includes(tree.positionId)),
     [selectedIds, trees],
   )
 
-  const toggleTree = (positionId: string) => {
-    setSelectedIds((current) => {
-      if (targetKind === 'TREE') return [positionId]
-      return current.includes(positionId)
-        ? current.filter((id) => id !== positionId)
-        : [...current, positionId]
-    })
+  const disabledTargetReason = (tree: TreePositionSummary): string | undefined => {
+    if (tree.currentCycle.treeStatus !== 'empty') return undefined
+    if (category === 'GENERAL' || (category === 'CARE' && careType === 'INSPECTION')) return undefined
+    return 'ตำแหน่งไม่มีต้น ใช้ได้เฉพาะงานทั่วไปหรืองานตรวจตำแหน่ง'
+  }
+
+  const selectionMode: OrchardSelectionMode = targetKind === 'TREE'
+    ? 'SINGLE'
+    : targetKind === 'ROW'
+      ? 'ROW'
+      : targetKind === 'ZONE'
+        ? 'ZONE'
+        : 'MULTIPLE'
+
+  const changeTargetKind = (next: WorkTargetKind) => {
+    setTargetKind(next)
+    const anchor = selectedTrees.find((tree) => !disabledTargetReason(tree))
+      ?? trees.find((tree) => !disabledTargetReason(tree))
+    if (!anchor) {
+      setSelectedIds([])
+      return
+    }
+    const mode: OrchardSelectionMode = next === 'TREE'
+      ? 'SINGLE'
+      : next === 'ROW'
+        ? 'ROW'
+        : next === 'ZONE'
+          ? 'ZONE'
+          : 'MULTIPLE'
+    if (mode === 'MULTIPLE') {
+      setSelectedIds((current) => current.filter((positionId) => (
+        trees.some((tree) => tree.positionId === positionId && !disabledTargetReason(tree))
+      )))
+      return
+    }
+    setSelectedIds(positionIdsForAnchor(trees, anchor.positionId, mode, (tree) => !disabledTargetReason(tree)))
   }
 
   const submit = async (event: FormEvent) => {
@@ -70,7 +126,11 @@ export function WorkCreatePage() {
     try {
       const baseTree = selectedTrees[0]
       if (!baseTree) throw new Error('ต้องเลือกต้นเป้าหมาย')
+      if (selectedTrees.some((tree) => disabledTargetReason(tree))) {
+        throw new Error('มีตำแหน่งที่ไม่รองรับงานประเภทนี้ กรุณาเลือกเป้าหมายใหม่')
+      }
       const positionIds = targetKind === 'TREE' ? [baseTree.positionId] : selectedIds
+      const zoneCodes = selectionZoneCodes(trees, positionIds)
       const created = await createWorkOrder(crypto.randomUUID(), {
         title,
         description,
@@ -80,6 +140,7 @@ export function WorkCreatePage() {
         target: {
           kind: targetKind,
           zoneCode: baseTree.zoneCode,
+          zoneCodes,
           rowCode: targetKind === 'ZONE' || targetKind === 'TREE_SET' ? null : baseTree.rowCode,
           positionIds,
         },
@@ -179,11 +240,7 @@ export function WorkCreatePage() {
             </label>
           ) : null}
           <label>Target
-            <select value={targetKind} onChange={(event) => {
-              const next = event.target.value as WorkTargetKind
-              setTargetKind(next)
-              if (next === 'TREE' && selectedIds[0]) setSelectedIds([selectedIds[0]])
-            }}>
+            <select value={targetKind} onChange={(event) => changeTargetKind(event.target.value as WorkTargetKind)}>
               <option value="TREE">ต้นเดียว</option>
               <option value="TREE_SET">ชุดต้น</option>
               <option value="ROW">แถว</option>
@@ -200,19 +257,17 @@ export function WorkCreatePage() {
           </label>
         </div>
 
-        <fieldset className="target-picker">
-          <legend>เลือก Position จากสวน {currentFarm?.farmCode}</legend>
-          {trees.map((tree) => (
-            <label key={tree.positionId}>
-              <input
-                checked={selectedIds.includes(tree.positionId)}
-                onChange={() => toggleTree(tree.positionId)}
-                type={targetKind === 'TREE' ? 'radio' : 'checkbox'}
-              />
-              <code>{tree.tagCode}</code> · {tree.positionId}
-            </label>
-          ))}
-        </fieldset>
+        {currentFarm ? <OrchardTargetSelector
+          defaultView={selectionMode === 'SINGLE' ? 'PLAN' : 'CHECKLIST'}
+          disabledReason={disabledTargetReason}
+          farm={currentFarm}
+          key={`${currentFarm.farmId}:${selectionMode}`}
+          onChange={setSelectedIds}
+          positions={trees}
+          selectedPositionIds={selectedIds}
+          selectionMode={selectionMode}
+          title="เลือกเป้าหมายของใบงาน"
+        /> : null}
         {category === 'CARE' && careType === 'CHEMICAL' ? (
           <p className="form-warning">สารเคมีจะคงสถานะ Pending Specialist และไม่มีคำแนะนำอัตโนมัติ</p>
         ) : null}

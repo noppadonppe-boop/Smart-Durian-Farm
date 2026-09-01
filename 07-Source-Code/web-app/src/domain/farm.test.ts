@@ -1,4 +1,11 @@
-import { permissionsFor, type FarmAccess } from './farm'
+import {
+  deriveFarmCode,
+  isValidFarmStatusTransition,
+  normalizeFarmProfileDraft,
+  permissionsFor,
+  type FarmAccess,
+  type FarmProfileDraft,
+} from './farm'
 
 function access(overrides: Partial<FarmAccess> = {}): FarmAccess {
   return {
@@ -47,5 +54,47 @@ describe('least-privilege farm permissions', () => {
 
   it.each(['VIEWER', 'AUDITOR'] as const)('keeps %s operational data read-only', (role) => {
     expect(permissionsFor(access({ role })).canWriteOperationalData).toBe(false)
+  })
+})
+
+const validDraft: FarmProfileDraft = {
+  farmName: 'สวนทดสอบ — ข้อมูลจำลอง',
+  farmSequence: 'f05',
+  province: 'TBD',
+  district: '',
+  subdistrict: '',
+  locationNote: 'SIMULATED/TEST ONLY',
+  timezone: 'Asia/Bangkok',
+  seasonStartMonth: 1,
+  seasonEndMonth: 7,
+  seasonNote: 'ข้อมูลฤดูกาลจำลอง',
+  notes: 'SIMULATED/TEST ONLY',
+}
+
+describe('Farm Profile validation and lifecycle', () => {
+  it('normalizes Farm Sequence and derives Farm Code from the organization', () => {
+    const normalized = normalizeFarmProfileDraft(validDraft)
+    expect(normalized.farmSequence).toBe('F05')
+    expect(deriveFarmCode('demo', normalized.farmSequence)).toBe('DEMO-F05')
+  })
+
+  it('requires season months as a pair and keeps them in range', () => {
+    expect(() => normalizeFarmProfileDraft({
+      ...validDraft,
+      seasonEndMonth: null,
+    })).toThrow(/กรอกเป็นคู่/u)
+    expect(() => normalizeFarmProfileDraft({
+      ...validDraft,
+      seasonStartMonth: 0,
+    })).toThrow(/1–12/u)
+  })
+
+  it('allows only approved status transitions and never reopens an archived Farm', () => {
+    expect(isValidFarmStatusTransition('ACTIVE', 'SUSPENDED')).toBe(true)
+    expect(isValidFarmStatusTransition('SUSPENDED', 'ACTIVE')).toBe(true)
+    expect(isValidFarmStatusTransition('ACTIVE', 'ARCHIVED')).toBe(true)
+    expect(isValidFarmStatusTransition('SUSPENDED', 'ARCHIVED')).toBe(true)
+    expect(isValidFarmStatusTransition('ARCHIVED', 'ACTIVE')).toBe(false)
+    expect(isValidFarmStatusTransition('ACTIVE', 'ACTIVE')).toBe(false)
   })
 })

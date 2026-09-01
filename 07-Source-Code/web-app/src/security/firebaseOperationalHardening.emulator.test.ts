@@ -28,7 +28,7 @@ const relinkRecoveryId = 'photo_relink_phase6_003'
 let environment: RulesTestEnvironment
 
 function farmPath(farmId: string): string {
-  return `organizations/${organizationId}/farms/${farmId}`
+  return `durian-smartfarm/root/organizations/${organizationId}/farms/${farmId}`
 }
 
 function identity(userId: string): AuthenticatedIdentity {
@@ -87,7 +87,7 @@ async function seed(): Promise<void> {
   await environment.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore() as unknown as Firestore
     const now = Timestamp.fromDate(new Date('2026-08-31T08:00:00.000Z'))
-    await setDoc(doc(firestore, 'organizations', organizationId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId), {
       organizationId,
       status: 'ACTIVE',
       exampleData: true,
@@ -97,7 +97,7 @@ async function seed(): Promise<void> {
 
     const organizationMembers = [ownerId, managerId, workerId, viewerId, auditorId]
     for (const userId of organizationMembers) {
-      await setDoc(doc(firestore, 'organizations', organizationId, 'members', userId), {
+      await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
         organizationId,
         userId,
         status: 'ACTIVE',
@@ -403,7 +403,7 @@ describe('Firebase Phase 6 Operational hardening repository and Rules', () => {
       workOrderId: 'work_phase6_001',
       photoId: 'photo_before_auto_rules01',
       phase: 'BEFORE' as const,
-      storagePath: `${farmPath(farmA)}/workEvidence/work_phase6_001/photo_before_auto_rules01`,
+      storagePath: `organizations/${organizationId}/farms/${farmA}/workEvidence/work_phase6_001/photo_before_auto_rules01`,
       status: 'FAILED' as const,
       failureMode: 'PARTIAL_ONCE' as const,
       lastError: 'SIMULATED bounded retry exhausted',

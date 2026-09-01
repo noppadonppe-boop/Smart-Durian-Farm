@@ -16,6 +16,7 @@ import {
 import { FirebaseTreeRegisterRepository } from '../infrastructure/firebase/firebaseTreeRegisterRepository'
 import type { AuthenticatedIdentity, FarmAccess } from '../domain/farm'
 import {
+  emptyTreeBaselineMeasurements,
   previewTreeRegisterCsv,
   treeRegisterCsvHeaders,
 } from '../domain/treeRegister'
@@ -32,7 +33,7 @@ const positionB = 'pos_rules_tree_b0001'
 let environment: RulesTestEnvironment
 
 function farmPath(farmId: string): string {
-  return `organizations/${organizationId}/farms/${farmId}`
+  return `durian-smartfarm/root/organizations/${organizationId}/farms/${farmId}`
 }
 
 function positionPath(farmId: string, positionId: string): string {
@@ -51,7 +52,7 @@ async function seedPosition(
   await setDoc(doc(firestore, positionPath(farmId, positionId)), {
     recordType: 'TREE_POSITION', organizationId, farmId, positionId,
     organizationCode: 'RULES', farmSequence, zoneCode: 'Z01', rowCode: 'R01',
-    treeSequence: 1, tagCode, positionStatus: 'ACTIVE', currentCycleNumber: 1,
+    treeSequence: 1, tagCode, rowCountingDirection: 'TBD', positionStatus: 'ACTIVE', currentCycleNumber: 1,
     qrPath: `/t/${positionId}`, version: 1, lastEventId: eventId,
     exampleData: true, createdBy: ownerId, createdAt: now,
     updatedBy: ownerId, updatedAt: now,
@@ -59,8 +60,9 @@ async function seedPosition(
   await setDoc(doc(firestore, `${positionPath(farmId, positionId)}/plantingCycles/cycle_001`), {
     recordType: 'PLANTING_CYCLE', cycleId: 'cycle_001', cycleNumber: 1,
     variety: null, varietyConfidence: 'unknown', plantingYear: null,
-    plantingYearCalendar: null, plantingYearConfidence: 'unknown', treeStatus: 'empty',
-    baselineDate: '2026-08-31', notes: 'EXAMPLE DATA ONLY', startedAt: now,
+    plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
+    treeStatus: 'empty', baselineDate: '2026-08-31',
+    baselineMeasurements: emptyTreeBaselineMeasurements(), notes: 'EXAMPLE DATA ONLY', startedAt: now,
     endedAt: null, version: 1, createdBy: ownerId, updatedBy: ownerId,
     updatedAt: now, exampleData: true,
   })
@@ -74,7 +76,7 @@ async function seedPosition(
     recordType: 'TREE_TAG_INDEX', organizationId, farmId, positionId, tagCode,
     exampleData: true, createdBy: ownerId, createdAt: now,
   })
-  await setDoc(doc(firestore, 'positionRoutes', positionId), {
+  await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'positionRoutes', positionId), {
     recordType: 'POSITION_ROUTE', organizationId, farmId, positionId,
     exampleData: true, createdBy: ownerId, createdAt: now,
   })
@@ -84,12 +86,12 @@ async function seed(): Promise<void> {
   await environment.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore() as unknown as Firestore
     const now = Timestamp.fromDate(new Date('2026-08-31T05:00:00.000Z'))
-    await setDoc(doc(firestore, 'organizations', organizationId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId), {
       organizationId, organizationName: 'องค์กร Tree Rules จำลอง',
       organizationCode: 'RULES', status: 'ACTIVE', updatedAt: now,
     })
     for (const [userId, isOwner] of [[ownerId, true], [workerId, false]] as const) {
-      await setDoc(doc(firestore, 'organizations', organizationId, 'members', userId), {
+      await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
         organizationId, userId, status: 'ACTIVE', isOwner, createdAt: now, updatedAt: now,
       })
     }
@@ -175,10 +177,11 @@ describe('Firebase Tree Register repository and Rules', () => {
       { actor: identity(ownerId), farm: farm('ORG_OWNER') },
       {
         organizationCode: 'RULES', farmSequence: 'F01', zoneCode: 'Z01',
-        rowCode: 'R01', treeSequence: 2, variety: null,
+        rowCode: 'R01', treeSequence: 2, rowCountingDirection: 'TBD', variety: null,
         varietyConfidence: 'unknown', plantingYear: null,
-        plantingYearCalendar: null, plantingYearConfidence: 'unknown',
-        treeStatus: 'empty', baselineDate: '2026-08-31', notes: 'EXAMPLE DATA ONLY',
+        plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
+        treeStatus: 'empty', baselineDate: '2026-08-31',
+        baselineMeasurements: emptyTreeBaselineMeasurements(), notes: 'EXAMPLE DATA ONLY',
       },
     )
     expect(created.tagCode).toBe('RULES-F01-Z01-R01-T002')
@@ -188,6 +191,24 @@ describe('Firebase Tree Register repository and Rules', () => {
     )).status).toBe('FOUND')
   })
 
+  it('stores new Tree Register records as field data when the repository is in operational mode', async () => {
+    const firestore = environment.authenticatedContext(ownerId).firestore() as unknown as Firestore
+    const repository = new FirebaseTreeRegisterRepository(firestore, false)
+    const created = await repository.createTreePosition(
+      { actor: identity(ownerId), farm: { ...farm('ORG_OWNER'), isMock: false } },
+      {
+        organizationCode: 'RULES', farmSequence: 'F01', zoneCode: 'Z01',
+        rowCode: 'R01', treeSequence: 3, rowCountingDirection: 'ASCENDING',
+        variety: null, varietyConfidence: 'unknown', plantingYear: null,
+        plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
+        treeStatus: 'empty', baselineDate: '2026-08-31',
+        baselineMeasurements: emptyTreeBaselineMeasurements(), notes: 'ตำแหน่งภาคสนาม',
+      },
+    )
+    expect(created.exampleData).toBe(false)
+    expect(created.rowCountingDirection).toBe('ASCENDING')
+  })
+
   it('denies tree master creation to a worker and forged identity updates', async () => {
     const workerFirestore = environment.authenticatedContext(workerId).firestore() as unknown as Firestore
     const workerRepository = new FirebaseTreeRegisterRepository(workerFirestore)
@@ -195,10 +216,11 @@ describe('Firebase Tree Register repository and Rules', () => {
       { actor: identity(workerId), farm: farm('WORKER', workerId) },
       {
         organizationCode: 'RULES', farmSequence: 'F01', zoneCode: 'Z01',
-        rowCode: 'R01', treeSequence: 2, variety: null,
+        rowCode: 'R01', treeSequence: 2, rowCountingDirection: 'TBD', variety: null,
         varietyConfidence: 'unknown', plantingYear: null,
-        plantingYearCalendar: null, plantingYearConfidence: 'unknown',
-        treeStatus: 'empty', baselineDate: '2026-08-31', notes: 'EXAMPLE',
+        plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
+        treeStatus: 'empty', baselineDate: '2026-08-31',
+        baselineMeasurements: emptyTreeBaselineMeasurements(), notes: 'EXAMPLE',
       },
     )).rejects.toThrow(/เจ้าขององค์กรหรือผู้จัดการ/u)
 
@@ -214,13 +236,15 @@ describe('Firebase Tree Register repository and Rules', () => {
     const context = { actor: identity(ownerId), farm: farm('ORG_OWNER') }
     await repository.updateCurrentPlantingCycle(context, positionA, {
       variety: 'พันธุ์ทดสอบ', varietyConfidence: 'estimated', plantingYear: null,
-      plantingYearCalendar: null, plantingYearConfidence: 'unknown',
-      treeStatus: 'watch', notes: 'TEST UPDATE',
+      plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
+      treeStatus: 'watch', baselineDate: '2026-08-31',
+      baselineMeasurements: emptyTreeBaselineMeasurements(), notes: 'TEST UPDATE',
     })
     const replaced = await repository.replacePlantingCycle(context, positionA, {
       variety: null, varietyConfidence: 'unknown', plantingYear: null,
-      plantingYearCalendar: null, plantingYearConfidence: 'unknown',
+      plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
       treeStatus: 'empty', notes: 'TEST REPLACEMENT', baselineDate: '2026-08-31',
+      baselineMeasurements: emptyTreeBaselineMeasurements(),
       reason: 'ทดสอบรอบปลูกใหม่',
     })
     expect(replaced.currentCycleNumber).toBe(2)
@@ -229,10 +253,11 @@ describe('Firebase Tree Register repository and Rules', () => {
     expect(archived.positionStatus).toBe('ARCHIVED')
     await expect(repository.createTreePosition(context, {
       organizationCode: 'RULES', farmSequence: 'F01', zoneCode: 'Z01',
-      rowCode: 'R01', treeSequence: 1, variety: null,
+      rowCode: 'R01', treeSequence: 1, rowCountingDirection: 'TBD', variety: null,
       varietyConfidence: 'unknown', plantingYear: null,
-      plantingYearCalendar: null, plantingYearConfidence: 'unknown',
-      treeStatus: 'empty', baselineDate: '2026-08-31', notes: 'TEST',
+      plantingYearCalendar: null, plantingYearConfidence: 'unknown', plantSource: null,
+      treeStatus: 'empty', baselineDate: '2026-08-31',
+      baselineMeasurements: emptyTreeBaselineMeasurements(), notes: 'TEST',
     })).rejects.toThrow(/ห้ามนำกลับมาใช้/u)
   })
 

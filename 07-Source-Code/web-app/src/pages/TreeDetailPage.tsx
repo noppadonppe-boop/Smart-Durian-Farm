@@ -2,23 +2,25 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
+import {
+  createTreeCycleFormValue,
+  treeCycleFormValueFromRecord,
+  treeCycleInputFromForm,
+  TreeCycleFormFields,
+  type TreeCycleFormValue,
+} from '../components/TreeCycleFormFields'
 import { appEnvironment } from '../config/environment'
 import {
   buildQrPayload,
   canManageTreeRegister,
   identityConfidenceLabels,
+  rowCountingDirectionLabels,
   treeStatusLabels,
-  type IdentityConfidence,
   type TreePositionDetail,
-  type TreeStatus,
 } from '../domain/treeRegister'
 import { PageHeader } from './PageHeader'
 
 type EditorMode = 'EDIT' | 'REPLACE' | 'ARCHIVE' | null
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 export function TreeDetailPage() {
   const { positionId } = useParams()
@@ -35,14 +37,7 @@ export function TreeDetailPage() {
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [editor, setEditor] = useState<EditorMode>(null)
-  const [variety, setVariety] = useState('')
-  const [varietyConfidence, setVarietyConfidence] = useState<IdentityConfidence>('unknown')
-  const [plantingYear, setPlantingYear] = useState('')
-  const [plantingYearCalendar, setPlantingYearCalendar] = useState<'BE' | 'CE'>('BE')
-  const [plantingYearConfidence, setPlantingYearConfidence] = useState<IdentityConfidence>('unknown')
-  const [treeStatus, setTreeStatus] = useState<TreeStatus>('empty')
-  const [notes, setNotes] = useState('')
-  const [baselineDate, setBaselineDate] = useState(today)
+  const [cycleForm, setCycleForm] = useState<TreeCycleFormValue>(() => createTreeCycleFormValue())
   const [reason, setReason] = useState('')
   const [damagedNote, setDamagedNote] = useState('')
   const [saving, setSaving] = useState(false)
@@ -77,26 +72,13 @@ export function TreeDetailPage() {
     setEditor(mode)
     setNotice(undefined)
     setError(undefined)
-    setVariety(mode === 'REPLACE' ? '' : detail.currentCycle.variety ?? '')
-    setVarietyConfidence(mode === 'REPLACE' ? 'unknown' : detail.currentCycle.varietyConfidence)
-    setPlantingYear(mode === 'REPLACE' ? '' : String(detail.currentCycle.plantingYear ?? ''))
-    setPlantingYearCalendar(detail.currentCycle.plantingYearCalendar ?? 'BE')
-    setPlantingYearConfidence(mode === 'REPLACE' ? 'unknown' : detail.currentCycle.plantingYearConfidence)
-    setTreeStatus(mode === 'REPLACE' ? 'empty' : detail.currentCycle.treeStatus)
-    setNotes(mode === 'REPLACE' ? 'ข้อมูลรอบปลูกทดแทนจำลอง' : detail.currentCycle.notes)
-    setBaselineDate(today())
+    setCycleForm(mode === 'REPLACE'
+      ? createTreeCycleFormValue('normal')
+      : treeCycleFormValueFromRecord(detail.currentCycle))
     setReason('')
   }
 
-  const cycleInput = () => ({
-    variety: variety.trim() || null,
-    varietyConfidence: variety.trim() ? varietyConfidence : 'unknown' as const,
-    plantingYear: plantingYear ? Number(plantingYear) : null,
-    plantingYearCalendar: plantingYear ? plantingYearCalendar : null,
-    plantingYearConfidence: plantingYear ? plantingYearConfidence : 'unknown' as const,
-    treeStatus,
-    notes: notes.trim(),
-  })
+  const cycleInput = () => treeCycleInputFromForm(cycleForm)
 
   const submitEditor = async (event: FormEvent) => {
     event.preventDefault()
@@ -111,7 +93,6 @@ export function TreeDetailPage() {
       } else if (editor === 'REPLACE') {
         updated = await replacePlantingCycle(detail.positionId, {
           ...cycleInput(),
-          baselineDate,
           reason,
         })
         setNotice('เพิ่ม Planting Cycle ใหม่แล้ว โดย Tag และตำแหน่งเดิมไม่เปลี่ยน')
@@ -151,6 +132,13 @@ export function TreeDetailPage() {
   const canManage = canManageTreeRegister(currentFarm)
   const canReportDamage = ['ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER'].includes(currentFarm.role)
   const qrPayload = buildQrPayload(appEnvironment.qrBaseUrl, detail.positionId)
+  const measurements = detail.currentCycle.baselineMeasurements ?? {
+    gps: null,
+    trunk: null,
+    canopy: null,
+    height: null,
+  }
+  const measurementCount = Object.values(measurements).filter(Boolean).length
 
   return (
     <section className="page-stack">
@@ -166,10 +154,13 @@ export function TreeDetailPage() {
           </div>
           <h2>{detail.currentCycle.variety ?? 'ไม่ทราบพันธุ์'}</h2>
           <dl className="detail-list">
-            <div><dt>Planting Cycle</dt><dd>{detail.currentCycleNumber}</dd></div>
-            <div><dt>ความมั่นใจ</dt><dd>{identityConfidenceLabels[detail.currentCycle.varietyConfidence]}</dd></div>
-            <div><dt>ปีปลูก</dt><dd>{detail.currentCycle.plantingYear ? `${detail.currentCycle.plantingYear} ${detail.currentCycle.plantingYearCalendar}` : 'ไม่ทราบ'}</dd></div>
-            <div><dt>Baseline</dt><dd>{detail.currentCycle.baselineDate}</dd></div>
+            <div><dt>รอบปลูก</dt><dd>{detail.currentCycleNumber}</dd></div>
+            <div><dt>ความมั่นใจของพันธุ์</dt><dd>{identityConfidenceLabels[detail.currentCycle.varietyConfidence]}</dd></div>
+            <div><dt>ปีปลูก</dt><dd>{detail.currentCycle.plantingYear ? `${detail.currentCycle.plantingYear} ${detail.currentCycle.plantingYearCalendar === 'BE' ? 'พ.ศ.' : 'ค.ศ.'}` : 'ไม่ทราบ'}</dd></div>
+            <div><dt>แหล่งพันธุ์</dt><dd>{detail.currentCycle.plantSource ?? 'ไม่ทราบ'}</dd></div>
+            <div><dt>วันที่ข้อมูลตั้งต้น</dt><dd>{detail.currentCycle.baselineDate}</dd></div>
+            <div><dt>ข้อมูลสำรวจ</dt><dd>{measurementCount > 0 ? `${measurementCount} กลุ่ม` : 'ยังไม่มี'}</dd></div>
+            <div><dt>ทิศทางการนับในแถว</dt><dd>{rowCountingDirectionLabels[detail.rowCountingDirection ?? 'TBD']}</dd></div>
           </dl>
           <p>{detail.currentCycle.notes || 'ไม่มีหมายเหตุ'}</p>
         </article>
@@ -194,18 +185,10 @@ export function TreeDetailPage() {
       {editor ? (
         <form className="tree-form" onSubmit={(event) => void submitEditor(event)}>
           <h2>{editor === 'EDIT' ? 'แก้รอบปลูกปัจจุบัน' : editor === 'REPLACE' ? `เพิ่มรอบปลูก ${detail.currentCycleNumber + 1}` : 'ยืนยันเก็บตำแหน่งถาวร'}</h2>
-          {editor !== 'ARCHIVE' ? (
-            <div className="form-grid">
-              <label>พันธุ์<input onChange={(event) => setVariety(event.target.value)} value={variety} /></label>
-              <label>ความมั่นใจ<select onChange={(event) => setVarietyConfidence(event.target.value as IdentityConfidence)} value={varietyConfidence}><option value="unknown">ไม่ทราบ</option><option value="estimated">ประมาณ</option><option value="confirmed">ยืนยันแล้ว</option></select></label>
-              <label>ปีปลูก<input inputMode="numeric" min="1" onChange={(event) => setPlantingYear(event.target.value)} type="number" value={plantingYear} /></label>
-              <label>ปฏิทิน<select disabled={!plantingYear} onChange={(event) => setPlantingYearCalendar(event.target.value as 'BE' | 'CE')} value={plantingYearCalendar}><option value="BE">พ.ศ. (BE)</option><option value="CE">ค.ศ. (CE)</option></select></label>
-              <label>ความมั่นใจปีปลูก<select disabled={!plantingYear} onChange={(event) => setPlantingYearConfidence(event.target.value as IdentityConfidence)} value={plantingYearConfidence}><option value="unknown">ไม่ทราบ</option><option value="estimated">ประมาณ</option><option value="confirmed">ยืนยันแล้ว</option></select></label>
-              <label>สถานะต้น<select onChange={(event) => setTreeStatus(event.target.value as TreeStatus)} value={treeStatus}>{Object.entries(treeStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-              {editor === 'REPLACE' ? <label>วันที่ Baseline<input onChange={(event) => setBaselineDate(event.target.value)} required type="date" value={baselineDate} /></label> : null}
-            </div>
-          ) : null}
-          {editor !== 'ARCHIVE' ? <label>หมายเหตุ<textarea onChange={(event) => setNotes(event.target.value)} rows={3} value={notes} /></label> : null}
+          {editor !== 'ARCHIVE' ? <TreeCycleFormFields
+            onChange={(patch) => setCycleForm((current) => ({ ...current, ...patch }))}
+            value={cycleForm}
+          /> : null}
           {editor !== 'EDIT' ? <label>เหตุผล<input onChange={(event) => setReason(event.target.value)} required value={reason} /></label> : null}
           {editor === 'REPLACE' ? <div className="form-warning">Tag <code>{detail.tagCode}</code> จะคงเดิม ระบบเพิ่มเฉพาะ Planting Cycle</div> : null}
           {editor === 'ARCHIVE' ? <div className="form-warning">การเก็บถาวรไม่ลบประวัติ และ Tag นี้จะไม่ถูกนำกลับมาใช้</div> : null}

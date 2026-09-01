@@ -11,6 +11,7 @@ import type {
   MembershipChangeInput,
   Phase6Adapters,
   PhoneOtpChallenge,
+  ProductionMockSeedResult,
   TreeRouteResolution,
 } from '../adapters/contracts'
 import { createRuntimeAdapters } from '../adapters/runtimeAdapters'
@@ -18,7 +19,14 @@ import { Phase2Context } from './usePhase2'
 import type {
   AuthenticatedIdentity,
   FarmAccess,
+  FarmArchiveReadiness,
+  FarmAuditEvent,
+  FarmManagementContext,
   FarmMember,
+  FarmMutationResult,
+  FarmProfile,
+  FarmProfileDraft,
+  FarmStatus,
   MembershipAuditEvent,
 } from '../domain/farm'
 import type {
@@ -100,6 +108,8 @@ export type QueueWorkPhotoBinaryBatchInput = Omit<
 
 export interface Phase2ContextValue {
   mode: Phase6Adapters['mode']
+  authMode: Phase6Adapters['authMode']
+  developmentAdminSignInAvailable: boolean
   identity: AuthenticatedIdentity | null | undefined
   farms: readonly FarmAccess[]
   currentFarm: FarmAccess | undefined
@@ -110,13 +120,34 @@ export interface Phase2ContextValue {
   pendingSwitchTarget: FarmAccess | undefined
   requestOtp: (phoneNumber: string) => Promise<void>
   verifyOtp: (code: string) => Promise<void>
+  cancelOtp: () => void
+  signInAsDevelopmentAdmin: () => Promise<void>
   signInWithMockAccount: (phoneNumber: string, otp: string) => Promise<void>
+  seedProductionMockData: () => Promise<ProductionMockSeedResult>
   signOut: () => Promise<void>
   requestFarmSwitch: (farmId: string) => void
   confirmFarmSwitch: () => void
   cancelFarmSwitch: () => void
   addDemoPendingOperation: () => void
   clearDemoPendingOperations: () => void
+  listFarmProfiles: () => Promise<readonly FarmProfile[]>
+  getFarmProfile: (farmId: string) => Promise<FarmProfile | undefined>
+  createFarm: (
+    idempotencyKey: string,
+    draft: FarmProfileDraft,
+  ) => Promise<FarmMutationResult>
+  updateFarmProfile: (
+    farmId: string,
+    idempotencyKey: string,
+    draft: FarmProfileDraft,
+  ) => Promise<FarmMutationResult>
+  getFarmArchiveReadiness: (farmId: string) => Promise<FarmArchiveReadiness>
+  changeFarmStatus: (
+    farmId: string,
+    idempotencyKey: string,
+    nextStatus: FarmStatus,
+  ) => Promise<FarmMutationResult>
+  listFarmAudit: (farmId: string) => Promise<readonly FarmAuditEvent[]>
   listFarmMembers: () => Promise<readonly FarmMember[]>
   changeFarmMembership: (
     input: Omit<MembershipChangeInput, 'actor' | 'organizationId' | 'farmId'>,
@@ -326,9 +357,11 @@ function chooseInitialFarm(farms: readonly FarmAccess[]): FarmAccess | undefined
 
 function ResolvedPhase2Provider({
   adapters,
+  activateDevelopmentAdmin,
   children,
 }: {
   adapters: Phase6Adapters
+  activateDevelopmentAdmin: () => Promise<void>
   children?: ReactNode
 }) {
   const [identity, setIdentity] = useState<AuthenticatedIdentity | null | undefined>()
@@ -381,6 +414,7 @@ function ResolvedPhase2Provider({
   const requestOtp = useCallback(
     async (phoneNumber: string) => {
       setAuthError(undefined)
+      setOtpChallenge(undefined)
       try {
         const challenge = await adapters.auth.requestOtp(
           phoneNumber,
@@ -413,9 +447,26 @@ function ResolvedPhase2Provider({
     [adapters.auth, otpChallenge],
   )
 
+  const cancelOtp = useCallback(() => {
+    adapters.auth.cancelOtp()
+    setAuthError(undefined)
+    setOtpChallenge(undefined)
+  }, [adapters.auth])
+
+  const signInAsDevelopmentAdmin = useCallback(async () => {
+    setAuthError(undefined)
+    setOtpChallenge(undefined)
+    try {
+      await activateDevelopmentAdmin()
+    } catch (error) {
+      setAuthError(readableError(error))
+      throw error
+    }
+  }, [activateDevelopmentAdmin])
+
   const signInWithMockAccount = useCallback(
     async (phoneNumber: string, code: string) => {
-      if (adapters.mode !== 'mock') {
+      if (adapters.authMode !== 'mock') {
         const error = new Error('การเข้าใช้แบบคลิกเดียวเปิดได้เฉพาะ Mock mode')
         setAuthError(error.message)
         throw error
@@ -433,7 +484,7 @@ function ResolvedPhase2Provider({
         throw error
       }
     },
-    [adapters.auth, adapters.mode],
+    [adapters.auth, adapters.authMode],
   )
 
   const signOut = useCallback(async () => {
@@ -447,6 +498,15 @@ function ResolvedPhase2Provider({
     }
     await adapters.auth.signOut()
   }, [adapters.auth, farms, identity])
+
+  const seedProductionMockData = useCallback(async () => {
+    if (!identity || !adapters.productionMockSeeder) {
+      throw new Error('ปุ่ม Seed ใช้ได้หลังยืนยัน Firebase Phone Auth ใน Production เท่านั้น')
+    }
+    const result = await adapters.productionMockSeeder.seed(identity)
+    await loadFarmAccess(identity)
+    return result
+  }, [adapters.productionMockSeeder, identity, loadFarmAccess])
 
   const applyFarmSwitch = useCallback((farm: FarmAccess) => {
     setCurrentFarmId(farm.farmId)
@@ -495,6 +555,108 @@ function ResolvedPhase2Provider({
     if (!identity || !currentFarm) throw new Error('ยังไม่มีผู้ใช้หรือสวนปัจจุบัน')
     return { identity, currentFarm }
   }, [currentFarm, identity])
+
+  const farmManagementContext = useCallback((): FarmManagementContext => {
+    const context = requireFarmAndIdentity()
+    return {
+      actor: context.identity,
+      organizationId: context.currentFarm.organizationId,
+      organizationCode: context.currentFarm.organizationCode,
+      isOrganizationOwner: context.currentFarm.isOrganizationOwner,
+    }
+  }, [requireFarmAndIdentity])
+
+  const listFarmProfiles = useCallback(async () => {
+    return adapters.repository.listFarmProfiles(farmManagementContext())
+  }, [adapters.repository, farmManagementContext])
+
+  const getFarmProfile = useCallback(async (farmId: string) => {
+    return adapters.repository.getFarmProfile(farmManagementContext(), farmId)
+  }, [adapters.repository, farmManagementContext])
+
+  const createFarm = useCallback(async (
+    idempotencyKey: string,
+    draft: FarmProfileDraft,
+  ) => {
+    const context = farmManagementContext()
+    const result = await adapters.repository.createFarm({
+      context,
+      idempotencyKey,
+      draft,
+    })
+    await loadFarmAccess(context.actor)
+    return result
+  }, [adapters.repository, farmManagementContext, loadFarmAccess])
+
+  const updateFarmProfile = useCallback(async (
+    farmId: string,
+    idempotencyKey: string,
+    draft: FarmProfileDraft,
+  ) => {
+    const context = farmManagementContext()
+    const result = await adapters.repository.updateFarmProfile({
+      context,
+      farmId,
+      idempotencyKey,
+      draft,
+    })
+    await loadFarmAccess(context.actor)
+    return result
+  }, [adapters.repository, farmManagementContext, loadFarmAccess])
+
+  const getFarmArchiveReadiness = useCallback(async (farmId: string) => {
+    const readiness = await adapters.repository.getFarmArchiveReadiness(
+      farmManagementContext(),
+      farmId,
+    )
+    const persistedIds = new Set(
+      readiness.pendingOperations.map((operation) => operation.recordId),
+    )
+    const localPending = pendingOperations
+      .filter(
+        (operation) => operation.farmId === farmId && !persistedIds.has(operation.operationId),
+      )
+      .map((operation) => ({
+        kind: 'PENDING_OPERATION' as const,
+        recordId: operation.operationId,
+        label: operation.label,
+        status: 'PENDING_LOCAL',
+      }))
+    const pending = [...readiness.pendingOperations, ...localPending]
+    return {
+      ...readiness,
+      pendingOperations: pending,
+      canArchive: readiness.openWorkOrders.length === 0 && pending.length === 0,
+    }
+  }, [adapters.repository, farmManagementContext, pendingOperations])
+
+  const changeFarmStatus = useCallback(async (
+    farmId: string,
+    idempotencyKey: string,
+    nextStatus: FarmStatus,
+  ) => {
+    const context = farmManagementContext()
+    const result = await adapters.repository.changeFarmStatus({
+      context,
+      farmId,
+      idempotencyKey,
+      nextStatus,
+      knownPendingOperationIds: pendingOperations
+        .filter((operation) => operation.farmId === farmId)
+        .map((operation) => operation.operationId),
+    })
+    await loadFarmAccess(context.actor)
+    return result
+  }, [
+    adapters.repository,
+    farmManagementContext,
+    loadFarmAccess,
+    pendingOperations,
+  ])
+
+  const listFarmAudit = useCallback(async (farmId: string) => {
+    return adapters.repository.listFarmAudit(farmManagementContext(), farmId)
+  }, [adapters.repository, farmManagementContext])
 
   const listFarmMembers = useCallback(async () => {
     const context = requireFarmAndIdentity()
@@ -1099,6 +1261,8 @@ function ResolvedPhase2Provider({
   const value = useMemo<Phase2ContextValue>(
     () => ({
       mode: adapters.mode,
+      authMode: adapters.authMode,
+      developmentAdminSignInAvailable: import.meta.env.DEV,
       identity,
       farms,
       currentFarm,
@@ -1109,13 +1273,23 @@ function ResolvedPhase2Provider({
       pendingSwitchTarget,
       requestOtp,
       verifyOtp,
+      cancelOtp,
+      signInAsDevelopmentAdmin,
       signInWithMockAccount,
+      seedProductionMockData,
       signOut,
       requestFarmSwitch,
       confirmFarmSwitch,
       cancelFarmSwitch,
       addDemoPendingOperation,
       clearDemoPendingOperations,
+      listFarmProfiles,
+      getFarmProfile,
+      createFarm,
+      updateFarmProfile,
+      getFarmArchiveReadiness,
+      changeFarmStatus,
+      listFarmAudit,
       listFarmMembers,
       changeFarmMembership,
       listMembershipAudit,
@@ -1185,17 +1359,25 @@ function ResolvedPhase2Provider({
     }),
     [
       adapters.mode,
+      adapters.authMode,
       addDemoPendingOperation,
       authError,
       cancelFarmSwitch,
+      cancelOtp,
       changeFarmMembership,
+      changeFarmStatus,
       clearDemoPendingOperations,
       confirmFarmSwitch,
+      createFarm,
       currentFarm,
       farms,
       farmsLoading,
+      getFarmArchiveReadiness,
+      getFarmProfile,
       identity,
+      listFarmAudit,
       listFarmMembers,
+      listFarmProfiles,
       listMembershipAudit,
       listTreePositions,
       getTreePosition,
@@ -1265,8 +1447,11 @@ function ResolvedPhase2Provider({
       pendingSwitchTarget,
       requestFarmSwitch,
       requestOtp,
+      seedProductionMockData,
+      signInAsDevelopmentAdmin,
       signInWithMockAccount,
       signOut,
+      updateFarmProfile,
       verifyOtp,
     ],
   )
@@ -1281,6 +1466,46 @@ function ResolvedPhase2Provider({
 export function Phase2Provider({ children }: { children?: ReactNode }) {
   const [adapters, setAdapters] = useState<Phase6Adapters>()
   const [adapterError, setAdapterError] = useState<string>()
+
+  const activateDevelopmentAdmin = useCallback(async () => {
+    if (!import.meta.env.DEV) {
+      throw new Error('ปุ่มผู้ดูแลแบบไม่ใช้ OTP เปิดได้เฉพาะเครื่องพัฒนา')
+    }
+
+    const [{ createMockPhase2Adapters }, { developmentAdminAccount }] =
+      await Promise.all([
+        import('../adapters/mock/mockFoundationAdapters'),
+        import('../demo/demoAccounts'),
+      ])
+    if (!developmentAdminAccount) {
+      throw new Error('ไม่พบบัญชีผู้ดูแลในชุดข้อมูลจำลอง')
+    }
+
+    const developmentAdapters = createMockPhase2Adapters()
+    const challenge = await developmentAdapters.auth.requestOtp(
+      developmentAdminAccount.phoneNumber,
+      'firebase-recaptcha-container',
+    )
+    const identity = await developmentAdapters.auth.verifyOtp(
+      challenge,
+      developmentAdminAccount.otp,
+    )
+    const farmAccess = await developmentAdapters.repository.listFarmAccess(
+      identity.userId,
+    )
+    const hasMaximumMockAccess = farmAccess.some(
+      (farm) =>
+        farm.farmStatus === 'ACTIVE' &&
+        farm.role === 'ORG_OWNER' &&
+        farm.isOrganizationOwner,
+    )
+    if (!hasMaximumMockAccess) {
+      throw new Error('บัญชีผู้ดูแลจำลองไม่มีสิทธิ์ ORG_OWNER ในสวนที่ใช้งาน')
+    }
+
+    setAdapterError(undefined)
+    setAdapters(developmentAdapters)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -1299,19 +1524,29 @@ export function Phase2Provider({ children }: { children?: ReactNode }) {
   if (adapterError) {
     return (
       <main className="runtime-loading" role="alert">
-        <strong>เปิดชุดข้อมูลทดสอบไม่สำเร็จ</strong>
+        <strong>เชื่อมต่อ Smart Durian Farm ไม่สำเร็จ</strong>
         <span>{adapterError}</span>
+        <button className="primary-action" onClick={() => window.location.reload()} type="button">
+          โหลดใหม่
+        </button>
       </main>
     )
   }
   if (!adapters) {
     return (
       <main className="runtime-loading" aria-live="polite">
-        <strong>กำลังเตรียมข้อมูล SIMULATED/TEST ONLY</strong>
-        <span>ยังไม่มีการเชื่อมต่อ Production</span>
+        <strong>กำลังเชื่อม Firebase และตรวจการตั้งค่า</strong>
+        <span>หน้าจอนี้จะแสดงข้อผิดพลาดพร้อมวิธีลองใหม่แทนการแสดงจอขาว</span>
       </main>
     )
   }
 
-  return <ResolvedPhase2Provider adapters={adapters}>{children}</ResolvedPhase2Provider>
+  return (
+    <ResolvedPhase2Provider
+      activateDevelopmentAdmin={activateDevelopmentAdmin}
+      adapters={adapters}
+    >
+      {children}
+    </ResolvedPhase2Provider>
+  )
 }

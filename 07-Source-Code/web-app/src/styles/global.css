@@ -346,14 +346,23 @@ code {
   background: var(--color-warning-soft);
 }
 
-.mock-banner {
+.mock-banner,
+.operational-banner {
   margin: var(--space-3) 0 0;
   padding: 0.42rem var(--space-4);
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
   text-align: center;
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.mock-banner {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.operational-banner {
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
 }
 
 .app-main {
@@ -1244,7 +1253,8 @@ code {
     margin: 0;
   }
 
-  .mock-banner {
+  .mock-banner,
+  .operational-banner {
     grid-column: 1 / -1;
     margin: 0 calc(var(--space-6) * -1) calc(var(--space-4) * -1);
   }
@@ -2358,8 +2368,9 @@ code {
   }
 }
 
-/* Phase 3 — Tree Register, CSV and QR confirmation */
+/* Phase 3 — Tree Register, spreadsheet import and QR confirmation */
 .field-validation-banner,
+.operational-data-banner,
 .import-safety,
 .success-notice,
 .form-warning,
@@ -2376,6 +2387,12 @@ code {
   color: var(--color-warning);
   background: var(--color-warning-soft);
   border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+}
+
+.operational-data-banner {
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .success-notice {
@@ -2413,6 +2430,7 @@ code {
 .tree-form,
 .import-source,
 .import-preview,
+.template-panel,
 .manual-scan,
 .damaged-tag-panel,
 .cycle-history,
@@ -2463,14 +2481,17 @@ code {
 
 .tree-form,
 .import-source,
-.import-preview {
+.import-preview,
+.template-panel {
   display: grid;
   gap: var(--space-4);
 }
 
+
 .tree-form h2,
 .import-source h2,
 .import-preview h2,
+.template-panel h2,
 .manual-scan h2,
 .camera-panel h2,
 .cycle-history h2,
@@ -2478,6 +2499,20 @@ code {
 .damaged-tag-panel h2 {
   margin: 0;
   font-size: 1.05rem;
+}
+
+.template-panel p,
+.template-panel ol {
+  margin: 0;
+}
+
+.template-panel p,
+.template-panel li {
+  color: var(--color-muted);
+}
+
+.template-panel .secondary-action {
+  width: fit-content;
 }
 
 .tag-preview {

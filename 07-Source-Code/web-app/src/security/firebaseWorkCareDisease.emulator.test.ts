@@ -56,7 +56,7 @@ function preparedPhoto(label: string): PreparedWorkPhotoUpload {
 }
 
 function farmPath(farmId: string): string {
-  return `organizations/${organizationId}/farms/${farmId}`
+  return `durian-smartfarm/root/organizations/${organizationId}/farms/${farmId}`
 }
 
 function workPath(farmId: string, workOrderId = seededWorkId): string {
@@ -111,12 +111,12 @@ async function seed(): Promise<void> {
   await environment.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore() as unknown as Firestore
     const now = Timestamp.fromDate(new Date('2026-08-31T07:00:00.000Z'))
-    await setDoc(doc(firestore, 'organizations', organizationId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId), {
       organizationId, organizationName: 'องค์กร Phase 4 จำลอง',
       organizationCode: 'P4RULES', status: 'ACTIVE', updatedAt: now,
     })
     for (const userId of [ownerId, workerId, agronomistId]) {
-      await setDoc(doc(firestore, 'organizations', organizationId, 'members', userId), {
+      await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
         organizationId, userId, status: 'ACTIVE', isOwner: userId === ownerId,
         createdAt: now, updatedAt: now,
       })

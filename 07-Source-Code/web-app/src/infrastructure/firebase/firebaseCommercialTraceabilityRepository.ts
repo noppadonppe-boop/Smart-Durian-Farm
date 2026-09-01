@@ -50,6 +50,7 @@ import {
   type SalesLotDraft,
   type SalesLotRecord,
 } from '../../domain/commercialTraceability'
+import { rootDoc } from './firebaseDataRoot'
 
 const fixedTimeLabel = '31 ส.ค. 2569 · Local Emulator'
 
@@ -104,7 +105,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
   constructor(private readonly firestore: Firestore) {}
 
   private farmReference(context: CommercialMutationContext) {
-    return doc(
+    return rootDoc(
       this.firestore,
       'organizations', context.farm.organizationId,
       'farms', context.farm.farmId,

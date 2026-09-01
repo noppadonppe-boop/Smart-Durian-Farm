@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
+import { OrchardTargetSelector } from '../components/OrchardTargetSelector'
 import {
   canApproveCommercialCorrection,
   canManageCommercial,
@@ -24,6 +25,13 @@ import {
   type AiCaptureMethod,
   type DeterministicFruitCountResult,
 } from '../domain/fruitCountingFeasibility'
+import {
+  navigationIntentFromState,
+  positionIdsForAnchor,
+  selectionFromNavigationState,
+  selectionZoneCodes,
+} from '../domain/orchardLayout'
+import type { TreePositionSummary } from '../domain/treeRegister'
 import { PageHeader } from './PageHeader'
 
 function formText(form: FormData, name: string): string {
@@ -48,8 +56,10 @@ function formSignature(form: FormData): string {
 }
 
 export function ProductionPage() {
+  const location = useLocation()
   const {
     currentFarm,
+    listTreePositions,
     listCommercialSnapshot,
     createCropCycle,
     advanceCropCycleStage,
@@ -59,6 +69,7 @@ export function ProductionPage() {
     correctSalesLot,
   } = usePhase2()
   const [snapshot, setSnapshot] = useState<CommercialSnapshot>()
+  const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string>()
@@ -71,6 +82,13 @@ export function ProductionPage() {
   const [aiCountResult, setAiCountResult] = useState<DeterministicFruitCountResult>()
   const [observedCount, setObservedCount] = useState('120')
   const [confidenceNote, setConfidenceNote] = useState('SIMULATED/TEST ONLY — ข้อมูลจำลองสำหรับทดสอบ workflow')
+  const [observationScopeKind, setObservationScopeKind] = useState<'TREE' | 'ZONE'>('ZONE')
+  const [observationPositionIds, setObservationPositionIds] = useState<readonly string[]>([])
+  const [harvestPositionIds, setHarvestPositionIds] = useState<readonly string[]>([])
+  const [formOpenOverride, setFormOpenOverride] = useState<{
+    observation: boolean
+    harvest: boolean
+  }>()
   const submissionLock = useRef(false)
   const idempotencyKeys = useRef(new Map<string, string>())
 
@@ -91,21 +109,46 @@ export function ProductionPage() {
     setLoading(true)
     setError(undefined)
     try {
-      const nextSnapshot = await listCommercialSnapshot()
+      const [nextSnapshot, nextPositions] = await Promise.all([
+        listCommercialSnapshot(),
+        listTreePositions(),
+      ])
+      const activePositions = nextPositions.filter((position) => position.positionStatus === 'ACTIVE')
+      const usablePositions = activePositions.filter((position) => position.currentCycle.treeStatus !== 'empty')
+      const requested = selectionFromNavigationState(location.state, currentFarm.farmId)
+        .filter((positionId) => usablePositions.some((position) => position.positionId === positionId))
+      const requestedIntent = navigationIntentFromState(location.state, currentFarm.farmId)
       setSnapshot(nextSnapshot)
+      setTrees(activePositions)
+      if (requested.length > 0 && requestedIntent !== 'HARVEST_LOT') setObservationScopeKind('TREE')
+      setObservationPositionIds((current) => {
+        if (requested.length > 0 && requestedIntent !== 'HARVEST_LOT') return requested
+        const retained = current.filter((positionId) => usablePositions.some((position) => position.positionId === positionId))
+        if (retained.length > 0) return retained
+        const anchor = usablePositions[0]
+        return anchor ? positionIdsForAnchor(usablePositions, anchor.positionId, 'ZONE') : []
+      })
+      setHarvestPositionIds((current) => {
+        if (requested.length > 0 && requestedIntent !== 'FRUIT_OBSERVATION') return requested
+        const retained = current.filter((positionId) => usablePositions.some((position) => position.positionId === positionId))
+        return retained.length > 0 ? retained : usablePositions[0] ? [usablePositions[0].positionId] : []
+      })
       setObservationStage(nextSnapshot.cropCycles.find((cycle) => cycle.status === 'ACTIVE')?.stage ?? 'MID_SEASON')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'อ่านข้อมูลผลผลิตไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
-  }, [currentFarm, listCommercialSnapshot])
+  }, [currentFarm, listCommercialSnapshot, listTreePositions, location.state])
 
   useEffect(() => {
     queueMicrotask(() => { void load() })
   }, [load])
 
   const activeCycle = snapshot?.cropCycles.find((cycle) => cycle.status === 'ACTIVE')
+  const navigationIntent = navigationIntentFromState(location.state, currentFarm?.farmId ?? '')
+  const observationFormOpen = formOpenOverride?.observation ?? navigationIntent !== 'HARVEST_LOT'
+  const harvestFormOpen = formOpenOverride?.harvest ?? navigationIntent === 'HARVEST_LOT'
   const availableHarvests = useMemo(() => snapshot?.harvestLots.filter((lot) =>
     lot.status !== 'ARCHIVED' && lot.totalWeightKg !== null && lot.totalWeightKg > lot.soldWeightKg,
   ) ?? [], [snapshot])
@@ -153,12 +196,14 @@ export function ProductionPage() {
     const submittedValueQuality = submittedCountingMode === 'AI_ASSISTED'
       ? 'ESTIMATED'
       : formText(form, 'valueQuality') as ValueQuality
-    void submit(() => createFruitObservation(idempotency('fruit', formSignature(form)), {
+    const zoneCodes = selectionZoneCodes(trees, observationPositionIds)
+    const signature = `${formSignature(form)}:${observationScopeKind}:${observationPositionIds.join(',')}`
+    void submit(() => createFruitObservation(idempotency('fruit', signature), {
       cropCycleId: formText(form, 'cropCycleId'),
       stage: formText(form, 'stage') as CropStage,
-      scopeKind: formText(form, 'scopeKind') as 'TREE' | 'ZONE',
-      positionIds: values(form, 'positionIds'),
-      zoneCodes: values(form, 'zoneCodes'),
+      scopeKind: observationScopeKind,
+      positionIds: observationPositionIds,
+      zoneCodes,
       countingMode: submittedCountingMode,
       sourceCountSessionId: submittedCountingMode === 'AI_ASSISTED'
         ? aiCountResult?.countSessionId ?? null
@@ -210,12 +255,14 @@ export function ProductionPage() {
   const onHarvest = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    void submit(() => createHarvestLot(idempotency('harvest', formSignature(form)), {
+    const zoneCodes = selectionZoneCodes(trees, harvestPositionIds)
+    const signature = `${formSignature(form)}:${harvestPositionIds.join(',')}`
+    void submit(() => createHarvestLot(idempotency('harvest', signature), {
       cropCycleId: formText(form, 'cropCycleId'),
       lotCode: formText(form, 'lotCode'),
       harvestedOn: formText(form, 'harvestedOn'),
-      positionIds: values(form, 'positionIds'),
-      zoneCodes: values(form, 'zoneCodes'),
+      positionIds: harvestPositionIds,
+      zoneCodes,
       quantityFruit: numberOrNull(form, 'quantityFruit'),
       totalWeightKg: numberOrNull(form, 'totalWeightKg'),
       valueQuality: formText(form, 'valueQuality') as ValueQuality,
@@ -336,12 +383,34 @@ export function ProductionPage() {
             <label>วันที่คาดเก็บเกี่ยว<input name="expectedHarvestDate" type="date" /></label>
             <button className="primary-action" disabled={submitting} type="submit">สร้างรอบจำลอง</button>
           </form></details>
-          <details open><summary>+ บันทึกจำนวนผล</summary><form className="commercial-form" onSubmit={onObservation}>
+          <details id="fruit-observation-form" onToggle={(event) => {
+            const open = event.currentTarget.open
+            setFormOpenOverride((current) => ({ observation: open, harvest: current?.harvest ?? harvestFormOpen }))
+          }} open={observationFormOpen}><summary>+ บันทึกจำนวนผล</summary><form className="commercial-form" onSubmit={onObservation}>
             <label>Crop Cycle<select name="cropCycleId" defaultValue={activeCycle?.cropCycleId}>{snapshot.cropCycles.filter((item) => item.status === 'ACTIVE').map((cycle) => <option key={cycle.cropCycleId} value={cycle.cropCycleId}>{cycle.cycleCode}</option>)}</select></label>
             <label>Stage<select name="stage" value={observationStage} onChange={(event) => onObservationStageChange(event.target.value as CropStage)}>{cropStages.map((stage) => <option key={stage} value={stage}>{cropStageLabels[stage]}</option>)}</select></label>
-            <label>ขอบเขต<select name="scopeKind" defaultValue="ZONE"><option value="ZONE">ระดับโซน</option><option value="TREE">รายต้น</option></select></label>
-            <label>Zone<input name="zoneCodes" defaultValue="Z01" /></label>
-            <label>Opaque Position IDs (คั่นด้วย comma)<input name="positionIds" placeholder="ใช้เมื่อเลือกขอบเขตรายต้น" /></label>
+            <label>ขอบเขต<select value={observationScopeKind} onChange={(event) => {
+              const next = event.target.value as 'TREE' | 'ZONE'
+              setObservationScopeKind(next)
+              const anchorId = observationPositionIds[0] ?? trees.find((tree) => tree.currentCycle.treeStatus !== 'empty')?.positionId
+              if (!anchorId) return
+              setObservationPositionIds(positionIdsForAnchor(
+                trees,
+                anchorId,
+                next === 'ZONE' ? 'ZONE' : 'SINGLE',
+                (tree) => tree.currentCycle.treeStatus !== 'empty',
+              ))
+            }}><option value="ZONE">ระดับโซน</option><option value="TREE">รายต้น/ชุดต้น</option></select></label>
+            <div className="span-full">{currentFarm ? <OrchardTargetSelector
+              defaultView="CHECKLIST"
+              disabledReason={(tree) => tree.currentCycle.treeStatus === 'empty' ? 'ตำแหน่งไม่มีต้น จึงบันทึกจำนวนผลไม่ได้' : undefined}
+              farm={currentFarm}
+              onChange={setObservationPositionIds}
+              positions={trees}
+              selectedPositionIds={observationPositionIds}
+              selectionMode={observationScopeKind === 'ZONE' ? 'ZONE' : 'MULTIPLE'}
+              title="เลือกขอบเขตการสังเกตผล"
+            /> : null}</div>
             <label>วิธีได้มาของจำนวน<select name="countingMode" value={countingMode} onChange={(event) => onCountingModeChange(event.target.value as FruitCountingMode)}><option value="MANUAL">คนนับ</option><option value="AI_ASSISTED" disabled={observationStage === 'FLOWERING'}>AI ช่วยนับ + คนตรวจ</option></select></label>
             <label>คุณภาพค่า<select name="valueQuality" value={countingMode === 'AI_ASSISTED' ? 'ESTIMATED' : valueQuality} disabled={countingMode === 'AI_ASSISTED'} onChange={(event) => setValueQuality(event.target.value as ValueQuality)}><option value="MEASURED">วัดจริง</option><option value="ESTIMATED">ประมาณการ</option><option value="UNKNOWN">ยังไม่ทราบ</option></select></label>
             <label>ขอบเขตการนับ<select name="countMethod" value={countMethod} onChange={(event) => setCountMethod(event.target.value as CountMethod)}><option value="FULL_COUNT" disabled={countingMode === 'AI_ASSISTED'}>นับครบ</option><option value="SAMPLE">สุ่มตัวอย่าง</option><option value="ESTIMATE">ประมาณ</option><option value="UNKNOWN" disabled={countingMode === 'AI_ASSISTED'}>ยังไม่ทราบ</option></select></label>
@@ -366,12 +435,23 @@ export function ProductionPage() {
         </section> : null}
 
         {canManageCommercial(currentFarm.role) ? <section className="commercial-form-stack" aria-label="ฟอร์ม Harvest และ Sales">
-          <details><summary>+ สร้าง Harvest Lot</summary><form className="commercial-form" onSubmit={onHarvest}>
+          <details id="harvest-lot-form" onToggle={(event) => {
+            const open = event.currentTarget.open
+            setFormOpenOverride((current) => ({ observation: current?.observation ?? observationFormOpen, harvest: open }))
+          }} open={harvestFormOpen}><summary>+ สร้าง Harvest Lot</summary><form className="commercial-form" onSubmit={onHarvest}>
             <label>Crop Cycle<select name="cropCycleId" defaultValue={activeCycle?.cropCycleId}>{snapshot.cropCycles.filter((item) => item.status === 'ACTIVE').map((cycle) => <option key={cycle.cropCycleId} value={cycle.cropCycleId}>{cycle.cycleCode}</option>)}</select></label>
             <label>รหัส Harvest Lot<input name="lotCode" required defaultValue={`H-${currentFarm.farmCode}-DEMO-02`} /></label>
             <label>วันที่เก็บเกี่ยว<input name="harvestedOn" type="date" required defaultValue="2026-08-31" /></label>
-            <label>Zone<input name="zoneCodes" defaultValue="Z01" /></label>
-            <label className="span-full">Opaque Position IDs<input name="positionIds" defaultValue="pos_demo_a01f783bc219" /></label>
+            <div className="span-full">{currentFarm ? <OrchardTargetSelector
+              defaultView="CHECKLIST"
+              disabledReason={(tree) => tree.currentCycle.treeStatus === 'empty' ? 'ตำแหน่งไม่มีต้น จึงใช้เป็นแหล่งเก็บเกี่ยวไม่ได้' : undefined}
+              farm={currentFarm}
+              onChange={setHarvestPositionIds}
+              positions={trees}
+              selectedPositionIds={harvestPositionIds}
+              selectionMode="MULTIPLE"
+              title="เลือกต้นหรือพื้นที่ต้นทางของ Harvest Lot"
+            /> : null}</div>
             <label>จำนวนผล<input name="quantityFruit" type="number" min="0" defaultValue="40" /></label>
             <label>น้ำหนัก kg<input name="totalWeightKg" type="number" min="0" step="0.001" defaultValue="100" /></label>
             <label>คุณภาพค่า<select name="valueQuality" defaultValue="MEASURED"><option value="MEASURED">วัดจริง</option><option value="ESTIMATED">ประมาณการ</option><option value="UNKNOWN">ยังไม่ทราบ</option></select></label>

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 
+import { createTreeRegisterTemplateFile } from '../services/treeRegisterSpreadsheet'
 import { routes } from './router'
 
 function renderApp(initialEntry = '/') {
@@ -29,15 +30,20 @@ async function signIn(
 }
 
 describe('Smart Durian local mock app', () => {
-  it('opens the complete mock demo with one click and no Firebase setup', async () => {
+  it('signs in as the development administrator with one click and no OTP', async () => {
     renderApp()
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'เปิดแอปสาธิตทันที' }))
+    await user.click(await screen.findByRole('button', { name: 'เข้าสู่ระบบโดยผู้ดูแล' }))
 
     expect(await screen.findByRole('heading', { name: 'ภาพรวมสวนที่เปิดอยู่' })).toBeInTheDocument()
     expect(screen.getAllByText('สวนสาธิตเหนือ — ข้อมูลจำลอง').length).toBeGreaterThan(0)
     expect(screen.getByText(/Mock offline adapter/u)).toBeInTheDocument()
+    expect(screen.queryByLabelText('รหัส OTP 6 หลัก')).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('complementary', { name: 'เมนูหลักบนจอใหญ่' }))
+        .getByText(/เจ้าขององค์กร/u),
+    ).toBeInTheDocument()
   })
 
   it('signs in with a test OTP and shows trusted farm context', async () => {
@@ -51,6 +57,23 @@ describe('Smart Durian local mock app', () => {
     ).toBeInTheDocument()
   })
 
+  it('applies explicit dark and light theme tokens while retaining system mode', async () => {
+    renderApp()
+    const user = await signIn()
+    const themeButton = screen.getByRole('button', { name: /ธีมปัจจุบัน/u })
+
+    expect(document.documentElement.dataset.theme).toBe('system')
+    expect(document.documentElement.style.colorScheme).toBe('light dark')
+
+    await user.click(themeButton)
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(document.documentElement.style.colorScheme).toBe('dark')
+
+    await user.click(themeButton)
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(document.documentElement.style.colorScheme).toBe('light')
+  })
+
   it('navigates between main routes', async () => {
     renderApp()
     const user = await signIn()
@@ -58,7 +81,7 @@ describe('Smart Durian local mock app', () => {
     const workLinks = screen.getAllByRole('link', { name: /งาน/u })
     await user.click(workLinks[workLinks.length - 1]!)
 
-    expect(screen.getByRole('heading', { name: 'งานในสวนปัจจุบัน', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'งานในสวนปัจจุบัน', level: 1 })).toBeInTheDocument()
   })
 
   it('keeps the user manual at the bottom of the desktop sidebar and opens it for every role', async () => {
@@ -97,6 +120,63 @@ describe('Smart Durian local mock app', () => {
     await user.click(tree)
     expect(await screen.findByRole('heading', { name: 'DEMO-F01-Z01-R01-T001' })).toBeInTheDocument()
     expect(screen.getByText(/QR permanent route/u)).toBeInTheDocument()
+  })
+
+  it('selects a farm-scoped tree from the structural orchard plan and carries it to Work creation', async () => {
+    renderApp('/orchard-layout')
+    const user = await signIn()
+
+    expect(await screen.findByRole('heading', { name: 'แปลนสวนและเลือกตำแหน่ง' })).toBeInTheDocument()
+    expect(screen.getByText(/แถวเรียงซ้ายไปขวา/u)).toBeInTheDocument()
+    expect(screen.queryByText('DEMO-F02-Z01-R01-T001')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Z01' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Z02' })).toBeInTheDocument()
+    expect(screen.getByText('สร้างงานทั่วไป')).toBeInTheDocument()
+    expect(screen.getByText('สร้างงานดูแล')).toBeInTheDocument()
+    expect(screen.getByText('รายงานอาการ/โรค')).toBeInTheDocument()
+    expect(screen.getByText('บันทึกจำนวนผล')).toBeInTheDocument()
+    expect(screen.getByText('สร้าง Harvest Lot')).toBeInTheDocument()
+
+    const position = screen.getByRole('button', { name: /DEMO-F01-Z01-R01-T001/u })
+    await user.click(position)
+    expect(position).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('link', { name: /สร้างงานดูแล/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /รายงานอาการ\/โรค/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /บันทึกจำนวนผล/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /สร้าง Harvest Lot/u })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /ตารางติ๊กเลือก/u }))
+    expect(screen.getByRole('checkbox', { name: /DEMO-F01-Z01-R01-T001/u })).toBeChecked()
+    await user.click(screen.getByRole('link', { name: /สร้างงานทั่วไป/u }))
+
+    expect(await screen.findByRole('heading', { name: 'สร้าง Work Order จำลอง' })).toBeInTheDocument()
+    expect(await screen.findByText('เลือกแล้ว 1 ตำแหน่ง')).toBeInTheDocument()
+    expect(screen.getByLabelText('Category')).toHaveValue('GENERAL')
+  })
+
+  it('downloads an Excel template and previews an Excel/Google Sheets file before import', async () => {
+    renderApp('/trees')
+    const user = await signIn()
+
+    expect(await screen.findByRole('button', { name: 'ดาวน์โหลดแม่แบบ Excel ภาษาไทย' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'นำเข้า Excel / Google Sheets / CSV' }))
+    expect(await screen.findByRole('heading', { name: 'ตรวจและนำเข้าทะเบียนต้น' })).toBeInTheDocument()
+    expect(screen.getByText(/ไม่มีการเชื่อม Google API/u)).toBeInTheDocument()
+
+    const template = createTreeRegisterTemplateFile({
+      farmCode: 'DEMO-F01',
+      organizationCode: 'DEMO',
+      farmSequence: 'F01',
+    })
+    const file = new File(
+      [await template.blob.arrayBuffer()],
+      template.fileName,
+      { type: template.blob.type },
+    )
+    await user.upload(screen.getByLabelText('ไฟล์ Excel (.xlsx) หรือ CSV (.csv)'), file)
+    expect(await screen.findByText(/Excel · ชีต ทะเบียนตำแหน่ง/u)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'ตรวจตัวอย่างและข้อมูลซ้ำ' }))
+    expect(await screen.findByText(/ยังไม่มีแถวข้อมูลภาคสนาม/u)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /ยืนยันนำเข้า 0 ตำแหน่ง/u })).toBeDisabled()
   })
 
   it('blocks a mismatched scan from becoming the expected position', async () => {
@@ -173,6 +253,51 @@ describe('Smart Durian local mock app', () => {
 
     expect(screen.queryByRole('link', { name: /สมาชิกและสิทธิ์/u })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /ประวัติ Audit/u })).not.toBeInTheDocument()
+  })
+
+  it('shows More → Farm Management only to ORG_OWNER and lists four deterministic profiles', async () => {
+    renderApp('/more')
+    const owner = await signIn()
+
+    await owner.click(screen.getByRole('link', { name: /จัดการสวน/u }))
+    expect(await screen.findByRole('heading', { name: 'จัดการสวน' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /DEMO-F01/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /DEMO-F02/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /DEMO-F03/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /DEMO-F04/u })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'เพิ่มสวน' })).toBeInTheDocument()
+  })
+
+  it('creates a Farm with a derived code and never exposes a hard-delete action', async () => {
+    renderApp('/farm-management/new')
+    const owner = await signIn()
+
+    await owner.type(screen.getByLabelText('ชื่อสวน'), 'สวนใหม่จำลอง')
+    await owner.type(screen.getByLabelText('Farm Sequence'), 'F05')
+    expect(screen.getByText('DEMO-F05')).toBeInTheDocument()
+    await owner.click(screen.getByRole('button', { name: 'สร้างสวนจำลอง' }))
+
+    expect(await screen.findByRole('heading', { name: 'สวนใหม่จำลอง' })).toBeInTheDocument()
+    expect(screen.getByText(/Farm \+ Owner membership \+ Audit แบบ atomic/u)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /ลบสวนถาวร|Hard delete/u })).not.toBeInTheDocument()
+  })
+
+  it('keeps a member Farm Profile read-only and blocks Archive while open/Pending work exists', async () => {
+    renderApp('/more')
+    const worker = await signIn('+16505550102', '222222')
+    expect(screen.queryByRole('link', { name: /จัดการสวน/u })).not.toBeInTheDocument()
+    await worker.click(screen.getByRole('link', { name: /ข้อมูลสวน/u }))
+    expect(await screen.findByText(/บทบาทนี้แก้ไขไม่ได้/u)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'บันทึก Farm Profile' })).not.toBeInTheDocument()
+
+    await worker.click(screen.getByRole('button', { name: 'ออกจากระบบ' }))
+    const owner = await signIn()
+    const router = screen.getByRole('link', { name: 'รายการสวน' })
+    await owner.click(router)
+    await owner.click(await screen.findByRole('link', { name: /DEMO-F01/u }))
+    await owner.click(await screen.findByRole('button', { name: 'ตรวจรายการก่อนเก็บถาวร' }))
+    expect(await screen.findByRole('heading', { name: 'ตรวจผลกระทบก่อนเก็บถาวร' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ยืนยันเก็บถาวร' })).toBeDisabled()
   })
 
   it('creates and assigns a Work Order with an instruction photo', async () => {
@@ -271,7 +396,7 @@ describe('Smart Durian local mock app', () => {
     const agronomist = await signIn('+16505550105', '555555')
 
     expect(await screen.findByRole('heading', { name: 'ศูนย์วิเคราะห์โรคจำลอง', level: 1 })).toBeInTheDocument()
-    await agronomist.click(screen.getByRole('button', { name: 'บันทึก Human Review' }))
+    await agronomist.click(screen.getAllByRole('button', { name: 'บันทึก Human Review' }).at(0)!)
 
     expect(await screen.findByText(/บันทึก Human Review แล้ว/u)).toBeInTheDocument()
     expect(screen.getByText(/ยังไม่ใช่ confirmed diagnosis/u)).toBeInTheDocument()
@@ -290,10 +415,10 @@ describe('Smart Durian local mock app', () => {
     expect(await screen.findByText(/START_UPLOAD/u)).toBeInTheDocument()
     await agronomist.click(screen.getByRole('button', { name: 'จำลองล้มเหลว' }))
     expect(await screen.findByText(/mock upload failure/u)).toBeInTheDocument()
-    await agronomist.click(screen.getByRole('button', { name: 'Retry จำลอง' }))
+    await agronomist.click(screen.getAllByRole('button', { name: 'Retry จำลอง' }).at(-1)!)
     await agronomist.click(await screen.findByRole('button', { name: 'จำลองสำเร็จ' }))
     expect(await screen.findByText('Uploaded')).toBeInTheDocument()
-    expect(screen.getByText(/EXIF\/GPS: ไม่มี/u)).toBeInTheDocument()
+    expect(screen.getAllByText(/EXIF\/GPS: ไม่มี/u).length).toBeGreaterThan(0)
   })
 
   it('runs one-click Disease photo to Treatment Work Order and shows the reverse link', async () => {

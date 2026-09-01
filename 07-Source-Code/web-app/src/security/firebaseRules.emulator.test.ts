@@ -8,6 +8,7 @@ import {
 } from '@firebase/rules-unit-testing'
 import {
   doc,
+  deleteDoc,
   getDoc,
   serverTimestamp,
   setDoc,
@@ -36,7 +37,7 @@ const users = {
 let environment: RulesTestEnvironment
 
 function farmDocumentPath(farmId: string): string {
-  return `organizations/${organizationId}/farms/${farmId}`
+  return `durian-smartfarm/root/organizations/${organizationId}/farms/${farmId}`
 }
 
 function memberDocumentPath(farmId: string, userId: string): string {
@@ -63,7 +64,7 @@ async function seedFirestore(): Promise<void> {
   await environment.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore()
     const now = Timestamp.fromDate(new Date('2026-08-31T05:00:00.000Z'))
-    await setDoc(doc(firestore, 'organizations', organizationId), {
+    await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId), {
       organizationId,
       organizationName: 'องค์กรทดสอบ Rules — ข้อมูลจำลอง',
       organizationCode: 'RULES',
@@ -71,7 +72,7 @@ async function seedFirestore(): Promise<void> {
     })
 
     for (const [label, userId] of Object.entries(users)) {
-      await setDoc(doc(firestore, 'organizations', organizationId, 'members', userId), {
+      await setDoc(doc(firestore, 'durian-smartfarm', 'root', 'organizations', organizationId, 'members', userId), {
         organizationId,
         userId,
         status: label === 'revoked' ? 'REVOKED' : 'ACTIVE',
@@ -325,6 +326,53 @@ describe('Firestore tenant isolation', () => {
         updatedAt: serverTimestamp(),
       }),
     )
+  })
+
+  it('allows Farm Profile read only with membership and denies Cross-Farm disclosure', async () => {
+    const worker = authenticatedFirestore(users.worker)
+    await assertSucceeds(getDoc(doc(worker, farmDocumentPath(farmA))))
+    await assertFails(getDoc(doc(worker, farmDocumentPath(farmB))))
+  })
+
+  it('denies direct Farm mutation without matching operation/Audit and denies hard delete', async () => {
+    const owner = authenticatedFirestore(users.owner)
+    await assertFails(updateDoc(doc(owner, farmDocumentPath(farmA)), {
+      farmName: 'พยายามแก้โดยไม่มี Audit',
+      version: 2,
+      updatedAt: serverTimestamp(),
+    }))
+    await assertFails(deleteDoc(doc(owner, farmDocumentPath(farmA))))
+  })
+
+  it('denies a forged Farm create that omits atomic Owner membership and uniqueness guard', async () => {
+    const owner = authenticatedFirestore(users.owner)
+    await assertFails(setDoc(doc(owner, farmDocumentPath('farm_forged_1234567890abcdef')), {
+      recordType: 'FARM_PROFILE',
+      organizationId,
+      farmId: 'farm_forged_1234567890abcdef',
+      farmName: 'สวนปลอมจำลอง',
+      farmSequence: 'F09',
+      farmCode: 'RULES-F09',
+      province: 'TBD',
+      district: 'TBD',
+      subdistrict: 'TBD',
+      locationNote: 'SIMULATED/TEST ONLY',
+      timezone: 'Asia/Bangkok',
+      seasonStartMonth: null,
+      seasonEndMonth: null,
+      seasonNote: 'TBD',
+      status: 'ACTIVE',
+      notes: 'SIMULATED/TEST ONLY',
+      version: 1,
+      createdBy: users.owner,
+      updatedBy: users.owner,
+      classification: 'SIMULATED/TEST ONLY',
+      exampleData: true,
+      lastAuditEventId: 'missing-audit',
+      lastOperationId: 'missing-operation',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }))
   })
 })
 

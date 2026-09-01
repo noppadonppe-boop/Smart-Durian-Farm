@@ -25,13 +25,19 @@ import {
   generateTagCode,
   identityConfidences,
   isOpaquePositionId,
+  measurementConfidences,
   normalizeTagCode,
   positionStatuses,
+  rowCountingDirections,
   treeStatuses,
+  validateTreeCycleInput,
   type IdentityConfidence,
+  type MeasurementConfidence,
   type PlantingCycleRecord,
   type PositionStatus,
   type ReplacePlantingCycleInput,
+  type RowCountingDirection,
+  type TreeBaselineMeasurements,
   type TreeImportCandidate,
   type TreeImportResult,
   type TreeMutationContext,
@@ -42,6 +48,7 @@ import {
   type TreeTimelineEvent,
   type UpdatePlantingCycleInput,
 } from '../../domain/treeRegister'
+import { rootCollection, rootDoc } from './firebaseDataRoot'
 
 const damagedReportRoles: readonly CanonicalRole[] = [
   'ORG_OWNER',
@@ -82,6 +89,83 @@ function optionalYear(value: unknown): number | null {
   return value
 }
 
+function optionalString(value: unknown, field: string): string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'string') throw new Error(`Invalid ${field}`)
+  return value
+}
+
+function requiredFiniteNumber(data: DocumentData, field: string): number {
+  const value: unknown = data[field]
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`Invalid Tree Register number: ${field}`)
+  }
+  return value
+}
+
+function measurementConfidence(value: unknown, field: string): MeasurementConfidence {
+  if (!measurementConfidences.includes(value as MeasurementConfidence)) {
+    throw new Error(`Invalid measurement confidence: ${field}`)
+  }
+  return value as MeasurementConfidence
+}
+
+function baselineMeasurementsFromData(value: unknown): TreeBaselineMeasurements {
+  if (value === undefined || value === null) {
+    return { gps: null, trunk: null, canopy: null, height: null }
+  }
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Invalid baselineMeasurements')
+  }
+  const data = value as DocumentData
+  const gps = data.gps as DocumentData | null | undefined
+  const trunk = data.trunk as DocumentData | null | undefined
+  const canopy = data.canopy as DocumentData | null | undefined
+  const height = data.height as DocumentData | null | undefined
+  return {
+    gps: gps ? {
+      latitude: requiredFiniteNumber(gps, 'latitude'),
+      longitude: requiredFiniteNumber(gps, 'longitude'),
+      accuracyM: requiredFiniteNumber(gps, 'accuracyM'),
+      method: requiredString(gps, 'method'),
+      measuredAt: requiredString(gps, 'measuredAt'),
+      measuredBy: requiredString(gps, 'measuredBy'),
+      confidence: measurementConfidence(gps.confidence, 'gps'),
+      source: requiredString(gps, 'source'),
+    } : null,
+    trunk: trunk ? {
+      type: requiredString(trunk, 'type') as 'circumference' | 'diameter',
+      value: requiredFiniteNumber(trunk, 'value'),
+      unit: requiredString(trunk, 'unit') as 'cm',
+      heightCm: requiredFiniteNumber(trunk, 'heightCm'),
+      method: requiredString(trunk, 'method'),
+      measuredAt: requiredString(trunk, 'measuredAt'),
+      measuredBy: requiredString(trunk, 'measuredBy'),
+      confidence: measurementConfidence(trunk.confidence, 'trunk'),
+      source: requiredString(trunk, 'source'),
+    } : null,
+    canopy: canopy ? {
+      widthNS: requiredFiniteNumber(canopy, 'widthNS'),
+      widthEW: requiredFiniteNumber(canopy, 'widthEW'),
+      unit: requiredString(canopy, 'unit') as 'm',
+      method: requiredString(canopy, 'method'),
+      measuredAt: requiredString(canopy, 'measuredAt'),
+      measuredBy: requiredString(canopy, 'measuredBy'),
+      confidence: measurementConfidence(canopy.confidence, 'canopy'),
+      source: requiredString(canopy, 'source'),
+    } : null,
+    height: height ? {
+      value: requiredFiniteNumber(height, 'value'),
+      unit: requiredString(height, 'unit') as 'm',
+      method: requiredString(height, 'method'),
+      measuredAt: requiredString(height, 'measuredAt'),
+      measuredBy: requiredString(height, 'measuredBy'),
+      confidence: measurementConfidence(height.confidence, 'height'),
+      source: requiredString(height, 'source'),
+    } : null,
+  }
+}
+
 function cycleFromData(data: DocumentData): PlantingCycleRecord {
   const varietyConfidence: unknown = data.varietyConfidence
   const plantingYearConfidence: unknown = data.plantingYearConfidence
@@ -97,7 +181,7 @@ function cycleFromData(data: DocumentData): PlantingCycleRecord {
   }
   const variety: unknown = data.variety
   if (variety !== null && typeof variety !== 'string') throw new Error('Invalid variety')
-  return {
+  const result: PlantingCycleRecord = {
     cycleId: requiredString(data, 'cycleId'),
     cycleNumber: requiredInteger(data, 'cycleNumber'),
     variety,
@@ -105,8 +189,10 @@ function cycleFromData(data: DocumentData): PlantingCycleRecord {
     plantingYear: optionalYear(data.plantingYear),
     plantingYearCalendar: calendar,
     plantingYearConfidence: plantingYearConfidence as IdentityConfidence,
+    plantSource: optionalString(data.plantSource, 'plantSource'),
     treeStatus: treeStatus as TreeStatus,
     baselineDate: requiredString(data, 'baselineDate'),
+    baselineMeasurements: baselineMeasurementsFromData(data.baselineMeasurements),
     notes: typeof data.notes === 'string' ? data.notes : '',
     startedAtLabel: timestampLabel(data.startedAt, 'รอเวลา Emulator'),
     endedAtLabel: data.endedAt === null
@@ -114,6 +200,8 @@ function cycleFromData(data: DocumentData): PlantingCycleRecord {
       : timestampLabel(data.endedAt, 'รอเวลา Emulator'),
     version: requiredInteger(data, 'version'),
   }
+  validateTreeCycleInput(result)
+  return result
 }
 
 function eventFromData(data: DocumentData): TreeTimelineEvent {
@@ -151,7 +239,7 @@ function treePositionReference(
   context: TreeMutationContext,
   positionId: string,
 ): DocumentReference {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -168,6 +256,7 @@ function cycleData(
   cycleNumber: number,
   actorUserId: string,
   baselineDate: string,
+  exampleData: boolean,
   version = 1,
 ) {
   return {
@@ -179,8 +268,10 @@ function cycleData(
     plantingYear: draft.plantingYear,
     plantingYearCalendar: draft.plantingYearCalendar,
     plantingYearConfidence: draft.plantingYearConfidence,
+    plantSource: draft.plantSource,
     treeStatus: draft.treeStatus,
     baselineDate,
+    baselineMeasurements: draft.baselineMeasurements,
     notes: draft.notes,
     startedAt: serverTimestamp(),
     endedAt: null,
@@ -188,7 +279,7 @@ function cycleData(
     createdBy: actorUserId,
     updatedBy: actorUserId,
     updatedAt: serverTimestamp(),
-    exampleData: true,
+    exampleData,
   }
 }
 
@@ -199,6 +290,7 @@ function eventData(
   positionId: string,
   description: string,
   positionVersion: number,
+  exampleData: boolean,
 ) {
   return {
     recordType: 'TREE_EVENT',
@@ -211,13 +303,16 @@ function eventData(
     actorDisplayName: context.actor.displayName,
     description,
     positionVersion,
-    exampleData: true,
+    exampleData,
     createdAt: serverTimestamp(),
   }
 }
 
 export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
-  constructor(private readonly firestore: Firestore) {}
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly exampleData = true,
+  ) {}
 
   async listTreePositions(
     organizationId: string,
@@ -225,7 +320,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
   ): Promise<readonly TreePositionSummary[]> {
     const snapshot = await getDocs(
       query(
-        collection(
+        rootCollection(
           this.firestore,
           'organizations',
           organizationId,
@@ -254,7 +349,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     farmId: string,
     positionId: string,
   ): Promise<TreePositionDetail | undefined> {
-    const reference = doc(
+    const reference = rootDoc(
       this.firestore,
       'organizations',
       organizationId,
@@ -286,7 +381,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
   ): Promise<TreeRouteResolution> {
     if (!isOpaquePositionId(positionId)) return { status: 'UNKNOWN' }
     try {
-      const route = await getDoc(doc(this.firestore, 'positionRoutes', positionId))
+      const route = await getDoc(rootDoc(this.firestore, 'positionRoutes', positionId))
       if (!route.exists()) return { status: 'UNKNOWN' }
       const data = route.data()
       const routeOrganizationId = requiredString(data, 'organizationId')
@@ -317,7 +412,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     tagCode: string,
   ): Promise<TreePositionDetail | undefined> {
     const normalized = normalizeTagCode(tagCode)
-    const tagDocument = await getDoc(doc(
+    const tagDocument = await getDoc(rootDoc(
       this.firestore,
       'organizations',
       organizationId,
@@ -339,6 +434,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     draft: TreePositionDraft,
   ): Promise<TreePositionDetail> {
     requireManager(context)
+    validateTreeCycleInput(draft)
     const tagCode = generateTagCode(draft)
     const tagReference = this.tagReference(context, tagCode)
     if ((await getDoc(tagReference)).exists()) {
@@ -356,7 +452,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       tagCode,
       eventId,
       'TREE_POSITION_CREATED',
-      'สร้างตำแหน่งปลูกจำลอง',
+      'สร้างตำแหน่งปลูก',
     )
     await batch.commit()
     const position = await this.getTreePosition(
@@ -374,6 +470,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     input: UpdatePlantingCycleInput,
   ): Promise<TreePositionDetail> {
     requireManager(context)
+    validateTreeCycleInput(input)
     const current = await this.requirePosition(context, positionId)
     if (current.positionStatus !== 'ACTIVE') throw new Error('ตำแหน่งที่เก็บถาวรแก้ไขไม่ได้')
     const nextPositionVersion = current.version + 1
@@ -387,6 +484,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     const eventReference = doc(positionReference, 'events', eventId)
     const batch = writeBatch(this.firestore)
     batch.update(positionReference, {
+      rowCountingDirection: current.rowCountingDirection,
       version: nextPositionVersion,
       lastEventId: eventId,
       updatedBy: context.actor.userId,
@@ -398,7 +496,10 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       plantingYear: input.plantingYear,
       plantingYearCalendar: input.plantingYearCalendar,
       plantingYearConfidence: input.plantingYearConfidence,
+      plantSource: input.plantSource,
       treeStatus: input.treeStatus,
+      baselineDate: input.baselineDate,
+      baselineMeasurements: input.baselineMeasurements,
       notes: input.notes,
       version: current.currentCycle.version + 1,
       updatedBy: context.actor.userId,
@@ -411,6 +512,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       positionId,
       `แก้ข้อมูลรอบปลูก ${current.currentCycleNumber}`,
       nextPositionVersion,
+      current.exampleData,
     ))
     await batch.commit()
     return this.requirePosition(context, positionId)
@@ -422,6 +524,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     input: ReplacePlantingCycleInput,
   ): Promise<TreePositionDetail> {
     requireManager(context)
+    validateTreeCycleInput(input)
     if (!input.reason.trim()) throw new Error('ต้องระบุเหตุผลการปลูกทดแทน')
     const current = await this.requirePosition(context, positionId)
     if (current.positionStatus !== 'ACTIVE') throw new Error('ตำแหน่งที่เก็บถาวรเพิ่มรอบปลูกไม่ได้')
@@ -435,6 +538,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     const eventReference = doc(positionReference, 'events', eventId)
     const batch = writeBatch(this.firestore)
     batch.update(positionReference, {
+      rowCountingDirection: current.rowCountingDirection,
       currentCycleNumber: nextCycleNumber,
       version: nextPositionVersion,
       lastEventId: eventId,
@@ -453,6 +557,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       nextCycleNumber,
       context.actor.userId,
       input.baselineDate,
+      current.exampleData,
     ))
     batch.set(eventReference, eventData(
       context,
@@ -461,6 +566,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       positionId,
       `ปิดรอบปลูก ${current.currentCycleNumber} และเพิ่มรอบปลูก ${nextCycleNumber}; Tag เดิมไม่เปลี่ยน`,
       nextPositionVersion,
+      current.exampleData,
     ))
     await batch.commit()
     return this.requirePosition(context, positionId)
@@ -480,6 +586,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     const positionReference = treePositionReference(this.firestore, context, positionId)
     const batch = writeBatch(this.firestore)
     batch.update(positionReference, {
+      rowCountingDirection: current.rowCountingDirection,
       positionStatus: 'ARCHIVED',
       version: nextVersion,
       lastEventId: eventId,
@@ -493,6 +600,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       positionId,
       `เก็บตำแหน่งถาวร: ${reason}; Tag จะไม่ถูกนำกลับมาใช้`,
       nextVersion,
+      current.exampleData,
     ))
     await batch.commit()
     return this.requirePosition(context, positionId)
@@ -524,6 +632,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       positionId,
       `รายงานป้ายชำรุด${note.trim() ? `: ${note.trim()}` : ''}`,
       current.version,
+      current.exampleData,
     ))
     await batch.commit()
     return this.requirePosition(context, positionId)
@@ -537,7 +646,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     requireManager(context)
     if (candidates.length === 0) throw new Error('ไม่มีแถวที่ผ่านการตรวจสำหรับ Import')
     if (candidates.length > 50) throw new Error('Phase 3 local import จำกัดครั้งละไม่เกิน 50 ตำแหน่ง')
-    const importReference = doc(
+    const importReference = rootDoc(
       this.firestore,
       'organizations',
       context.farm.organizationId,
@@ -584,7 +693,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
         candidate.tagCode,
         eventId,
         'TREE_POSITION_IMPORTED',
-        `นำเข้าจาก CSV แถว ${candidate.sourceRow} แบบ atomic Emulator flow`,
+        `นำเข้าจากไฟล์ทะเบียนต้น แถว ${candidate.sourceRow} แบบทั้งชุด`,
       )
     })
     batch.set(importReference, {
@@ -596,7 +705,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       status: 'COMPLETED',
       importedCount: positionIds.length,
       positionIds,
-      exampleData: true,
+      exampleData: this.exampleData || context.farm.isMock,
       createdAt: serverTimestamp(),
     })
     await batch.commit()
@@ -616,7 +725,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     cycleNumber: number,
   ): Promise<PlantingCycleRecord> {
     const cycleId = `cycle_${String(cycleNumber).padStart(3, '0')}`
-    const snapshot = await getDoc(doc(
+    const snapshot = await getDoc(rootDoc(
       this.firestore,
       'organizations',
       organizationId,
@@ -649,6 +758,9 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       rowCode: requiredString(data, 'rowCode'),
       treeSequence: requiredInteger(data, 'treeSequence'),
       tagCode: requiredString(data, 'tagCode'),
+      rowCountingDirection: rowCountingDirections.includes(data.rowCountingDirection as RowCountingDirection)
+        ? data.rowCountingDirection as RowCountingDirection
+        : 'TBD',
       positionStatus: positionStatus as PositionStatus,
       currentCycleNumber: requiredInteger(data, 'currentCycleNumber'),
       currentCycle,
@@ -675,7 +787,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     context: TreeMutationContext,
     tagCode: string,
   ): DocumentReference {
-    return doc(
+    return rootDoc(
       this.firestore,
       'organizations',
       context.farm.organizationId,
@@ -699,6 +811,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
   ): void {
     const positionReference = treePositionReference(this.firestore, context, positionId)
     const cycleId = `cycle_${String(cycleNumber).padStart(3, '0')}`
+    const exampleData = this.exampleData || context.farm.isMock
     batch.set(positionReference, {
       recordType: 'TREE_POSITION',
       organizationId: context.farm.organizationId,
@@ -710,12 +823,13 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       rowCode: draft.rowCode,
       treeSequence: draft.treeSequence,
       tagCode,
+      rowCountingDirection: draft.rowCountingDirection,
       positionStatus: 'ACTIVE',
       currentCycleNumber: cycleNumber,
       qrPath: `/t/${positionId}`,
       version: 1,
       lastEventId: eventId,
-      exampleData: true,
+      exampleData,
       createdBy: context.actor.userId,
       createdAt: serverTimestamp(),
       updatedBy: context.actor.userId,
@@ -727,6 +841,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       cycleNumber,
       context.actor.userId,
       draft.baselineDate,
+      exampleData,
     ))
     batch.set(doc(positionReference, 'events', eventId), eventData(
       context,
@@ -735,6 +850,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       positionId,
       description,
       1,
+      exampleData,
     ))
     batch.set(this.tagReference(context, tagCode), {
       recordType: 'TREE_TAG_INDEX',
@@ -742,16 +858,16 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       farmId: context.farm.farmId,
       positionId,
       tagCode,
-      exampleData: true,
+      exampleData,
       createdBy: context.actor.userId,
       createdAt: serverTimestamp(),
     })
-    batch.set(doc(this.firestore, 'positionRoutes', positionId), {
+    batch.set(rootDoc(this.firestore, 'positionRoutes', positionId), {
       recordType: 'POSITION_ROUTE',
       organizationId: context.farm.organizationId,
       farmId: context.farm.farmId,
       positionId,
-      exampleData: true,
+      exampleData,
       createdBy: context.actor.userId,
       createdAt: serverTimestamp(),
     })

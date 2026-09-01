@@ -8,6 +8,7 @@ import {
   createOpaquePositionId,
   generateTagCode,
   normalizeTagCode,
+  validateTreeCycleInput,
   type PlantingCycleRecord,
   type ReplacePlantingCycleInput,
   type TreeImportCandidate,
@@ -52,6 +53,7 @@ function summary(position: TreePositionDetail): TreePositionSummary {
     rowCode: position.rowCode,
     treeSequence: position.treeSequence,
     tagCode: position.tagCode,
+    rowCountingDirection: position.rowCountingDirection ?? 'TBD',
     positionStatus: position.positionStatus,
     currentCycleNumber: position.currentCycleNumber,
     currentCycle: position.currentCycle,
@@ -90,8 +92,10 @@ function cycleFromDraft(
     plantingYear: draft.plantingYear,
     plantingYearCalendar: draft.plantingYearCalendar,
     plantingYearConfidence: draft.plantingYearConfidence,
+    plantSource: draft.plantSource,
     treeStatus: draft.treeStatus,
     baselineDate: draft.baselineDate,
+    baselineMeasurements: structuredClone(draft.baselineMeasurements),
     notes: draft.notes,
     startedAtLabel: nowLabel(),
     endedAtLabel: null,
@@ -168,6 +172,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
     draft: TreePositionDraft,
   ): Promise<TreePositionDetail> {
     requireManager(context)
+    validateTreeCycleInput(draft)
     const tagCode = generateTagCode(draft)
     if (
       this.positions.some(
@@ -191,6 +196,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
       rowCode: draft.rowCode,
       treeSequence: draft.treeSequence,
       tagCode,
+      rowCountingDirection: draft.rowCountingDirection,
       positionStatus: 'ACTIVE',
       currentCycleNumber: 1,
       currentCycle,
@@ -198,7 +204,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
       version: 1,
       exampleData: true,
       plantingCycles: [currentCycle],
-      timeline: [event(context, 'TREE_POSITION_CREATED', 'สร้างตำแหน่งปลูกจำลอง', 1)],
+      timeline: [event(context, 'TREE_POSITION_CREATED', 'สร้างตำแหน่งปลูก', 1)],
     }
     this.positions.push(position)
     return Promise.resolve(copyDetail(position))
@@ -210,6 +216,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
     input: UpdatePlantingCycleInput,
   ): Promise<TreePositionDetail> {
     requireManager(context)
+    validateTreeCycleInput(input)
     const position = this.requirePosition(context, positionId)
     if (position.positionStatus !== 'ACTIVE') throw new Error('ตำแหน่งที่เก็บถาวรแก้ไขไม่ได้')
     const cycle = position.plantingCycles.find(
@@ -231,6 +238,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
     input: ReplacePlantingCycleInput,
   ): Promise<TreePositionDetail> {
     requireManager(context)
+    validateTreeCycleInput(input)
     const position = this.requirePosition(context, positionId)
     if (position.positionStatus !== 'ACTIVE') throw new Error('ตำแหน่งที่เก็บถาวรเพิ่มรอบปลูกไม่ได้')
     if (!input.reason.trim()) throw new Error('ต้องระบุเหตุผลการปลูกทดแทน')
@@ -343,6 +351,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
         rowCode: candidate.rowCode,
         treeSequence: candidate.treeSequence,
         tagCode: candidate.tagCode,
+        rowCountingDirection: candidate.rowCountingDirection,
         positionStatus: 'ACTIVE',
         currentCycleNumber: candidate.plantingCycle,
         currentCycle,
@@ -354,7 +363,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
           event(
             context,
             'TREE_POSITION_IMPORTED',
-            `นำเข้าจาก CSV แถว ${candidate.sourceRow} แบบ atomic local flow`,
+            `นำเข้าจากไฟล์ Template แถว ${candidate.sourceRow} แบบ atomic local flow`,
             1,
           ),
         ],

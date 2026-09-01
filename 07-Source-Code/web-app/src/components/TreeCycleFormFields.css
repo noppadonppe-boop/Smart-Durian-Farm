@@ -1,0 +1,159 @@
+.tree-register-form {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.tree-form-section {
+  min-width: 0;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.tree-form-section__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.tree-form-section__heading > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.tree-form-section__heading span {
+  color: var(--color-primary-strong);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tree-form-section__heading small,
+.form-guidance,
+.photo-deferred-note span {
+  color: var(--color-muted);
+}
+
+.farm-context-card {
+  padding: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-md);
+}
+
+.farm-context-card span {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.farm-context-card code {
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.segmented-choice {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.segmented-choice legend {
+  padding: 0 var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.tree-form .segmented-choice label,
+.tree-form .checkbox-control {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  min-height: var(--touch-target);
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.tree-form .segmented-choice input,
+.tree-form .checkbox-control input {
+  width: 1.15rem;
+  min-width: 1.15rem;
+  min-height: 1.15rem;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--color-primary);
+}
+
+.confirmation-control {
+  padding: var(--space-3);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.measurement-group {
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.measurement-group summary {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.measurement-group > .checkbox-control {
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.measurement-fields {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.photo-deferred-note {
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-1);
+  background: var(--color-surface-soft);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.sticky-form-actions {
+  position: sticky;
+  bottom: calc(4.7rem + env(safe-area-inset-bottom));
+  z-index: 3;
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
+}

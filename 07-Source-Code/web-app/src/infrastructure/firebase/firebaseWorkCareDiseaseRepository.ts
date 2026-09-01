@@ -67,6 +67,7 @@ import {
   type WorkReportInput,
   type WorkTarget,
 } from '../../domain/workCareDisease'
+import { rootCollection, rootDoc } from './firebaseDataRoot'
 
 const specialistApprovalStatuses = [
   'NOT_REQUIRED',
@@ -152,6 +153,9 @@ function requiredWorkTarget(data: DocumentData): WorkTarget {
   return {
     kind: requiredLiteral(target, 'kind', workTargetKinds),
     zoneCode: requiredString(target, 'zoneCode'),
+    zoneCodes: Array.isArray(target.zoneCodes)
+      ? requiredStringList(target, 'zoneCodes')
+      : [requiredString(target, 'zoneCode')],
     rowCode: nullableString(target, 'rowCode'),
     positionIds: requiredStringList(target, 'positionIds'),
   }
@@ -214,7 +218,7 @@ function parseDiseasePhoto(photo: DocumentData): DiseasePhotoMockEvidence {
 }
 
 function workReference(firestore: Firestore, context: WorkMutationContext, workOrderId: string) {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -226,7 +230,7 @@ function workReference(firestore: Firestore, context: WorkMutationContext, workO
 }
 
 function diseaseReference(firestore: Firestore, context: WorkMutationContext, incidentId: string) {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -242,7 +246,7 @@ function treatmentLockReference(
   context: WorkMutationContext,
   incidentId: string,
 ) {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -258,7 +262,7 @@ function operationReference(
   context: WorkMutationContext,
   operationId: string,
 ) {
-  return doc(
+  return rootDoc(
     firestore,
     'organizations',
     context.farm.organizationId,
@@ -531,7 +535,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
   ) {}
 
   async listWorkOrders(context: WorkMutationContext): Promise<readonly WorkOrderRecord[]> {
-    const base = collection(
+    const base = rootCollection(
       this.firestore,
       'organizations',
       context.farm.organizationId,
@@ -604,7 +608,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     const before = order.status
     const after = assertWorkAction(order, context, action)
     if (action.type === 'CLOSE' && order.careType === 'CHEMICAL') {
-      const careSnapshot = await getDoc(doc(
+      const careSnapshot = await getDoc(rootDoc(
         this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId,
         'careEvents', `care_${workOrderId}`,
       ))
@@ -650,7 +654,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     ))
     if (action.type === 'VERIFY' && order.category === 'CARE' && order.careType && order.report) {
       const careEventId = `care_${workOrderId}`
-      const careReference = doc(
+      const careReference = rootDoc(
         this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId,
         'careEvents', careEventId,
       )
@@ -849,7 +853,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
   }
 
   async listCareEvents(context: WorkMutationContext): Promise<readonly CareEventRecord[]> {
-    const snapshot = await getDocs(query(collection(
+    const snapshot = await getDocs(query(rootCollection(
       this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId, 'careEvents',
     ), orderBy('createdAt', 'desc')))
     return snapshot.docs.map((item) => parseCare(item.data()))
@@ -862,7 +866,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
   ): Promise<CareEventRecord> {
     if (context.farm.role !== 'AGRONOMIST') throw new Error('เฉพาะ Agronomist ที่อนุมัติ treatment ได้')
     const operationId = normalizedOperationId('approve_care', idempotencyKey)
-    const reference = doc(
+    const reference = rootDoc(
       this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId,
       'careEvents', careEventId,
     )
@@ -898,7 +902,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
   async listDiseaseIncidents(
     context: WorkMutationContext,
   ): Promise<readonly DiseaseIncidentRecord[]> {
-    const snapshot = await getDocs(query(collection(
+    const snapshot = await getDocs(query(rootCollection(
       this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId,
       'diseaseIncidents',
     ), orderBy('createdAt', 'desc')))
@@ -948,7 +952,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
       if (prior) return prior
     }
     const incidentId = createOpaqueRecordId('disease')
-    const reference = doc(
+    const reference = rootDoc(
       this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId,
       'diseaseIncidents', incidentId,
     )
@@ -1010,7 +1014,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     description: string,
   ): Promise<DiseaseIncidentRecord> {
     const operationId = normalizedOperationId(scope.toLowerCase(), idempotencyKey)
-    const reference = doc(
+    const reference = rootDoc(
       this.firestore, 'organizations', context.farm.organizationId, 'farms', context.farm.farmId,
       'diseaseIncidents', incidentId,
     )
@@ -1188,7 +1192,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     const deterministicWorkOrderId = `work_treatment_${deterministicSuffix}`.slice(0, 180)
     const workRef = workReference(this.firestore, context, deterministicWorkOrderId)
     const lockRef = treatmentLockReference(this.firestore, context, incidentId)
-    const treeRef = doc(
+    const treeRef = rootDoc(
       this.firestore,
       'organizations',
       context.farm.organizationId,

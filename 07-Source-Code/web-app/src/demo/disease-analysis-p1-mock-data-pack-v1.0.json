@@ -91,6 +91,43 @@
           "sessionVersion": 1
         }
       ]
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "analysisSessionId": "analysis_demo_north_000002",
+      "incidentId": "disease_demo_000001",
+      "positionId": "pos_demo_a02c914ed730",
+      "plantingCycleId": "cycle_002",
+      "evidenceScenario": "CONFLICTING_OBSERVATIONS",
+      "observedSymptom": "SIMULATED/TEST ONLY — พบใบมีจุดสีผิดปกติ",
+      "analysisSource": "MOCK_DETERMINISTIC_V1",
+      "classification": "SIMULATED/TEST ONLY",
+      "status": "HUMAN_REVIEW_REQUIRED",
+      "qualityScorePercent": 61,
+      "candidateFindings": [],
+      "abstainReason": "CONFLICTING_OBSERVATIONS",
+      "reviewedBy": null,
+      "reviewDisposition": null,
+      "reviewedFindingLabel": "",
+      "reviewNote": "",
+      "diagnosisWritebackStatus": "NOT_WRITTEN",
+      "syncState": "LOCAL_ONLY",
+      "version": 1,
+      "exampleData": true,
+      "createdBy": "system_demo",
+      "createdAtLabel": "1 ก.ย. 2569 12:00 · SIMULATED/TEST ONLY",
+      "audit": [
+        {
+          "eventId": "analysisevt_demo_north_000002",
+          "eventType": "MOCK_ANALYSIS_ABSTAINED",
+          "actorUserId": "system_demo",
+          "actorDisplayName": "ระบบข้อมูลจำลอง",
+          "description": "Abstain เพราะข้อสังเกตจำลองขัดแย้งกัน; ไม่มี candidate finding",
+          "createdAtLabel": "1 ก.ย. 2569 12:00 · SIMULATED/TEST ONLY",
+          "sessionVersion": 1
+        }
+      ]
     }
   ]
 }

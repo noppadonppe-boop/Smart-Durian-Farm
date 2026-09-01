@@ -45,8 +45,13 @@ describe('Mock Disease Analysis P1 repository', () => {
       farm: farm('FARM_MANAGER', 'farm_demo_south_02'),
     })
 
-    expect(north.map((session) => session.farmId)).toEqual(['farm_demo_north_01'])
+    expect(north).toHaveLength(2)
+    expect(north.every((session) => session.farmId === 'farm_demo_north_01')).toBe(true)
     expect(north.some((session) => session.analysisSessionId.includes('south'))).toBe(false)
+    expect(north.some((session) => (
+      session.evidenceScenario === 'CONFLICTING_OBSERVATIONS' &&
+      session.abstainReason === 'CONFLICTING_OBSERVATIONS'
+    ))).toBe(true)
     expect(south).toHaveLength(1)
     expect(south[0]).toMatchObject({
       farmId: 'farm_demo_south_02',
@@ -160,7 +165,9 @@ describe('Mock Disease Analysis P1 repository', () => {
       northDraft,
     )
 
-    expect(await repository.listDiseaseAnalysisSessions(context)).toHaveLength(2)
+    expect(await repository.listDiseaseAnalysisSessions(context)).toHaveLength(
+      initialSessions.length + 1,
+    )
     if (typeof repository.resetMockPack !== 'function') {
       throw new Error('Mock Disease Analysis repository must support deterministic reset')
     }

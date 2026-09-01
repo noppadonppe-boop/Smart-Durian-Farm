@@ -37,6 +37,7 @@ import {
   type PortfolioDashboard,
   type QueueOperationInput,
 } from '../../domain/operationalHardening'
+import { rootDoc } from './firebaseDataRoot'
 
 const fixedTimeLabel = '31 ส.ค. 2569 · Firebase Emulator time'
 
@@ -62,7 +63,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
   constructor(private readonly firestore: Firestore) {}
 
   private farmReference(context: OperationalContext) {
-    return doc(
+    return rootDoc(
       this.firestore,
       'organizations', context.farm.organizationId,
       'farms', context.farm.farmId,
@@ -70,7 +71,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
   }
 
   private farmReferenceFromAccess(farm: FarmAccess) {
-    return doc(this.firestore, 'organizations', farm.organizationId, 'farms', farm.farmId)
+    return rootDoc(this.firestore, 'organizations', farm.organizationId, 'farms', farm.farmId)
   }
 
   private auditRecord(
