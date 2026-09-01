@@ -261,10 +261,10 @@ describe('Smart Durian local mock app', () => {
 
     await owner.click(screen.getByRole('link', { name: /จัดการสวน/u }))
     expect(await screen.findByRole('heading', { name: 'จัดการสวน' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /DEMO-F01/u })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /DEMO-F02/u })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /DEMO-F03/u })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /DEMO-F04/u })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /DEMO-F01/u })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /DEMO-F02/u })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /DEMO-F03/u })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /DEMO-F04/u })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'เพิ่มสวน' })).toBeInTheDocument()
   })
 
