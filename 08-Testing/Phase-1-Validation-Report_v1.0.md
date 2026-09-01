@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.0 |
-| สถานะ | Complete — Gate 1 Owner Review Pending |
+| เวอร์ชัน | 1.1 |
+| สถานะ | Complete — Gate 1 Passed |
 | ผู้จัดทำ | Codex task `Smart-Durian-Code` |
 | วันที่ตรวจ | 2026-08-31 |
-| Source of Truth | `AGENTS.md`, Prompt Phase 1, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `08-Testing/Gate-1-Acceptance-Checklist.md` |
+| Source of Truth | `AGENTS.md`, Prompt Phase 1, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `08-Testing/Gate-1-Acceptance-Checklist.md` |
 
 ## 1. ผลลัพธ์
 
@@ -55,10 +55,11 @@ Emulator ทั้งสามตัวเริ่มและผ่าน heal
 
 ## 4. Assumptions และความเสี่ยง
 
-### Blocker ก่อน Phase 2
+### Owner Review result
 
-- `DEC-010` Sign-in method ยัง Open; Owner ต้องเลือกก่อนเริ่ม Authentication
-- Gate 1 ยังไม่ Approved และไม่มีสิทธิ์เริ่ม Phase 2
+- `DEC-010` Approved: เบอร์โทรศัพท์ + SMS OTP บน Firebase Authentication Emulator
+- Gate 1 Approved: อนุญาตเริ่ม Phase 2 ตาม Prompt Phase 2
+- ณ เวลาบันทึกผลนี้ Phase 2 ยังไม่ได้เริ่ม
 
 ### Can defer
 
@@ -82,6 +83,6 @@ Emulator ทั้งสามตัวเริ่มและผ่าน heal
 
 ## 5. Gate 1 checklist และ recommendation
 
-เกณฑ์เชิงเทคนิคใน `08-Testing/Gate-1-Acceptance-Checklist.md` ผ่านครบ แนะนำให้
-Owner ปิด `DEC-010` และอนุมัติ Gate 1 ด้วยข้อความชัดเจน จากนั้นจึงเริ่ม Phase 2
-ได้ตาม Prompt Phase 2 รอบนี้ **ไม่ได้เริ่ม Phase 2**
+เกณฑ์เชิงเทคนิคใน `08-Testing/Gate-1-Acceptance-Checklist.md` ผ่านครบ Owner
+ปิด `DEC-010` และอนุมัติ Gate 1 เมื่อ 2026-08-31 แล้ว จึงเริ่ม Phase 2 ได้ตาม
+Prompt Phase 2 แบบ local/emulator-only รายงานฉบับนี้ **ไม่ได้เริ่ม Phase 2**

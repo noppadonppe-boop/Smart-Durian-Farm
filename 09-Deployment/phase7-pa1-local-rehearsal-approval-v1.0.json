@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "approvalId": "KDOMS-PA1-LOCAL-REHEARSAL-20260831-01",
+  "classification": "OWNER APPROVAL / LOCAL-EMULATOR MOCK REHEARSAL ONLY",
+  "decisionId": "DEC-037",
+  "approvedAt": "2026-08-31",
+  "ownerApprovalText": "อนุมัติ PA-1 เฉพาะ local/emulator rehearsal ด้วย Mock Data ตามแบบฟอร์มล่าสุด โดยยังไม่อนุมัติ external resource, billing, deployment, ข้อมูลจริง หรือ Production",
+  "sourceSelection": {
+    "recordId": "KDOMS-PA1-OWNER-MOCK-SUBSTITUTE-V1",
+    "file": "09-Deployment/phase7-pa1-owner-selected-mock-substitute-v1.0.json",
+    "sha256": "C8EC974C6979C76F9259537464AF5B881015D373FAB13AD643F68BCAB6FD01B5"
+  },
+  "pa1State": "APPROVED_LOCAL_EMULATOR_REHEARSAL_ONLY",
+  "approvedScope": {
+    "localValidation": true,
+    "firebaseEmulator": true,
+    "browserViewportSimulation": true,
+    "mockDataOnly": true,
+    "localCandidateFreeze": true,
+    "localBuildArtifact": true
+  },
+  "prohibitedScope": {
+    "externalResource": true,
+    "billing": true,
+    "credential": true,
+    "deployment": true,
+    "realData": true,
+    "realDevice": true,
+    "fieldExecution": true,
+    "qrEncodeOrPrint": true,
+    "production": true
+  },
+  "candidate": {
+    "candidateId": "KDOMS-PC-SIM-20260831-01",
+    "state": "FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE",
+    "sourceFileCount": 116,
+    "sourceSnapshotSha256": "80CAA78FEE2BCF71836DDF8C0A3AB0ADFF1371A6043302B7281AD68F54C34F6E",
+    "lockfileSha256": "0798DC527D959C2D454E9C3C639950B1B51B3FCE77837FF35AB03CF6E3FD6DCB",
+    "buildFileCount": 53,
+    "buildArtifactSha256": "16B98BC7B433815831ED1271BFE8DB522CF9407056D08D5179F5CC381EC3DBE9",
+    "gitHeadReference": "cbddbe0136a840684510677c45d70ec008d96927",
+    "sourceState": "DIRTY_WORKTREE_SNAPSHOT",
+    "snapshotRule": "SHA-256 over sorted SHA-256 and relative-path records for 116 application source/config files, excluding node_modules, dist, .firebase-local and debug logs."
+  },
+  "rehearsalEvidence": {
+    "result": "PASS_AFTER_PERFORMANCE_REMEDIATION",
+    "unitComponentTestFiles": 17,
+    "unitComponentTests": 124,
+    "emulatorTestFiles": 7,
+    "emulatorTests": 44,
+    "initialJavaScriptBytes": 331113,
+    "initialJavaScriptBudgetBytes": 350000,
+    "initialCssBytes": 41012,
+    "initialCssBudgetBytes": 60000,
+    "offlineRuntimeBytes": 1302043,
+    "offlineRuntimeBudgetBytes": 1800000,
+    "offlineRuntimeFiles": 52,
+    "performanceRemediation": "LAZY_LOAD_WORK_PHOTO_PROCESSING",
+    "externalDeployment": false
+  },
+  "nextApprovalBoundary": {
+    "externalPa1": "NOT_APPROVED",
+    "pa2": "NOT_APPROVED",
+    "pa3": "NOT_APPROVED"
+  }
+}

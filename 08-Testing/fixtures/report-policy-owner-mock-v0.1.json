@@ -1,0 +1,293 @@
+{
+  "schemaVersion": "0.1.0",
+  "policyId": "KDOMS-REPORT-POLICY-SIM-001",
+  "policyVersion": "0.1.0",
+  "classification": "OWNER POLICY MOCKUP / SIMULATED/TEST ONLY",
+  "status": "PROPOSED_NOT_APPROVED_NOT_ACTIVE",
+  "approvalEffect": "NONE",
+  "deterministicSeed": "KDOMS-REPORT-POLICY-20260901-001",
+  "scope": {
+    "organizationId": "org_report_policy_sim_001",
+    "organizationCode": "SIMORG",
+    "farmOverridesEnabled": true,
+    "realOrganizationOrFarm": false
+  },
+  "periodPolicy": {
+    "weekStartsOn": "MONDAY",
+    "weekStartLocalTime": "00:00:00",
+    "weeklyCutoffDelayHours": 36,
+    "monthlyCutoffDelayHours": 72,
+    "lateDataAction": "MARK_LATE_DATA_PENDING_REVIEW",
+    "restatementMode": "NEW_REVISION_ONLY",
+    "mockFallbackTimeZone": "Asia/Bangkok",
+    "missingTimeZoneActionInPilotOrProduction": "BLOCK_FINALIZATION"
+  },
+  "kpiThresholdPolicy": {
+    "thresholdClassification": "TRAINING_DEFAULTS_OWNER_MAY_CHANGE",
+    "fixedSafetyThresholds": {
+      "crossFarmDisclosureCountCritical": 1,
+      "wrongTreeActionCountCritical": 1,
+      "duplicateCriticalEventCountCritical": 1,
+      "traceabilityGapCountCritical": 1,
+      "restoreMismatchCountCritical": 1
+    },
+    "editableOperationalThresholds": {
+      "overdueWorkRatePct": {
+        "warningGte": 10,
+        "criticalGte": 20
+      },
+      "reworkRatePct": {
+        "warningGte": 10,
+        "criticalGte": 20
+      },
+      "followUpOverdueCount": {
+        "warningGte": 1,
+        "criticalGte": 3
+      },
+      "pendingQueueAgeHours": {
+        "supportReviewGte": 0.5,
+        "criticalGte": 24
+      },
+      "openConflictCount": {
+        "warningGte": 1,
+        "criticalGte": 3
+      },
+      "unknownValueSharePct": {
+        "warningGte": 10,
+        "criticalGte": 20
+      },
+      "auditCompletenessPct": {
+        "warningLt": 100,
+        "criticalLt": 98
+      },
+      "openPhotoRecoveryCount": {
+        "warningGte": 1,
+        "criticalGte": 3
+      },
+      "inventoryExpiryWindowDays": {
+        "warningLte": 30,
+        "criticalLte": 7
+      },
+      "upcomingWorkWindowDays": 7,
+      "minimumSampleSizeForP90": 20
+    },
+    "informationalOnlyMetrics": [
+      "estimatedValueSharePct"
+    ]
+  },
+  "fruitRollupPolicy": {
+    "method": "EXCLUSIVE_LEVEL_PER_ZONE",
+    "sourcePriority": [
+      "TREE_LEVEL_IF_COMPLETE",
+      "ZONE_LEVEL",
+      "NO_AGGREGATE"
+    ],
+    "requiredTreeCoveragePct": 100,
+    "latestObservationPerExactScopeKey": true,
+    "overlapAction": "BLOCK_AGGREGATE_AND_SHOW_SEPARATELY",
+    "stageMismatchAction": "BLOCK_AGGREGATE",
+    "qualityMixAction": "SEPARATE_MEASURED_ESTIMATED_UNKNOWN",
+    "farmRollupRequiresMutuallyExclusiveZones": true
+  },
+  "droppedFruitPolicy": {
+    "recommendedSemantics": "INTERVAL_DELTA_SINCE_PREVIOUS_OBSERVATION",
+    "requiredFields": [
+      "dropCountSemantics",
+      "observationWindowStart",
+      "observationWindowEnd",
+      "previousObservationId"
+    ],
+    "monthlyAggregationRule": "SUM_NON_OVERLAPPING_VALIDATED_INTERVALS_ONLY",
+    "existingRecordWithoutSemanticsAction": "CLASSIFY_UNCLASSIFIED_AND_EXCLUDE_FROM_TOTAL",
+    "negativeValueAllowed": false,
+    "unknownValueRepresentation": null
+  },
+  "paymentEventPolicy": {
+    "model": "APPEND_ONLY_PAYMENT_EVENTS",
+    "currency": "THB",
+    "eventTypes": [
+      "DEPOSIT_RECORDED",
+      "PAYMENT_RECORDED",
+      "REFUND_RECORDED",
+      "REVERSAL"
+    ],
+    "requiredFields": [
+      "paymentEventId",
+      "organizationId",
+      "farmId",
+      "salesLotId",
+      "eventType",
+      "amountBaht",
+      "occurredAt",
+      "recordedAt",
+      "actorUserId",
+      "paymentReference",
+      "idempotencyKey"
+    ],
+    "correctionMode": "REVERSAL_AND_REPLACEMENT_EVENT",
+    "mutableAfterPost": false,
+    "hardDeleteAllowed": false,
+    "bankAccountOrSecretAllowed": false,
+    "accountingBoundary": "OPERATIONAL_RECORD_ONLY_NOT_LEDGER_NOT_TAX_NOT_BANKING"
+  },
+  "exportPolicy": {
+    "defaultFormat": "CSV",
+    "publicLinksAllowed": false,
+    "allExportsAudited": true,
+    "columnAllowlistRequired": true,
+    "spreadsheetFormulaInjectionProtectionRequired": true,
+    "roleGrants": {
+      "ORG_OWNER": [
+        "AUTHORIZED_FARM_SUMMARY",
+        "AUTHORIZED_FARM_DETAIL",
+        "PORTFOLIO_SUMMARY"
+      ],
+      "FARM_MANAGER": [
+        "CURRENT_FARM_SUMMARY",
+        "CURRENT_FARM_DETAIL"
+      ],
+      "AGRONOMIST": [],
+      "WORKER": [],
+      "SALES_INVENTORY": [
+        "CURRENT_FARM_COMMERCIAL_SUMMARY"
+      ],
+      "VIEWER": [],
+      "AUDITOR": [
+        "ASSIGNED_SCOPE_AUDIT",
+        "ASSIGNED_SCOPE_DATA_QUALITY"
+      ]
+    },
+    "salesInventoryDetailExportRequiresManagerApproval": true,
+    "bulkPhotoExportMode": "OWNER_AND_DATA_CUSTODIAN_DUAL_APPROVAL",
+    "binaryPhotoIncludedByDefault": false
+  },
+  "retentionAndDistributionPolicy": {
+    "draftReportRetentionDays": 30,
+    "finalizedReportSummaryAndManifestRetentionDays": 365,
+    "adHocDetailExportPackageRetentionDays": 7,
+    "downloadLinkTtlHours": 24,
+    "localDeviceCacheMaxDays": 7,
+    "legalOrBusinessHoldRequiresOwnerAndCustodian": true,
+    "defaultDistributionChannel": "IN_APP_ONLY",
+    "scheduledDistributionEnabled": false,
+    "emailAttachmentEnabled": false,
+    "chatAttachmentEnabled": false,
+    "publicUrlEnabled": false,
+    "externalDestination": "TBD_NOT_APPROVED"
+  },
+  "changeControl": {
+    "lifecycle": [
+      "DRAFT",
+      "REVIEW_REQUIRED",
+      "APPROVED",
+      "ACTIVE",
+      "SUPERSEDED"
+    ],
+    "effectiveFromRequired": true,
+    "reasonRequired": true,
+    "impactPreviewRequired": true,
+    "auditBeforeAfterRequired": true,
+    "retroactiveMutationOfFinalizedReportsAllowed": false,
+    "restatementRequiresNewReportRevision": true,
+    "rollbackMode": "ACTIVATE_PRIOR_VALUES_AS_NEW_POLICY_VERSION",
+    "organizationDefaultWithFarmOverride": true,
+    "retentionExportOrDistributionChangeRequiresDataCustodianReview": true
+  },
+  "reportPolicyBinding": {
+    "reportRunMustStorePolicyIdAndVersion": true,
+    "finalizedReportKeepsOriginalPolicyVersion": true,
+    "activePolicyChangeRecalculatesFinalizedReport": false,
+    "restatementCreatesNewReportRevision": true
+  },
+  "editablePaths": [
+    "periodPolicy.weekStartsOn",
+    "periodPolicy.weekStartLocalTime",
+    "periodPolicy.weeklyCutoffDelayHours",
+    "periodPolicy.monthlyCutoffDelayHours",
+    "periodPolicy.mockFallbackTimeZone",
+    "kpiThresholdPolicy.editableOperationalThresholds",
+    "fruitRollupPolicy",
+    "droppedFruitPolicy.recommendedSemantics",
+    "paymentEventPolicy.eventTypes",
+    "exportPolicy.roleGrants",
+    "retentionAndDistributionPolicy"
+  ],
+  "lockedSafetyControls": [
+    "CROSS_FARM_DENY",
+    "WRONG_TREE_STOP",
+    "NO_SILENT_HISTORY_OVERWRITE",
+    "APPEND_ONLY_CORRECTION_AUDIT",
+    "NO_PUBLIC_EXPORT_LINK",
+    "REAUTHORIZE_AT_DOWNLOAD",
+    "NO_REAL_DATA_IN_LOCAL_MOCK",
+    "NO_PRODUCTION_OR_EXTERNAL_ACTION_WITHOUT_GATE_APPROVAL"
+  ],
+  "decisionItems": [
+    {
+      "decisionId": "RPD-01",
+      "topic": "WEEK_START_AND_CUTOFF",
+      "mockRecommendation": "MONDAY_0000_WEEKLY_PLUS_36H_MONTHLY_PLUS_72H",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT"
+    },
+    {
+      "decisionId": "RPD-02",
+      "topic": "TIME_ZONE_FALLBACK",
+      "mockRecommendation": "MOCK_ASIA_BANGKOK_REAL_MISSING_BLOCK_FINALIZATION",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT"
+    },
+    {
+      "decisionId": "RPD-03",
+      "topic": "KPI_THRESHOLDS",
+      "mockRecommendation": "USE_EDITABLE_OPERATIONAL_AND_LOCKED_SAFETY_THRESHOLDS",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT"
+    },
+    {
+      "decisionId": "RPD-04",
+      "topic": "FRUIT_SCOPE_ROLLUP",
+      "mockRecommendation": "EXCLUSIVE_LEVEL_PER_ZONE",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT"
+    },
+    {
+      "decisionId": "RPD-05",
+      "topic": "DROPPED_FRUIT_SEMANTICS",
+      "mockRecommendation": "INTERVAL_DELTA_SINCE_PREVIOUS_OBSERVATION",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT"
+    },
+    {
+      "decisionId": "RPD-06",
+      "topic": "PAYMENT_EVENT_MODEL",
+      "mockRecommendation": "APPEND_ONLY_PAYMENT_EVENTS_WITH_REVERSAL",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT"
+    },
+    {
+      "decisionId": "RPD-07",
+      "topic": "EXPORT_RIGHTS",
+      "mockRecommendation": "ROLE_SCOPED_LEAST_PRIVILEGE",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT",
+      "dataCustodianReview": "REQUIRED"
+    },
+    {
+      "decisionId": "RPD-08",
+      "topic": "RETENTION_AND_DISTRIBUTION",
+      "mockRecommendation": "SHORT_LIVED_IN_APP_ONLY_BASELINE",
+      "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT",
+      "dataCustodianReview": "REQUIRED"
+    }
+  ],
+  "ownerReview": {
+    "ownerDecision": "TBD_ACCEPT_CHANGE_OR_REJECT",
+    "ownerReason": "TBD",
+    "ownerApproverCode": "TBD",
+    "dataCustodianReview": "TBD",
+    "effectiveFrom": null,
+    "approvalReference": "TBD"
+  },
+  "currentGateBoundary": {
+    "gate6": "PASSED",
+    "pa1LocalEmulator": "PASSED",
+    "externalPa1": "NO_GO_BLOCKED",
+    "pa2": "NOT_APPROVED",
+    "deployment": "NOT_APPROVED",
+    "production": "NOT_APPROVED"
+  }
+}

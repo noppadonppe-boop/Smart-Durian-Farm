@@ -1,0 +1,1 @@
+classification,evidenceVersion,evidenceId,pilotRunId,candidateId,scenarioId,testDateTime,timezone,participantCode,role,deviceId,devicePlatform,osVersion,browserOrPwaVersion,networkState,organizationRef,farmRef,positionOrTargetRef,expectedResult,actualResult,result,issueId,retestOfEvidenceId,storageReference,reviewerCode,reviewStatus,notes

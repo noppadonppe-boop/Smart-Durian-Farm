@@ -3,7 +3,7 @@
 | รายการ | ค่า |
 |---|---|
 | เวอร์ชัน | 0.1 |
-| สถานะ | Implemented — Gate 1 Review |
+| สถานะ | Implemented — Gate 1 Passed |
 | เจ้าของเอกสาร | Project Owner |
 | วันที่ปรับปรุง | 2026-08-31 |
 | Source of Truth | `AGENTS.md`, `00-Project-Management/Decision-Log.md`, `06-System-Architecture/Architecture-Baseline_v0.1.md` |
@@ -47,9 +47,10 @@ UI ห้าม import Firebase client โดยตรง ข้อมูลเ�
 
 ## 5. Phase 2 boundary
 
-ยังไม่ทำ Authentication จริง, membership, Farm Switcher, role enforcement,
-Firestore schema หรือ Security Rules ตาม role การเลือก Sign-in method (DEC-010)
-ต้องเสร็จก่อนเริ่ม Phase 2 และต้องได้รับ Gate 1 approval ก่อน
+Phase 1 ยังไม่ได้ทำ Authentication จริง, membership, Farm Switcher, role enforcement,
+Firestore schema หรือ Security Rules ตาม role ภายหลัง Phase 1 เสร็จ Owner อนุมัติ
+DEC-010 เป็น Phone + SMS OTP และอนุมัติ Gate 1 แล้ว จึงเริ่มงานเหล่านี้ใน Phase 2
+ได้เฉพาะ local/Firebase Emulator ตาม Prompt Phase 2
 
 ## 6. Gate 1 acceptance
 

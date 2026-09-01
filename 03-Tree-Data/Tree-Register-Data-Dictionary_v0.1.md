@@ -1,15 +1,15 @@
-# Tree Register Import Data Dictionary v0.1
+# Tree Register Data Dictionary v0.3
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1 |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 0.3 |
+| สถานะ | Implemented — Thai Spreadsheet + Operational Direct Form; Field Configuration Pending |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `tree-register-import-template.csv` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-044, DEC-046), `tree-register-import-template.csv` |
 
-> Data Dictionary นี้เป็น Working Proposal และตัวอย่างทุกค่าเป็นข้อมูลจำลอง
-> ห้ามใช้เป็นข้อเท็จจริงของสวนหรือ production data
+> ตัวอย่างในเอกสารและแม่แบบยังเป็นข้อมูลจำลอง ห้ามคัดลอกเป็นข้อเท็จจริงของสวน
+> ข้อมูลจริงอนุญาตเฉพาะ Firebase Production + Farm จริงตาม DEC-046
 
 ## 1. Conventions
 
@@ -22,6 +22,86 @@
 - Internal `organizationId`, `farmId` และ `positionId` ไม่รับจาก CSV; ระบบต้อง
   resolve/generate เป็น globally unique opaque IDs ใน trusted import flow
 - `recordType=EXAMPLE` ต้องถูกปฏิเสธจาก production import
+- Excel/Google Sheets รุ่นปัจจุบันแสดงหัวคอลัมน์และค่าตัวเลือกเป็นภาษาไทย โดยระบบ
+  normalize เป็นชื่อฟิลด์และค่า canonical ภาษาอังกฤษก่อน validation/บันทึก
+- ไฟล์ภาษาอังกฤษรุ่นเดิมที่มี 49 คอลัมน์ตรงตามลำดับยังนำเข้าได้เพื่อ backward
+  compatibility แต่ห้ามผสมหัวคอลัมน์ไทยและอังกฤษในไฟล์เดียวกัน
+- ฟอร์มเพิ่ม/แก้ไขโดยตรงเก็บ measurement groups ใน Planting Cycle ด้วย schema
+  เดียวกับ 49 คอลัมน์ ทำให้ข้อมูลที่ import ไม่สูญหายเมื่อบันทึกหรือแก้ไข
+
+### 1.2 ฟิลด์ภายในที่ใช้กับฟอร์มโดยตรง
+
+| Field | Scope | ความหมาย/กฎ |
+|---|---|---|
+| `rowCountingDirection` | Position | `ASCENDING`, `DESCENDING` หรือ `TBD`; ต้องยืนยันเมื่อสร้าง Zone/Row ใหม่ |
+| `plantSource` | Planting Cycle | แหล่งต้นพันธุ์/สถานรับต้นพันธุ์; เว้นว่างได้เมื่อไม่ทราบ และห้ามมีเมื่อสถานะ `empty` |
+| `baselineMeasurements.gps` | Planting Cycle | ค่า columns 15–22 แบบ all-or-none |
+| `baselineMeasurements.trunk` | Planting Cycle | ค่า columns 23–31 แบบ all-or-none |
+| `baselineMeasurements.canopy` | Planting Cycle | ค่า columns 32–40 แบบ all-or-none |
+| `baselineMeasurements.height` | Planting Cycle | ค่า columns 41–47 แบบ all-or-none |
+| `exampleData` | Position/Cycle/Event/Tag/Route | `false` ได้เฉพาะ Firebase Production + Farm จริง; runtime ทดสอบและ Farm จำลองต้องเป็น `true` |
+
+`plantSource` และ `rowCountingDirection` ยังไม่เพิ่มเป็นคอลัมน์ที่ 50–51 เพื่อรักษา
+compatibility ของแม่แบบ 49 คอลัมน์ตาม DEC-044; จึงกรอก/แก้ผ่านหน้าจอโดยตรง
+จนกว่า Owner จะอนุมัติ spreadsheet schema รุ่นถัดไป
+
+### 1.1 ชื่อหัวคอลัมน์ภาษาไทยใน Excel/Google Sheets
+
+| # | หัวคอลัมน์ที่ผู้ใช้เห็น | Canonical field ภายใน |
+|---:|---|---|
+| 1 | ประเภทข้อมูล | `recordType` |
+| 2 | รหัสองค์กร | `organizationCode` |
+| 3 | ลำดับสวน | `farmSequence` |
+| 4 | รหัสโซน | `zoneCode` |
+| 5 | รหัสแถว | `rowCode` |
+| 6 | ลำดับตำแหน่ง | `treeSequence` |
+| 7 | รหัสป้าย | `tagCode` |
+| 8 | รอบปลูก | `plantingCycle` |
+| 9 | พันธุ์ | `variety` |
+| 10 | ความมั่นใจของพันธุ์ | `varietyConfidence` |
+| 11 | ปีปลูก | `plantingYear` |
+| 12 | ระบบปีปลูก | `plantingYearCalendar` |
+| 13 | ความมั่นใจของปีปลูก | `plantingYearConfidence` |
+| 14 | สถานะต้น | `treeStatus` |
+| 15 | ละติจูด | `latitude` |
+| 16 | ลองจิจูด | `longitude` |
+| 17 | ความแม่นยำ GPS (เมตร) | `gpsAccuracyM` |
+| 18 | วิธีวัด GPS | `gpsMethod` |
+| 19 | วันที่เวลาวัด GPS | `gpsMeasuredAt` |
+| 20 | ผู้วัด GPS | `gpsMeasuredBy` |
+| 21 | ความมั่นใจ GPS | `gpsConfidence` |
+| 22 | แหล่งข้อมูล GPS | `gpsSource` |
+| 23 | ประเภทการวัดลำต้น | `trunkMeasureType` |
+| 24 | ค่าที่วัดลำต้น | `trunkMeasureValue` |
+| 25 | หน่วยวัดลำต้น | `trunkMeasureUnit` |
+| 26 | ความสูงจุดวัดจากพื้น (ซม.) | `trunkMeasureHeightCm` |
+| 27 | วิธีวัดลำต้น | `trunkMeasureMethod` |
+| 28 | วันที่เวลาวัดลำต้น | `trunkMeasuredAt` |
+| 29 | ผู้วัดลำต้น | `trunkMeasuredBy` |
+| 30 | ความมั่นใจการวัดลำต้น | `trunkMeasureConfidence` |
+| 31 | แหล่งข้อมูลการวัดลำต้น | `trunkMeasureSource` |
+| 32 | ความกว้างทรงพุ่ม เหนือ-ใต้ | `canopyWidthNSValue` |
+| 33 | หน่วยทรงพุ่ม เหนือ-ใต้ | `canopyWidthNSUnit` |
+| 34 | ความกว้างทรงพุ่ม ตะวันออก-ตะวันตก | `canopyWidthEWValue` |
+| 35 | หน่วยทรงพุ่ม ตะวันออก-ตะวันตก | `canopyWidthEWUnit` |
+| 36 | วิธีวัดทรงพุ่ม | `canopyMeasureMethod` |
+| 37 | วันที่เวลาวัดทรงพุ่ม | `canopyMeasuredAt` |
+| 38 | ผู้วัดทรงพุ่ม | `canopyMeasuredBy` |
+| 39 | ความมั่นใจการวัดทรงพุ่ม | `canopyMeasureConfidence` |
+| 40 | แหล่งข้อมูลการวัดทรงพุ่ม | `canopyMeasureSource` |
+| 41 | ความสูงต้น | `heightValue` |
+| 42 | หน่วยความสูงต้น | `heightUnit` |
+| 43 | วิธีวัดความสูง | `heightMeasureMethod` |
+| 44 | วันที่เวลาวัดความสูง | `heightMeasuredAt` |
+| 45 | ผู้วัดความสูง | `heightMeasuredBy` |
+| 46 | ความมั่นใจการวัดความสูง | `heightMeasureConfidence` |
+| 47 | แหล่งข้อมูลการวัดความสูง | `heightMeasureSource` |
+| 48 | วันที่ข้อมูลตั้งต้น | `baselineDate` |
+| 49 | หมายเหตุ | `notes` |
+
+ค่าตัวเลือกที่ผู้ใช้เห็นใช้ภาษาไทย เช่น `ข้อมูลภาคสนาม`, `ยืนยันแล้ว`, `ประมาณ`,
+`ไม่ทราบ`, `พ.ศ.`, `ค.ศ.`, `ปกติ`, `เฝ้าระวัง`, `ป่วย`, `พักฟื้น`, `ตาย`,
+`ไม่มีต้น` และ `วัดจริง` โดยระบบแปลงกลับเป็น canonical value ก่อนตรวจข้อมูล
 
 ## 2. Columns
 
@@ -92,6 +172,8 @@
 ## 4. Acceptance criteria
 
 - CSV header มี 49 columns และทุก data row มีจำนวน columns เท่ากัน
+- Excel/Google Sheets ที่ส่งออกใช้หัวคอลัมน์และค่าตัวเลือกภาษาไทยครบทั้ง 49
+  คอลัมน์; import รองรับทั้งภาษาไทยและไฟล์ภาษาอังกฤษรุ่นเดิมแบบไม่ผสมภาษา
 - มี Example row เพียงหนึ่งแถวและระบุว่าไม่ใช่ข้อมูลจริง
 - Trunk, canopy และ height มี evidence fields ครบตาม Scope
 - ไม่มี internal opaque ID หรือ production identifier ที่ผู้ใช้กำหนดเองใน CSV
@@ -103,3 +185,5 @@
 - หน่วยมาตรฐานและ measurement methods ที่ผู้สำรวจทำซ้ำได้
 - รหัสอ้างอิง measuredBy/source ที่ไม่เปิดเผยข้อมูลบุคคลเกินจำเป็น
 - Tree status และ confidence vocabularies ฉบับอนุมัติ
+- จะเพิ่ม `plantSource` และ `rowCountingDirection` ใน Spreadsheet schema รุ่นถัดไป
+  หรือคงเป็น direct-form-only

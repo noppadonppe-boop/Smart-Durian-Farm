@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "1.0.0",
+  "packId": "KDOMS-OWNER-MOCK-V1",
+  "classification": "SIMULATED/TEST ONLY",
+  "deterministicSeed": "KDOMS-P7-OWNER-20260831-001",
+  "resetInstruction": "Discard dry-run changes and reload this file.",
+  "approvalBoundary": {
+    "pa1": "NOT_APPROVED",
+    "pa2": "NOT_APPROVED",
+    "pa3": "NOT_APPROVED",
+    "externalPilotAction": false,
+    "production": false,
+    "realData": false,
+    "realDevices": false,
+    "fieldExecution": false
+  },
+  "pa1Mockup": {
+    "environmentOption": "A_THEN_B_SIMULATED_DRY_RUN_ONLY",
+    "projectReference": "KDOMS-PILOT-SIM-001",
+    "providerReference": "PROVIDER-SIM-01",
+    "regionReference": "SIM-REGION-01",
+    "billingEnabled": false,
+    "costCeilingTHB": 0,
+    "costNote": "MOCK DATA; NOT A REAL COST ESTIMATE",
+    "usageReviewerCode": "USAGE-REVIEW-SIM-01",
+    "deploymentOwnerCode": "DEPLOY-SIM-01",
+    "rollbackOwnerCode": "ROLLBACK-SIM-01",
+    "pilotUrl": "https://pilot-kdoms-sim.example.invalid",
+    "accessMode": "PRIVATE_ALLOWLIST_SIMULATION",
+    "authMode": "FIREBASE_AUTH_EMULATOR_REFERENCES_ONLY",
+    "monitoringChannelCode": "SIM-ALERT-CHANNEL-01",
+    "monitoringRetentionDays": 30,
+    "backupDestinationCode": "SIM-BACKUP-STORE-01",
+    "keyCustodianCode": "SIM-KEY-CUSTODIAN-01",
+    "rpoHours": 24,
+    "rtoHours": 8,
+    "backupRetentionDays": 30,
+    "candidateId": "KDOMS-PC-SIM-20260831-01",
+    "candidateState": "NOT_FROZEN_NOT_DEPLOYABLE"
+  },
+  "pa2Mockup": {
+    "pilotReference": "PILOT-SIM-001",
+    "farmReference": "FARM-PILOT-SIM-01",
+    "crossFarmDenyReference": "FARM-DENY-SIM-02",
+    "schedule": {
+      "date": "2026-09-05",
+      "start": "08:00",
+      "end": "12:00",
+      "timezone": "Asia/Bangkok",
+      "isRealAppointment": false,
+      "backupDate": "2026-09-06"
+    },
+    "roles": {
+      "pilotOwner": "PILOT-OWNER-SIM-01",
+      "fieldLead": "FIELD-LEAD-SIM-01",
+      "incidentCommander": "INCIDENT-SIM-01",
+      "dataPrivacyCustodian": "PRIVACY-SIM-01",
+      "backupOperator": "BACKUP-OP-SIM-01",
+      "backupApprover": "BACKUP-APPROVER-SIM-01",
+      "evidenceCustodian": "EVIDENCE-SIM-01",
+      "primarySupport": "SUPPORT-SIM-01",
+      "backupSupport": "SUPPORT-SIM-02",
+      "androidTester": "ANDROID-TESTER-SIM-01",
+      "iphoneTester": "IPHONE-TESTER-SIM-01",
+      "ownerUser": "OWNER-SIM-01",
+      "managerUser": "MANAGER-SIM-01",
+      "workerUser": "WORKER-SIM-01"
+    },
+    "support": {
+      "window": "08:00-17:00",
+      "timezone": "Asia/Bangkok",
+      "criticalResponseMinutes": 15,
+      "highResponseMinutes": 60,
+      "mediumResponseMinutes": 240,
+      "lowResponse": "NEXT_REVIEW_CYCLE",
+      "escalationChannelCode": "SIM-ALERT-CHANNEL-01"
+    },
+    "cohort": {
+      "zoneCode": "ZSIM01",
+      "rowCodes": ["RSIM01", "RSIM02"],
+      "positionCount": 30,
+      "positionRefs": [
+        "SIM-POS-001", "SIM-POS-002", "SIM-POS-003", "SIM-POS-004", "SIM-POS-005",
+        "SIM-POS-006", "SIM-POS-007", "SIM-POS-008", "SIM-POS-009", "SIM-POS-010",
+        "SIM-POS-011", "SIM-POS-012", "SIM-POS-013", "SIM-POS-014", "SIM-POS-015",
+        "SIM-POS-016", "SIM-POS-017", "SIM-POS-018", "SIM-POS-019", "SIM-POS-020",
+        "SIM-POS-021", "SIM-POS-022", "SIM-POS-023", "SIM-POS-024", "SIM-POS-025",
+        "SIM-POS-026", "SIM-POS-027", "SIM-POS-028", "SIM-POS-029", "SIM-POS-030"
+      ],
+      "plateRefs": ["PLATE-SIM-01", "PLATE-SIM-02", "PLATE-SIM-03", "PLATE-SIM-04", "PLATE-SIM-05"]
+    },
+    "devices": {
+      "android": {
+        "deviceCode": "ANDROID-VIEWPORT-SIM-01",
+        "kind": "BROWSER_VIEWPORT_SIMULATION",
+        "width": 360,
+        "height": 800,
+        "physicalEvidence": false
+      },
+      "iphone": {
+        "deviceCode": "IPHONE-VIEWPORT-SIM-01",
+        "kind": "BROWSER_VIEWPORT_SIMULATION",
+        "width": 390,
+        "height": 844,
+        "physicalEvidence": false
+      }
+    },
+    "qr": {
+      "testOnlyUrlPattern": "https://pilot-kdoms-sim.example.invalid/t/{opaquePositionId}",
+      "encodeOrPrintAllowed": false
+    },
+    "evidenceStorageCode": "SIM-EVIDENCE-STORE-01",
+    "privacyRetention": {
+      "workPhotoDaysAfterPilotClose": 90,
+      "selectedEvidenceDaysAfterPa3": 180,
+      "metadataDaysAfterPilotClose": 365,
+      "backupRollingDays": 30,
+      "exportPackageDays": 7,
+      "deviceCacheMaxDays": 7,
+      "bulkPhotoExportDualApproval": true
+    },
+    "workPhotoPolicy": {
+      "outputMime": "image/webp",
+      "maxLongEdgePx": 1600,
+      "maxOutputBytes": 5242880,
+      "exifFieldsExpected": 0,
+      "gpsFieldsExpected": 0,
+      "maxRetryAttempts": 3,
+      "failedUploadCreatesRecoveryRecord": true,
+      "unlinkedObjectCreatesOrphanRecord": true
+    },
+    "monitoring": {
+      "crossFarmAllowStopCount": 1,
+      "wrongTreeActionStopCount": 1,
+      "duplicateCriticalEventStopCount": 1,
+      "metadataLeakStopCount": 1,
+      "pendingQueueReviewMinutes": 30,
+      "restoreMismatchHoldCount": 1
+    }
+  }
+}

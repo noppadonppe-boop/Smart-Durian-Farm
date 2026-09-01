@@ -1,14 +1,15 @@
-# KDOMS Role/Access Matrix v0.1
+# KDOMS Role/Access Matrix v0.1.1
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1 |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 0.1.1 |
+| สถานะ | Approved Baseline — Farm Management Least Privilege Clarified by DEC-043 |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `AGENTS.md`, `KDOMS_Scope_Knowledge_v0.2.md`, `00-Project-Management/Decision-Log.md` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `AGENTS.md`, `KDOMS_Scope_Knowledge_v0.2.md`, `KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `00-Project-Management/Decision-Log.md` (DEC-009, DEC-043) |
 
-> Working Proposal เท่านั้น ยังไม่ใช่ `Approved` permissions หรือ Security Rules
+> Canonical roles และ least-privilege baseline ผ่าน Owner Review แล้ว รายการที่มี
+> `*` ยังคงต้องมี policy รายละเอียดก่อนขยายสิทธิ์
 
 ## 1. Scope rules
 
@@ -40,7 +41,7 @@
 
 | ความสามารถ | ORG_OWNER | FARM_MANAGER | AGRONOMIST | WORKER | SALES_INVENTORY | VIEWER | AUDITOR |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Organization/Farm profile | M | R/W Farm | R | R* | R | R | R* |
+| Organization/Farm profile | M | R | R | R* | R | R | R* |
 | Membership/role | M | W* | — | — | — | — | R* |
 | Zone/Row/Position master | M | M | R/W* | R* | R* | R | R |
 | Planting Cycle/Tree master | M | M | W* | R* | R* | R | R |
@@ -67,6 +68,7 @@
 
 ## 5. Owner decisions required
 
+- การขยายสิทธิ์แก้ Farm Profile จาก `ORG_OWNER` ไปยัง `FARM_MANAGER`
 - ขอบเขตที่ `FARM_MANAGER` เชิญ/เปลี่ยน role ได้
 - ผู้อนุมัติการรักษา สารเคมี stock adjustment และ sales correction
 - ขอบเขต export ของ `FARM_MANAGER`, `SALES_INVENTORY` และ `AUDITOR`

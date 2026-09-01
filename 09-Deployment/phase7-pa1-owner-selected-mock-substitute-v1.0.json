@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "recordId": "KDOMS-PA1-OWNER-MOCK-SUBSTITUTE-V1",
+  "classification": "OWNER-DIRECTED MOCK SUBSTITUTE / SIMULATED/TEST ONLY",
+  "selectionMode": "OWNER_DIRECTED_MOCK_SUBSTITUTE",
+  "ownerDirectiveDate": "2026-08-31",
+  "sourceMock": {
+    "packId": "KDOMS-OWNER-MOCK-V1",
+    "deterministicSeed": "KDOMS-P7-OWNER-20260831-001",
+    "file": "09-Deployment/phase7-owner-mockup-input-v1.0.json",
+    "sha256": "6BB326C87D3DEE8C3B8B16C21E945FE78A15FE8F3866D8C1AF8898ED7B10606B"
+  },
+  "approvalBoundary": {
+    "pa1": "NOT_APPROVED",
+    "pa2": "NOT_APPROVED",
+    "pa3": "NOT_APPROVED",
+    "externalPilotAction": false,
+    "deployment": false,
+    "production": false,
+    "realData": false,
+    "realDevices": false,
+    "fieldExecution": false
+  },
+  "pa1Selection": {
+    "environmentOption": "A_THEN_B_SIMULATED_DRY_RUN_ONLY",
+    "projectReference": "KDOMS-PILOT-SIM-001",
+    "providerReference": "PROVIDER-SIM-01",
+    "regionReference": "SIM-REGION-01",
+    "billingEnabled": false,
+    "costCeilingTHB": 0,
+    "costNote": "MOCK DATA; NOT A REAL COST ESTIMATE",
+    "usageReviewerCode": "USAGE-REVIEW-SIM-01",
+    "deploymentOwnerCode": "DEPLOY-SIM-01",
+    "rollbackOwnerCode": "ROLLBACK-SIM-01",
+    "pilotUrl": "https://pilot-kdoms-sim.example.invalid",
+    "accessMode": "PRIVATE_ALLOWLIST_SIMULATION",
+    "authMode": "FIREBASE_AUTH_EMULATOR_REFERENCES_ONLY",
+    "monitoringChannelCode": "SIM-ALERT-CHANNEL-01",
+    "monitoringRetentionDays": 30,
+    "backupDestinationCode": "SIM-BACKUP-STORE-01",
+    "keyCustodianCode": "SIM-KEY-CUSTODIAN-01",
+    "rpoHours": 24,
+    "rtoHours": 8,
+    "backupRetentionDays": 30,
+    "candidateId": "KDOMS-PC-SIM-20260831-01",
+    "candidateState": "NOT_FROZEN_NOT_DEPLOYABLE",
+    "candidateSourceRevision": "MOCK-SOURCE-SHA256:6BB326C87D3DEE8C3B8B16C21E945FE78A15FE8F3866D8C1AF8898ED7B10606B"
+  },
+  "impactDecisions": {
+    "externalCost": "ACCEPT_MOCK_ONLY_EXTERNAL_IMPACT_DEFERRED",
+    "roleOwnership": "ACCEPT_MOCK_ROLE_CODES_ONLY",
+    "mockDataUntilPa2": "ACCEPT",
+    "physicalEvidenceDuringControlledPilot": "ACCEPT_AS_FUTURE_REQUIREMENT_NOT_PASSED",
+    "productionPermanentTagsScaleUpSeparateApproval": "ACCEPT",
+    "crossFarmAllowCriticalStop": "ACCEPT"
+  },
+  "ownerDecision": {
+    "inputSubstitution": "APPROVED",
+    "pa1Approval": "AWAITING_EXPLICIT_PA1_APPROVAL",
+    "externalActionAuthorized": false,
+    "note": "Owner directed PA-1 input fields to use the deterministic mock values. This fills the form but does not authorize deployment or external resources."
+  }
+}

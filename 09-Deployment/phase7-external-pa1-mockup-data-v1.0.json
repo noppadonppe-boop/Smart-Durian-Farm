@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "packId": "KDOMS-EXTERNAL-PA1-MOCKUP-V1",
+  "classification": "SIMULATED/TEST ONLY",
+  "purpose": "EXTERNAL_PA1_DECISION_REHEARSAL_ONLY",
+  "deterministicSeed": "KDOMS-P7-EXTERNAL-PA1-MOCKUP-20260831-001",
+  "updatedAt": "2026-08-31",
+  "resetPolicy": "Replace every mockupData field with the canonical value in this file, then rerun validate-phase7-external-pa1-mockup.ps1.",
+  "approvalBoundary": {
+    "localEmulatorPa1": "APPROVED_AND_PASSED_DEC_037",
+    "externalPa1": "NOT_APPROVED",
+    "pa2": "NOT_APPROVED",
+    "pa3": "NOT_APPROVED",
+    "externalResourceCreation": false,
+    "billing": false,
+    "credentialCreationOrUse": false,
+    "deployment": false,
+    "realData": false,
+    "realDevices": false,
+    "fieldExecution": false,
+    "publicAccess": false,
+    "production": false
+  },
+  "mockupData": {
+    "provider": "PROVIDER-SIM-01 / NON-PROVISIONABLE REFERENCE",
+    "projectIdAndEnvironment": "KDOMS-PILOT-SIM-001 / PRIVATE_PILOT_SIMULATION",
+    "region": "SIM-REGION-01 / NOT A CLOUD REGION",
+    "monthlyBudget": {
+      "amount": 0,
+      "currency": "THB",
+      "display": "0 THB/month — MOCK; NOT A REAL BUDGET APPROVAL"
+    },
+    "pilotUrlAndAccess": "https://pilot-kdoms-sim.example.invalid / PRIVATE_ALLOWLIST_SIMULATION",
+    "deploymentOwner": "DEPLOY-SIM-01",
+    "billingAndIncidentOwner": "USAGE-REVIEW-SIM-01 / INCIDENT-SIM-01",
+    "candidateRevision": "KDOMS-PC-SIM-20260831-01 / LOCAL-SNAPSHOT-SHA256:80CAA78FEE2BCF71836DDF8C0A3AB0ADFF1371A6043302B7281AD68F54C34F6E",
+    "candidateState": "FROZEN_LOCAL_REHEARSAL_ONLY_NOT_DEPLOYABLE"
+  },
+  "sourceCandidate": {
+    "approvalRecord": "09-Deployment/phase7-pa1-local-rehearsal-approval-v1.0.json",
+    "candidateId": "KDOMS-PC-SIM-20260831-01",
+    "sourceSnapshotSha256": "80CAA78FEE2BCF71836DDF8C0A3AB0ADFF1371A6043302B7281AD68F54C34F6E",
+    "buildArtifactSha256": "16B98BC7B433815831ED1271BFE8DB522CF9407056D08D5179F5CC381EC3DBE9"
+  },
+  "replacementRequiredBeforeExternalPa1": [
+    "Actual provider and approved service plan",
+    "Actual unique project/environment reference",
+    "Actual supported region",
+    "Actual monthly budget cap and billing owner acceptance",
+    "Actual private Pilot URL and access-control design",
+    "Actual accountable deployment owner",
+    "Actual accountable billing and incident owners",
+    "Clean frozen deployable commit/revision produced after external approval review"
+  ],
+  "prohibitedUse": [
+    "Do not copy these values into a provider console, deployment configuration, billing profile or credential store.",
+    "Do not interpret this pack or its filled message as External PA-1 approval.",
+    "Do not deploy, create resources, enable billing, use real data/devices, execute field work or enable Production from this pack."
+  ]
+}

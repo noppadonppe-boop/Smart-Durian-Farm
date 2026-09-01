@@ -1,12 +1,12 @@
-# Smart-Durian-Code — Phase Prompts v1.0
+# Smart-Durian-Code — Phase Prompts v1.0.2
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.0 |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 1.0.2 |
+| สถานะ | Active Baseline — Mock-first + Limited Operational Tree Register (DEC-046) |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `00-Project-Management/Decision-Log.md` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-027, DEC-046) |
 
 ชุด Prompt สำหรับส่งให้ Codex task ชื่อ `Smart-Durian-Code` ทีละ Phase
 
@@ -25,9 +25,12 @@
 คำศัพท์ Gate ที่ใช้ทั้งชุด:
 
 - Gate 0 = Product & Documentation Readiness
-- Field Validation Gate = topology, ป้าย 5–10 ป้าย และ Tree Survey 30–50 ต้น
-  ก่อนล็อก Phase 3/ผลิตป้ายจริง
-- Phase 7 = Operational Application Pilot ด้วยแอปที่ผ่าน Gate 6
+- Engineering Gates 1–6 = ตรวจ implementation ด้วย Mock Data และ
+  automated/local/emulator/browser evidence ตามความเสี่ยง
+- Phase 7 = เตรียม Pilot Candidate/readiness; Deploy หรือ Controlled Operational
+  Pilot ทำได้เฉพาะเมื่อ Owner อนุมัติ External Action ที่เกี่ยวข้อง
+- Physical Device/Field Validation ต้องผ่านก่อน Production, permanent tags หรือ
+  scale-up แต่ไม่ block Phase การสร้างแอป
 
 ---
 
@@ -284,10 +287,34 @@ Validation:
 
 Stop rules:
 - ใช้ QR domain แบบ configurable placeholder จนกว่าเจ้าของอนุมัติโดเมนจริง
-- Field Validation Gate ต้องผ่านก่อนล็อก Tree/Tag implementation และก่อนผลิตป้ายจริง
-- ห้ามผลิต QR/p้ายจริงจำนวนมากหรือเริ่ม Phase 4
+- ค่า topology/tag/physical ที่ยังไม่ยืนยันเป็น `TBD` และไม่ block configurable
+  Tree/Tag implementation ด้วย Mock Data
+- ห้ามผลิต QR/ป้ายถาวรหรือเริ่ม Phase 4 โดยไม่มี Gate 3 approval
 
 รายงานภาษาไทยพร้อม Gate 3 checklist แล้วหยุดรออนุมัติ
+```
+
+### Operational addendum หลัง Gate 3 — DEC-046
+
+ข้อความนี้ใช้กับงานแก้ไข Tree Register หลัง Phase 3 และมีอำนาจเหนือข้อจำกัด
+Mock-only เดิมเฉพาะส่วนที่ระบุ:
+
+```text
+Owner อนุมัติให้ source รองรับการเพิ่ม/แก้ข้อมูลทะเบียนต้นใช้งานจริง โดย:
+- ข้อมูลจริงสร้างได้เฉพาะ Firebase Production + Farm ที่ trusted-provision เป็น
+  classification=OPERATIONAL และ isMock=false
+- Mock adapter, Emulator และ Farm จำลองต้องคง SIMULATED/TEST ONLY และ
+  exampleData=true
+- หน้าเพิ่มตำแหน่งปลูกแบ่ง 3 ส่วน: ตำแหน่งและรหัส, ข้อมูลต้นและรอบปลูก,
+  ข้อมูลสำรวจเริ่มต้น
+- ต้องยืนยัน Farm/Zone/Row/ลำดับตำแหน่ง/ทิศทางและ Tag preview ก่อนบันทึก
+- สถานะไม่มีต้นต้องไม่สร้างข้อมูลต้นหรือข้อมูลสำรวจที่ขัดแย้งกัน
+- ใช้ audit, idempotency, membership, Farm scope และ classification แบบ fail-closed
+- รูปจริง, QR/ป้ายถาวร, external pilot, resource เพิ่ม และ deployment ไม่รวมอยู่ใน
+  การอนุมัตินี้ ต้องขออนุมัติแยก
+
+ให้ทดสอบด้วย Mock/Emulator/browser evidence ต่อไป ห้ามนำข้อมูลจริงมาใส่ test fixture
+หรือ repository
 ```
 
 ### ข้อความอนุมัติ Gate 3
@@ -490,9 +517,10 @@ Gate 6 ผ่าน อนุมัติเริ่ม Phase 7 — Operational
 Phase: 7 — Operational Application Pilot, Rollout & Operations
 
 ผลลัพธ์ที่ต้องการ:
-เตรียมและดำเนิน Operational Application Pilot ด้วยแอปที่ผ่าน Gate 6 และ
-ชุดตำแหน่งที่ผ่าน Field Validation Gate แล้ว รวบรวมหลักฐาน แก้ปัญหา และเสนอ
-Go/No-Go ก่อนขยายประมาณ 600 ต้น
+เตรียม access-controlled Pilot Candidate จากแอปที่ผ่าน Gate 6 แล้วดำเนิน
+Controlled Operational Pilot เพื่อเก็บ Physical Device/Field evidence ด้วย cohort
+ที่ Owner อนุมัติ รวบรวมหลักฐาน แก้ปัญหา และเสนอ Go/No-Go ก่อน Production,
+permanent tags หรือ scale-up
 
 ข้อสำคัญ:
 ก่อนทำ action ภายนอก เช่น สร้าง Firebase production, billing, domain,
@@ -501,7 +529,10 @@ public deployment, ส่งข้อความ หรือใช้ข้อ
 
 In scope:
 - Operational Pilot runbook, users, roles, devices, demo/real-data boundary และ support plan
-- ใช้ cohort ต้นที่ผ่าน Field Validation แล้ว; ไม่เริ่ม topology/tag survey ใหม่ใน Phase 7
+- กำหนด/สำรวจ cohort, topology และป้าย `TEST ONLY` ระหว่าง Pilot โดยห้ามคาดเดา
+  และต้องได้รับ Owner approval ก่อนลงพื้นที่หรือรับข้อมูลจริง
+- Android/iPhone, camera/QR, LAN/Hotspot, Online/Offline, wrong-Farm denial และ
+  idempotent reconnect evidence บนอุปกรณ์จริง
 - training guide สำหรับ Owner/Manager/Worker
 - backup, export, restore drill และ incident contacts
 - privacy/retention/access review
@@ -525,6 +556,8 @@ Success criteria:
 - backup/export/restore procedure ผ่านการตรวจ
 - blocker defects ปิดหรือมี accepted risk
 - Pilot report มี evidence และ Go/No-Go recommendation
+- Physical Device/Field Validation Gate ผ่านก่อนเสนอ Production/permanent tags/
+  scale-up; การ Deploy Pilot Candidate เพียงอย่างเดียวไม่นับว่าผ่าน
 
 Validation:
 - รัน full automated suite และ production-like smoke test ใน environment ที่อนุมัติ

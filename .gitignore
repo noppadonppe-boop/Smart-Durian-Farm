@@ -3,11 +3,19 @@ node_modules/
 .pnpm-store/
 dist/
 coverage/
+outputs/
+/package-lock.json
 
 # Local environment files (keep examples)
 .env
 .env.*
 !.env.example
+!.env.emulator
+
+# KDOMS Firebase Production config stays local and must never be committed.
+07-Source-Code/web-app/.env
+07-Source-Code/web-app/.env.production
+07-Source-Code/web-app/.env.production.local
 
 # Firebase Local Emulator state and logs
 .firebase/

@@ -1,0 +1,1 @@
+classification,defectLogVersion,issueId,openedAt,candidateId,environment,scenarioId,severity,organizationRef,farmRef,targetRef,expectedResult,actualResult,originalEvidenceId,containment,ownerCode,status,fixCandidateId,regressionTestIds,retestEvidenceIds,ownerDisposition,residualRisk,closedAt,notes

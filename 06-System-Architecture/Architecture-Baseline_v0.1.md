@@ -1,14 +1,14 @@
-# Architecture Baseline v0.1
+# Architecture Baseline v0.2
 
-> เอกสารแนวคิดสำหรับ Gate 0 ยังไม่ใช่ schema หรือ infrastructure ที่อนุมัติให้สร้าง
+> Evolving baseline หลัง Gate 6; การอนุมัติ source/knowledge ไม่ใช่คำสั่ง Deploy
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1 |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 0.2 |
+| สถานะ | Approved Evolving Baseline — Limited Operational Tree Register (DEC-046) |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-046) |
 
 ## 1. Target stack
 
@@ -60,6 +60,10 @@ User / Mobile PWA
 
 ไม่ duplicate authoritative fields โดยไม่มี ownership และ update policy
 
+Position, Planting Cycle, Tree Event และ record ที่เกี่ยวข้องต้องสืบทอด
+`classification`/`exampleData` จาก runtime และ Farm ที่เชื่อถือได้ ห้ามรับค่า
+classification จาก client เพื่อยกระดับ Mock เป็นข้อมูลจริง
+
 ## 5. Offline model
 
 - Client operation ID สร้างก่อน queue
@@ -75,11 +79,15 @@ User / Mobile PWA
 
 - `development`: local/emulator-first
 - `test`: isolated automated validation
-- `production`: สร้างหลังอนุมัติ แยก credentials/data ชัดเจน
+- `production`: ใช้เฉพาะ resource และขอบเขตที่ Owner อนุมัติ แยก credentials/data ชัดเจน
 - ห้ามใช้ข้อมูลสวนจริงใน test โดยไม่ทำ anonymization และอนุมัติ
 - ใช้ least privilege, data minimization, farm-scoped export with audit และ
   archive-before-delete
-- ห้าม real/production data จนกว่า retention, backup และ privacy policy จะ Approved
+- DEC-046 อนุญาตข้อมูลทะเบียนต้นจริงเฉพาะ Firebase Production + Farm ที่
+  trusted-provision เป็น `classification=OPERATIONAL`, `isMock=false`; runtime/Farm
+  อื่นต้องสร้าง `SIMULATED/TEST ONLY` และ `exampleData=true`
+- ข้อมูลจริงนอกทะเบียนต้น, รูปจริง, QR/ป้ายถาวร และการขยาย Production ยังคงต้องมี
+  approval ด้าน retention, backup, privacy, resource และ deployment ที่เกี่ยวข้อง
 
 ## 7. Phase-gated architecture decisions after Foundation
 
@@ -87,7 +95,9 @@ User / Mobile PWA
 
 - Repository/package structure — วางแล้วใน Phase 1 ตาม
   `06-System-Architecture/Phase-1-Foundation-Architecture_v0.1.md`
-- Auth provider และ account recovery — `DEC-010` ยัง Open และต้องตัดสินก่อน Phase 2
+- Auth provider — `DEC-010` Approved: Phone + SMS OTP; Phase 2 ใช้หมายเลขและ
+  OTP ทดสอบบน Firebase Authentication Emulator เท่านั้น ส่วน account recovery
+  และ Production SMS configuration ต้องตัดสินก่อน production
 - Canonical role matrix — Approved ตาม `DEC-009`; enforcement รอ Phase 2
 - Firestore schema/query/access matrix และ cross-farm Security Rules tests —
   ต้องออกแบบและทดสอบใน Phase 2 ก่อนผ่าน Gate 2
@@ -96,17 +106,20 @@ User / Mobile PWA
 - Image compression, path, retention และ orphan cleanup — ต้องตัดสินก่อนเปิด
   image upload feature
 - Audit/event retention, backup/export/restore, monitoring, error reporting และ
-  privacy policy — ต้องอนุมัติก่อนใช้ production data หรือ production environment
+  privacy policy — ต้องอนุมัติก่อนขยาย production data/environment นอกข้อยกเว้น
+  จำกัดของ DEC-046
 
-การจัดลำดับนี้ไม่อนุมัติรายละเอียดที่ยัง Open และไม่อนุญาตให้เริ่ม Phase 2
-โดยไม่มี Gate 1 approval
+Gate 1–6 ผ่านแล้วและปัจจุบันอยู่ Phase 7 readiness ตาม Decision Log
+การจัดลำดับนี้ไม่อนุมัติรายละเอียดที่ยัง Open, production resource เพิ่ม หรือ Deploy
 
 Production domain สำหรับ QR ไม่ใช่ Gate 0 blocker หรือเงื่อนไขสร้าง Foundation
-แต่ต้องได้รับ `Approved` ก่อนใช้ QR/ป้ายจริงและก่อน Phase 3 sign-off
+แต่ต้องได้รับ `Approved` ก่อนใช้ QR/ป้ายจริงหรือผลิตป้ายถาวร
 
 ## 8. Gate boundaries
 
-- Gate 0: Product & Documentation Readiness เท่านั้น
-- Field Validation Gate: topology, ป้าย 5–10 ป้าย และ Tree Survey 30–50 ต้น
-  ก่อนล็อก Phase 3/ผลิตป้ายจริง
-- Phase 7: Operational Application Pilot ด้วยแอปที่ผ่าน Gate 6
+- Gate 0–6: ผ่านตาม Decision Log ด้วย Mock/Emulator/browser evidence
+- DEC-046: อนุมัติ source-ready operational Tree Register data entry แบบจำกัด;
+  คำสั่ง Deploy/activation และการ trusted-provision Farm ต้องดำเนินการแยก
+- Physical Device/Field Validation: ต้องผ่านก่อน Controlled Pilot completion,
+  Production rollout, QR/ป้ายถาวร หรือ scale-up แต่ไม่ย้อนกลับไป block source work
+- Phase 7: Pilot readiness ยังไม่ใช่การอนุมัติ External Pilot Action หรือ Go-Live

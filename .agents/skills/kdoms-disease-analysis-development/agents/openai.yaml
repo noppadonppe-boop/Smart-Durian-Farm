@@ -1,0 +1,6 @@
+interface:
+  display_name: "KDOMS Disease Analysis Development"
+  short_description: "เตรียม Workflow วิเคราะห์โรคแบบ Human Review"
+  default_prompt: "Use $kdoms-disease-analysis-development to plan the next local/mock KDOMS disease-analysis increment without enabling real AI or deployment."
+policy:
+  allow_implicit_invocation: true

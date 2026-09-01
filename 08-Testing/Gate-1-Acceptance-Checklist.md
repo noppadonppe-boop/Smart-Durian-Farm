@@ -2,14 +2,14 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.0 |
-| สถานะ | Ready for Owner Review — Not Approved |
+| เวอร์ชัน | 1.1 |
+| สถานะ | Approved — Gate 1 Passed |
 | เจ้าของ Gate | Project Owner |
 | วันที่ตรวจล่าสุด | 2026-08-31 |
-| Source of Truth | `AGENTS.md`, `00-Project-Management/Smart-Durian-Code_Phase_Prompts_v1.0.md`, `00-Project-Management/Decision-Log.md`, `06-System-Architecture/Phase-1-Foundation-Architecture_v0.1.md` |
+| Source of Truth | `AGENTS.md`, `00-Project-Management/Smart-Durian-Code_Phase_Prompts_v1.0.md`, `00-Project-Management/Decision-Log.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `06-System-Architecture/Phase-1-Foundation-Architecture_v0.1.md` |
 
-> Checklist นี้บันทึกผลตรวจเชิงเทคนิคของ Phase 1 เท่านั้น การทำเครื่องหมาย
-> `ผ่าน` ไม่ใช่การอนุมัติ Gate 1 และไม่อนุญาตให้เริ่ม Phase 2
+> Checklist นี้บันทึกผลตรวจเชิงเทคนิคของ Phase 1 และคำตัดสิน Owner Review
+> เมื่อ 2026-08-31 ซึ่งอนุมัติ Gate 1 และการเริ่ม Phase 2 แบบ local/emulator-only
 
 | หมวด | เกณฑ์ | หลักฐาน | ผล |
 |---|---|---|---|
@@ -32,18 +32,19 @@
 ## Gate decision
 
 - [x] **TECHNICAL READINESS — Phase 1 ผ่านเกณฑ์ที่ตรวจได้**
-- [ ] **OWNER APPROVED — Gate 1 ผ่าน อนุมัติเริ่ม Phase 2**
+- [x] **OWNER APPROVED — Gate 1 ผ่าน อนุมัติเริ่ม Phase 2**
 - [x] **PHASE 2 NOT STARTED**
 
-- ผู้อนุมัติ: `รอ Project Owner`
-- วันที่อนุมัติ: `TBD`
+- ผู้อนุมัติ: `Project Owner`
+- วันที่อนุมัติ: `2026-08-31`
 
-## Owner decision required before Phase 2
+## Owner decision result
 
-- `DEC-010` Sign-in method: เลือกเบอร์โทร, อีเมล หรือบัญชีเชิญ
-- ยืนยันข้อความอนุมัติ Gate 1 อย่างชัดเจนหลังตัดสิน `DEC-010`
+- `DEC-010` = `Approved`: เบอร์โทรศัพท์ + SMS OTP
+- Phase 2 ใช้หมายเลขและ OTP ทดสอบบน Firebase Authentication Emulator เท่านั้น
+- Gate 1 = `Approved`: อนุญาตเริ่ม Phase 2 ตาม Prompt Phase 2
 
-## Gate 1 recommendation
+## Gate 1 result
 
-แนะนำให้ **อนุมัติ Gate 1 หลัง Owner ปิด DEC-010** เนื่องจากหลักฐานทางเทคนิค
-ของ Phase 1 ผ่านครบ แต่ Gate 1 ยังไม่เปลี่ยนเป็น Approved จนกว่าจะมีคำสั่ง Owner
+**Gate 1 ผ่าน** หลักฐานทางเทคนิคครบและ Owner อนุมัติแล้ว การอนุมัติไม่รวม
+Production Authentication/SMS, billing, deployment, credentials, real data หรือ Phase 3

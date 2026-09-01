@@ -1,13 +1,13 @@
-# Tag and QR Standard v0.1
+# Tag and QR Standard v0.1.2
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1 |
-| สถานะ | Proposed — Field Validation Review |
+| เวอร์ชัน | 0.1.2 |
+| สถานะ | Approved Digital Identity Baseline (DEC-046) — Physical Specification Still Proposed |
 | เจ้าของเอกสาร | Project Owner |
 | ขอบเขต | Multi-Farm tree-position identification |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `00-Project-Management/Decision-Log.md` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-046) |
 
 ## 1. หลักการ
 
@@ -50,6 +50,20 @@ KGL-F01-Z01-R03-T017
 - Tag code อ้าง Planting Position; `plantingCycle` เก็บในฐานข้อมูล ไม่พิมพ์เป็นส่วนถาวรของรหัส
 - หากโครงสร้าง Zone/Row จริงไม่เหมาะกับสวน ต้องตัดสินใจก่อนผลิตป้ายทั้งหมด
 
+### 2.1 การลงทะเบียน Tag Code สำหรับใช้งานจริงตาม DEC-046
+
+- อนุญาตให้สร้างตัวตน Planting Position และ Tag Code ในทะเบียนต้นจริงได้เฉพาะ
+  Firebase Production + Farm `OPERATIONAL` (`isMock=false`) ที่จัดเตรียมโดย
+  trusted process และ Owner ยืนยัน Farm, Zone, Row, ลำดับตำแหน่ง และทิศทางนับแล้ว
+- หน้าจอต้องแสดง Tag preview พร้อมสรุป Farm + Zone + Row + Position ให้ผู้ใช้ยืนยัน
+  ก่อนบันทึก เพราะรหัสตำแหน่งเป็นตัวตนถาวรและห้ามนำกลับไปใช้กับตำแหน่งอื่น
+- หาก topology ส่วนใดยังไม่ยืนยัน ให้เก็บเป็น `TBD` และห้ามสร้างตัวตนถาวรจาก
+  ค่าที่คาดเดาหรือค่าตัวอย่าง
+- การลงทะเบียน Tag Code ในฐานข้อมูล **ไม่เท่ากับ** การอนุมัติ QR payload จริง,
+  Production QR domain, การพิมพ์ QR, การผลิตป้ายถาวร หรือการติดตั้งภาคสนาม
+- Mock/Emulator/Farm จำลองยังต้องสร้าง Tag/Position แบบ `SIMULATED/TEST ONLY`
+  และ `exampleData=true` เท่านั้น
+
 ## 3. QR payload
 
 รูปแบบเป้าหมาย:
@@ -67,8 +81,10 @@ KGL-F01-Z01-R03-T017
 - แนะนำ Error Correction `Q` หรือ `H` สำหรับป้ายภาคสนาม
 - พื้นดำบนขาว มี quiet zone ครบ และไม่ใส่โลโก้ทับ code ใน Pilot
 - QR Preview ใช้ configurable placeholder ได้ใน Phase 1 Foundation
-- Production domain ไม่ใช่ Gate 0 blocker แต่ต้องได้รับ `Approved` ก่อน
-  Field Validation ที่ใช้ QR จริง, ก่อนผลิตป้ายจริง และก่อน Phase 3 sign-off
+- ระหว่าง Development ใช้ configurable placeholder/mock route เท่านั้น
+- Test-only QR base URL ต้องได้รับ `Approved` ก่อน Controlled Pilot ที่ใช้ QR จริง
+- Production domain และ redirect ownership ต้องได้รับ `Approved` ก่อนผลิตป้ายถาวร
+  หรือ Production rollout ไม่ใช่ตัว block การสร้าง Phase 3–6
 - QR ใน UX Preview เป็นข้อมูลจำลอง
 
 ## 4. Physical sign specification
@@ -153,14 +169,20 @@ KGL-F01-Z01-R03-T017
 - ตรวจ human-readable code ตรงกับ QR payload
 - บันทึก batch, supplier, production date และ QA result
 
-ก่อนผลิตจำนวนมากและก่อน Phase 3 sign-off ให้ผ่าน Field Validation 5–10 ป้าย
-เป็นเวลาเสนอ 2–4 สัปดาห์ และบันทึกผลเพื่อ Owner Review ใน Decision Log
+ระหว่าง Controlled Pilot ให้ทดสอบป้าย `TEST ONLY` จำนวนจำกัดตามขอบเขตที่ Owner
+อนุมัติและบันทึกผลเพื่อ Owner Review ใน Decision Log ต้องผ่านก่อนผลิตป้ายถาวรหรือ
+ผลิตจำนวนมาก ระยะเวลา 2–4 สัปดาห์ยังเป็นข้อเสนอ ไม่ใช่ข้อเท็จจริงภาคสนาม
 
 ## 9. Gate terminology
 
-- Gate 0 ตรวจ Product/Documentation Readiness และ Field Validation Plan
-- Field Validation Gate ตรวจ topology, ป้าย 5–10 ป้าย และความเหมาะสมของรหัสจริง
-- Phase 7 เป็น Operational Application Pilot ด้วยแอปที่ผ่าน Gate 6
+- Engineering Phases/Gates ใช้ Mock Data และ configurable QR/tag implementation
+- DEC-046 เป็นข้อยกเว้นจำกัดสำหรับข้อมูลตัวตนตำแหน่ง/ทะเบียนต้นใน Farm
+  `OPERATIONAL`; ไม่เปลี่ยน Gate ของ QR, ป้ายถาวร หรือ Physical/Field evidence
+- Pilot Candidate ต้อง Deploy แบบ access-controlled หลัง Owner อนุมัติ environment
+- Controlled Operational Pilot ตรวจ topology, ป้าย `TEST ONLY`, QR และความ
+  เหมาะสมของรหัสจริงด้วยอุปกรณ์/เครือข่ายจริง
+- Physical/Field evidence ต้องผ่านก่อน Production rollout, permanent tags หรือ
+  scale-up แต่ไม่ block การสร้างแอป
 
-รายการนี้ยังเป็น `Proposed` จนกว่า Owner จะอนุมัติ ห้ามผลิตป้ายจริงจากค่า
-ตัวอย่าง `KGL-F01-Z01-R03-T017`
+ข้อกำหนดด้านวัสดุ/ขนาด/การติดตั้งยังเป็น `Proposed` จนกว่า Owner จะอนุมัติ
+ห้ามผลิตป้ายจริงจากค่าตัวอย่าง `KGL-F01-Z01-R03-T017`

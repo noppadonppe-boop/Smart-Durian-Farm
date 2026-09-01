@@ -1,14 +1,14 @@
-# KDOMS Codex Master Prompt v1.1
+# KDOMS Codex Master Prompt v1.1.4
 
 | รายการ | ค่า |
 |---|---|
 | ผลิตภัณฑ์ | Smart Durian Farm / KongLak Durian Orchard Management System (KDOMS) |
-| เวอร์ชัน | 1.1 — Multi-Farm baseline |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 1.1.4 — Multi-Farm baseline + Limited Operational Tree Register |
+| สถานะ | Approved Baseline — Updated by DEC-027, DEC-030, DEC-043 and DEC-046 |
 | เจ้าของเอกสาร | Project Owner |
 | Technology target | Vite + React + TypeScript + Firebase |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `00-Project-Management/Decision-Log.md` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` |
 
 ## 1. บทบาทของ Codex
 
@@ -42,19 +42,33 @@ Role Matrix นี้เป็น Working Proposal ตาม
 
 ### 4.1 Organization & Farm Management
 
-- สร้าง แก้ไข ระงับ และ Archive สวน
+- เพิ่มเมนู `เพิ่มเติม → จัดการสวน` สำหรับ `ORG_OWNER`
+- สร้าง แก้ไข ระงับ เปิดใช้งานใหม่ และ Archive สวนพร้อม Audit
+- ห้าม Hard delete Farm; Archive ต้องรักษาประวัติและตรวจงานเปิด/Pending ก่อน
 - Farm Switcher ที่แสดงสวนที่ผู้ใช้มีสิทธิ์เท่านั้น
 - สมาชิกและบทบาทแยกแต่ละสวน
-- Farm profile: ชื่อ รหัส ที่ตั้ง timezone ฤดูกาล และสถานะ
+- Farm profile: ชื่อ, immutable Farm Sequence/Code, ที่ตั้ง, timezone, ฤดูกาล,
+  สถานะ และหมายเหตุตาม Farm Profile Knowledge
+- internal Organization/Farm ID สร้างโดยระบบ; Farm create + Owner membership +
+  Audit ต้อง atomic/idempotent และปฏิเสธ sequence/code ซ้ำ
 - Portfolio summary สำหรับ Owner โดยไม่รวมข้อมูลสวนที่ไม่มีสิทธิ์
 
 ### 4.2 Farm topology & tree register
 
 - Farm → Zone → Row → Planting Position → Planting Cycle
 - รหัสตำแหน่งไม่ซ้ำและไม่เปลี่ยนหลังผลิตป้าย
-- ทะเบียนต้น: พันธุ์ ปีปลูกโดยประมาณ สถานะ ขนาด พิกัด รูป และหมายเหตุ
+- หน้าจอ `เพิ่มตำแหน่งปลูก` แบ่งตัวตนตำแหน่ง, ข้อมูลต้น/รอบปลูก และข้อมูลสำรวจ
+- ใช้ Zone/Row เดิมหรือยืนยัน Zone/Row ใหม่ พร้อม Farm context, ทิศทางการนับ,
+  Tag preview และ confirmation ก่อนบันทึก Position identity
+- ทะเบียนต้น: สถานะ วันที่ข้อมูลตั้งต้น พันธุ์/ความมั่นใจ ปีปลูก/ระบบปี/
+  ความมั่นใจ แหล่งพันธุ์ ขนาด พิกัด และหมายเหตุ
+- GPS/ลำต้น/ทรงพุ่ม/ความสูงที่เปิดใช้ต้องมี measurement evidence ครบ;
+  สถานะ `ไม่มีต้น` ห้ามมีข้อมูลต้นหรือค่าการวัด
+- รูปประจำต้นยัง Deferred จนกว่า Storage/นโยบายรูปจริงอนุมัติ
 - Tree timeline และประวัติรูป
 - Bulk import พร้อม preview, validation และ reject report
+- ข้อมูลจริงอนุญาตเฉพาะ Firebase Production + Farm `OPERATIONAL`
+  (`isMock=false`) ตาม DEC-046; runtime/Farm อื่นต้องเป็น `SIMULATED/TEST ONLY`
 
 ### 4.3 Tag & QR
 
@@ -72,8 +86,11 @@ Role Matrix นี้เป็น Working Proposal ตาม
 - งานรายต้น รายแถว รายโซน หรือชุดต้นที่เลือก
 - ประเภทงาน เช่น ตรวจโรค ใส่ปุ๋ย ฉีดพ่น ให้น้ำ ตัดแต่ง นับผล เก็บเกี่ยว
 - ผู้รับผิดชอบ กำหนดเวลา ลำดับความสำคัญ ขั้นตอน และวัสดุที่คาดว่าจะใช้
+- ผู้สร้าง Work Order แนบรูปประกอบคำสั่งงานได้ 0–3 รูปเฉพาะขณะ Draft ก่อน
+  Assign; รูปนี้เป็น reference และแยกจากรูปหลักฐานการทำงานของ Worker
 - สถานะ Draft → Assigned → Accepted → In progress → Submitted → Verified/Rejected → Closed
-- ภาพก่อน–หลัง หมายเหตุ พิกัดโดยประมาณ และผู้ตรวจรับ
+- Worker Report ต้องมีภาพ BEFORE อย่างน้อย 1 และ AFTER อย่างน้อย 1 รวมไม่เกิน
+  6 รูป พร้อมหมายเหตุ พิกัดโดยประมาณ และผู้ตรวจรับ; ภาพ pending/failed ห้ามส่งตรวจ
 - งานรายกลุ่มต้องแยก exception ของต้นที่ทำไม่ได้หรือมีปัญหา
 
 ### 4.5 Tree care & disease
@@ -129,7 +146,8 @@ Role Matrix นี้เป็น Working Proposal ตาม
 5. QR ใช้ `/t/{opaquePositionId}` ภายใต้ configurable base URL และไม่บรรจุ
    ข้อมูลที่เปลี่ยนแปลงได้หรือข้อมูลอ่อนไหว
 6. การบันทึกงานจากการสแกนต้องตรวจว่าตรง Farm และเป้าหมายใน Work Order
-7. Event สำคัญมี actor, server timestamp, source device, farm scope และ idempotency key
+7. Event สำคัญมี actor, server timestamp, source device, farm scope และ idempotency key;
+   รูป Work Order มี purpose/phase, uploader, Work/Farm scope และ upload state
 8. การแก้ประวัติสำคัญต้องตรวจสอบย้อนหลังได้
 9. หน่วยและอัตราต้องระบุชัด ห้ามเก็บตัวเลขลอย ๆ โดยไม่มีหน่วย
 10. Archive เป็นค่าเริ่มต้นสำหรับข้อมูลที่มีประวัติ; hard delete ใช้เฉพาะนโยบายที่อนุมัติ
@@ -205,7 +223,8 @@ organizations/{organizationId}
 - บันทึก audit เมื่อเพิ่ม/ลดสิทธิ์หรือ export ข้อมูลสำคัญ
 - Export ต้องจำกัด Farm/Role, ใช้ data minimization และสร้าง audit event
 - Archive-before-delete เป็นค่าเริ่มต้น; ห้าม real/production data จนกว่า
-  retention, backup และ privacy policy จะได้รับอนุมัติ
+  retention, backup และ privacy policy จะได้รับอนุมัติ ยกเว้น limited Tree Register
+  ที่ Owner อนุมัติตาม DEC-046 ภายใต้ Farm `OPERATIONAL` และข้อจำกัดที่บันทึกไว้
 
 ## 11. UX principles
 
@@ -227,7 +246,12 @@ organizations/{organizationId}
 - Emulator tests สำหรับ Firestore Rules, Storage Rules และ Functions
 - End-to-end tests สำหรับเส้นทาง Owner, Manager และ Worker
 - Accessibility checks และทดสอบหน้าจอ 320px ขึ้นไป
-- Field usability test: เวลาค้นหาต้น อัตราสแกนผิด และการส่งงานในสัญญาณอ่อน
+- Development/Engineering Gate ใช้ Mock Data Pack ที่ versioned, deterministic,
+  resettable และติดป้าย `SIMULATED/TEST ONLY`
+- Field usability test เช่น เวลาค้นหาต้น อัตราสแกนผิด และการส่งงานในสัญญาณอ่อน
+  ดำเนินการระหว่าง Controlled Pilot หลัง Deploy Pilot Candidate
+- การไม่มี Physical Device/Field evidence ไม่ block Phase การพัฒนา แต่ evidence
+  ดังกล่าวต้องผ่านก่อน Production rollout, permanent tags หรือ scale-up
 
 ### Critical scenarios
 
@@ -257,8 +281,11 @@ Organization, Farm Management, Farm Switcher, memberships, roles, rules matrix �
 
 ### Phase 3 — Farm Map, Tree Register & QR
 
-Field Validation Gate ต้องผ่านก่อนล็อก implementation/ผลิตป้ายจริง จากนั้นจึงทำ
-Zone/Row/Position/Planting Cycle, import, tag generation, QR scan และ tree timeline
+ทำ Zone/Row/Position/Planting Cycle, import, configurable tag/QR, scan และ tree
+timeline ด้วย Mock Data/Emulator เป็นฐาน ค่า topology/physical configuration ที่ยัง
+ไม่ยืนยันเป็น `TBD`; DEC-046 อนุญาต direct operational Tree Register data entry
+เฉพาะ Firebase Production + Farm `OPERATIONAL` หลังได้รับคำสั่ง Deploy แยก
+ห้ามรูปจริงและผลิตป้ายถาวรก่อน approval ที่เกี่ยวข้อง
 
 ### Phase 4 — Work, Care & Disease
 
@@ -274,21 +301,28 @@ Farm/Portfolio dashboard, conflict workflow, performance, audit/export และ
 
 ### Phase 7 — Operational Application Pilot, Rollout & Operations
 
-ใช้แอปที่ผ่าน Gate 6 กับผู้ใช้จริงในกลุ่มที่ผ่าน Field Validation แล้ว ทำ training,
-feedback, fixes, backup/export และ operating guide ก่อนเสนอขยายประมาณ 600 ต้น
+Deploy แอปที่ผ่าน Engineering Gate ที่กำหนดเป็น access-controlled Pilot Candidate
+จากนั้นทำ Physical Device/Field Validation ด้วยผู้ใช้ อุปกรณ์ เครือข่าย และข้อมูลจริง
+แบบจำกัด ทำ training, feedback, fixes, backup/restore และ operating guide ก่อนเสนอ
+Production rollout, ป้ายถาวร หรือ scale-up
 
 แต่ละ Phase เริ่มได้เมื่อ Gate ก่อนหน้าผ่านด้วยการอนุมัติที่บันทึกไว้
+DEC-027 เปลี่ยน timing ของ Physical/Field Validation แต่ไม่อนุญาตข้าม Phase Gate,
+deploy, ใช้ข้อมูลจริง หรือเปิด Production โดยอัตโนมัติ DEC-046 supersede เฉพาะ
+ข้อมูลทะเบียนต้นจริงใน Farm `OPERATIONAL`; ไม่ใช่ deployment authorization
 
 ## 14. Workflow ของ Codex ต่อหนึ่งงาน
 
 1. ตรวจ Working Directory, `AGENTS.md`, Source of Truth และสถานะไฟล์
-2. สรุปความเข้าใจ ขอบเขตที่รวม/ไม่รวม และข้อสันนิษฐาน
-3. เสนอแผนพร้อมไฟล์ที่จะเปลี่ยน เกณฑ์ยอมรับ และวิธีทดสอบ
-4. รออนุมัติหากงานขยาย Phase หรือมีผลภายนอกที่สำคัญ
-5. ทำการเปลี่ยนแปลงแบบเล็ก รักษาไฟล์เดิม และไม่แทรก secret
-6. ตรวจ lint/typecheck/test/render ตามความเสี่ยง
-7. รายงานผล ไฟล์ การทดสอบ ข้อจำกัด และ Gate status
-8. อัปเดต Decision Log เมื่อเกิดการตัดสินใจใหม่
+2. อ่าน Development, Mock Data & Pilot Knowledge เมื่อเกี่ยวข้องกับข้อมูลทดสอบ,
+   test timing, deployment, Pilot หรือ Production
+3. สรุปความเข้าใจ ขอบเขตที่รวม/ไม่รวม และข้อสันนิษฐาน
+4. เสนอแผนพร้อมไฟล์ที่จะเปลี่ยน เกณฑ์ยอมรับ และวิธีทดสอบ
+5. รออนุมัติหากงานขยาย Phase หรือมีผลภายนอกที่สำคัญ
+6. ทำการเปลี่ยนแปลงแบบเล็ก รักษาไฟล์เดิม และไม่แทรก secret
+7. ตรวจ lint/typecheck/test/render ตามความเสี่ยง
+8. รายงานผล ไฟล์ การทดสอบ ข้อจำกัด และ Gate status
+9. อัปเดต Decision Log เมื่อเกิดการตัดสินใจใหม่
 
 ## 15. Master prompt สำหรับเริ่มงานกับ Codex
 
@@ -298,15 +332,24 @@ feedback, fixes, backup/export และ operating guide ก่อนเสน�
 ก่อนดำเนินการ ให้ทำตามลำดับ:
 1. อ่าน AGENTS.md
 2. อ่าน 01-Requirements/KDOMS_Scope_Knowledge_v0.2.md
-3. อ่าน 01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md
-4. อ่านเอกสารเฉพาะโดเมนที่เกี่ยวข้อง
-5. ตรวจ Working Directory และสถานะไฟล์
+3. อ่าน 01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md
+4. อ่าน 01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md
+5. อ่านเอกสารเฉพาะโดเมนที่เกี่ยวข้อง
+6. ตรวจ Working Directory และสถานะไฟล์
+
+หากงานเกี่ยวกับ Tree Register ที่ใช้งานจริง ให้อ่าน
+00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md
+และตรวจ DEC-046 ก่อนดำเนินการ
 
 ให้ใช้ Multi-Farm security, permanent tree-position identity, auditability,
 offline/idempotency และ mobile-first field usability เป็นข้อบังคับ
 
 ดำเนินงานเฉพาะ Phase และขอบเขตที่ได้รับอนุมัติเท่านั้น
 ห้ามสร้างข้อเท็จจริงภาคสนามหรือ credentials
+ใช้ Mock Data Pack ระหว่าง Development และอย่า block งานสร้างแอปเพราะยังไม่มี
+Physical/Field evidence; ห้ามยกระดับ simulation เป็นหลักฐานจริง
+ข้อมูล Tree Register จริงใช้ได้เฉพาะ Firebase Production + Farm `OPERATIONAL`
+ตาม DEC-046; Mock/Emulator/Farm จำลองต้องไม่สร้าง `exampleData=false`
 
 ก่อนแก้ไฟล์ ให้สรุป:
 - เป้าหมายและสิ่งที่ไม่ทำ

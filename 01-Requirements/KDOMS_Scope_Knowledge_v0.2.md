@@ -1,14 +1,14 @@
-# KDOMS Scope Knowledge v0.2 — Multi-Farm
+# KDOMS Scope Knowledge v0.2.5 — Multi-Farm
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2 |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 0.2.6 |
+| สถานะ | Approved Baseline — Orchard Two-View Target Actions (DEC-047) and Limited Operational Tree Register (DEC-046) |
 | เจ้าของเอกสาร | Project Owner |
 | แทนที่ | Scope v0.1 single-farm concept |
-| วันที่ปรับปรุง | 2026-08-31 |
+| วันที่ปรับปรุง | 2026-09-01 |
 | Gate | Gate 0 review |
-| Source of Truth | `AGENTS.md`, `00-Project-Management/Decision-Log.md` |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047) |
 
 ## 1. Product statement
 
@@ -32,8 +32,8 @@ KDOMS เป็น Responsive Web App/PWA สำหรับบริหาร�
 4. ข้อมูลแต่ละสวนไม่รั่วข้ามสวน
 5. บันทึกภาคสนามทำต่อได้เมื่อสัญญาณขาด และไม่สร้างเหตุการณ์ซ้ำ
 6. Fruit observation เชื่อมถึง Crop Cycle และ Harvest/Sales lot
-7. ตรวจ Field Validation 30–50 ต้นก่อนล็อก Phase 3 และทำ Operational
-   Application Pilot ใน Phase 7 ก่อนขยายประมาณ 600 ต้น
+7. พัฒนาด้วย Mock Data Pack จนได้ Pilot Candidate แล้วตรวจอุปกรณ์/ภาคสนามด้วย
+   cohort จำกัดระหว่าง Controlled Operational Pilot ก่อน Production หรือขยายใช้งาน
 
 ## 4. Domain hierarchy
 
@@ -98,27 +98,58 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 
 ### 7.1 Farm Management
 
-- Farm list, create/edit, active/suspended/archived status
-- Farm profile และ Farm Switcher
+- เมนู `เพิ่มเติม → จัดการสวน` สำหรับ `ORG_OWNER`
+- Farm list, create/edit, active/suspended/archived status พร้อม Audit
+- Farm profile ใช้ชื่อ, Farm Sequence/Code, ที่ตั้ง, timezone, ฤดูกาล,
+  สถานะ และหมายเหตุตาม
+  `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`
+- สร้าง internal ID และ Farm Code ตาม trusted flow; ห้ามผู้ใช้กรอก opaque ID เอง
+- Archive ต้องรักษาประวัติและหยุดเมื่อมีงานเปิดหรือ Pending; ห้าม Hard delete Farm
+- Farm Switcher ใช้สลับสวนที่มี membership ไม่ใช้แทนหน้าจัดการสวน
 - Member invitation/removal และ role assignment รายสวน
 - Portfolio overview ที่ไม่เปิดเผยข้อมูลเกินสิทธิ์
 
 ### 7.2 Orchard Map and Tree Register
 
 - กำหนด Zone/Row/ทิศทางการนับ
+- แสดงแปลนเชิงโครงสร้างพร้อมชื่อ/รหัส Farm และกรอบ Zone โดย Row เรียงซ้ายไปขวา
+  และ Position เรียงบนลงล่างตาม `treeSequence`; ด้านบนต้องมี reference label
+- ใช้ Shared Target Selector สำหรับ Single/Tree Set/Row/Zone ใน Workflow ที่ต้อง
+  เลือกตำแหน่ง และรองรับ Tree Set ข้าม Zone ภายใน Farm เดียวกัน
+- Shared Target Selector มีทั้ง `แปลนต้น` และ `ตารางติ๊กเลือก` โดย selection คงอยู่
+  ขณะสลับมุมมอง และ render Zone ทุกค่าจากข้อมูลแบบ data-driven
+- หน้าแปลนเปิดรายการจาก selection ครบ Work ทั่วไป, Work ดูแล, Disease Incident,
+  Fruit Observation และ Harvest Lot ตาม Role/Farm/position eligibility
+- Position `empty`/Archived ยังคงเห็นในแปลน แต่ eligibility สำหรับ mutation
+  เป็นไปตามชนิด Workflow; การเลือกจากแปลนไม่แทน QR confirmation
 - สร้าง Planting Position และ Tag Code
-- ข้อมูลต้น: พันธุ์ แหล่งพันธุ์ วันที่/ปีปลูกโดยประมาณ รุ่นปลูก สถานะ
+- หน้าจอ `เพิ่มตำแหน่งปลูก` แบ่งเป็นตัวตนตำแหน่ง, ข้อมูลต้น/รอบปลูก และ
+  ข้อมูลสำรวจภาคสนามแบบ progressive disclosure
+- เลือก Zone/Row เดิม หรือยืนยัน Zone/Row ใหม่พร้อมทิศทางการนับ; ต้องแสดง
+  Farm context และ Tag preview ก่อนบันทึก permanent Position identity
+- ข้อมูลต้น: สถานะ วันที่ข้อมูลตั้งต้น พันธุ์/ความมั่นใจ แหล่งพันธุ์
+  วันที่/ปีปลูกโดยประมาณ/ระบบปี/ความมั่นใจ รุ่นปลูก และหมายเหตุ
 - Baseline measurement: ความสูง เส้นรอบวง/เส้นผ่านศูนย์กลาง ณ จุดวัดที่กำหนด ทรงพุ่ม 2 ทิศ
-- GPS และรูปประจำต้น
+- GPS, ลำต้น, ทรงพุ่ม และความสูงเป็น measurement group แบบ all-or-none;
+  แต่ละกลุ่มต้องมี value/unit/method/measuredAt/measuredBy/confidence/source
+- สถานะ `ไม่มีต้น` ห้ามมีพันธุ์ ปีปลูก แหล่งพันธุ์ หรือค่าการวัดต้น
+- รูปประจำต้นยัง Deferred จนกว่า Storage/นโยบายรูปจริงได้รับอนุมัติ
 - Tree timeline และ Planting Cycle history
 - Import/export ตามสิทธิ์
+- DEC-046 อนุญาตข้อมูลจริงเฉพาะ Tree Register ใน Firebase Production + Farm
+  `OPERATIONAL` (`isMock=false`); Mock/Emulator/Farm จำลองยังเป็นข้อมูลทดสอบ
 
 ### 7.3 Work Orders
 
 - เป้าหมายระดับ Farm/Zone/Row/Tree selection
+- การเลือกเป้าหมายจากแปลนต้อง snapshot opaque `positionIds`; Tree Set ข้าม Zone
+  เก็บ Zone summary โดยไม่ใช้ Human Tag หรือพิกัดหน้าจอเป็น authorization
 - ประเภทงาน ขั้นตอน ผู้รับผิดชอบ กำหนดส่ง ความสำคัญ และหลักฐาน
+- ผู้สร้างแนบรูปประกอบคำสั่งงานได้ 0–3 รูปเฉพาะขณะ Draft ก่อน Assign;
+  รูปชุดนี้แยกจากหลักฐานที่ Worker ส่งและห้ามเขียนทับหลังมอบหมายแบบเงียบ ๆ
 - รับงาน เริ่มงาน หยุดชั่วคราว ส่งตรวจ Reject/Rework และปิดงาน
-- ภาพก่อน–หลัง วัสดุที่ใช้ และหมายเหตุ
+- Worker Report มีภาพ BEFORE อย่างน้อย 1 และ AFTER อย่างน้อย 1 รวมไม่เกิน
+  6 รูป พร้อมวัสดุที่ใช้และหมายเหตุ; ภาพที่อัปโหลดไม่ครบหรือล้มเหลวห้ามส่งตรวจ
 - Group completion พร้อม per-tree exception
 
 ### 7.4 Care and Disease
@@ -165,9 +196,9 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 ### 8.1 Worker completes a tree task
 
 ```text
-เลือกสวน → งานของฉัน → เปิดงาน → เดินตาม Zone/Row
+เลือกสวน → งานของฉัน → เปิดงานและดูรูปประกอบ → เดินตาม Zone/Row
 → สแกน QR → ระบบตรวจ Farm/Tree → เริ่มงาน
-→ บันทึกผล/วัสดุ/ภาพ → ส่งตรวจ → Sync → Manager verify
+→ บันทึกผล/วัสดุ/ภาพก่อน–หลัง → ส่งตรวจ → Sync → Manager verify
 ```
 
 หาก QR ไม่ตรงงาน ระบบต้องหยุดการบันทึกเป้าหมายเดิมและแจ้งรหัสที่สแกนจริงอย่างชัดเจน
@@ -193,12 +224,14 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 - แยก unknown, estimated และ measured value
 - Measurement ทุกค่าเก็บ value + unit + method + measuredAt + measuredBy
   พร้อม confidence/source ตามความเหมาะสม
-- รูปควรมี capture time, farm scope, target และ upload/sync state
+- รูปควรมี purpose/phase, capture time, farm scope, Work/target, uploader และ
+  upload/sync state; รูปคำสั่งงานต้องแยกจากรูปหลักฐานส่งงาน
 - ใช้ server timestamp สำหรับเวลาที่เชื่อถือได้ พร้อมเก็บ capturedAt จากอุปกรณ์เมื่อจำเป็น
 - ห้าม reuse Tag Code
 - ห้ามบันทึกจำนวนผลโดยไม่ระบุ stage และ Crop Cycle
 - ห้าม Inventory movement ไม่มี unit, quantity และ reason/reference
-- การเปลี่ยนบทบาท สถานะโรค ปิดงาน ปรับ stock และแก้ยอดขายต้อง audit
+- การเพิ่ม/แก้ไข/เปลี่ยนสถานะสวน การเปลี่ยนบทบาท สถานะโรค ปิดงาน ปรับ stock
+  และแก้ยอดขายต้อง audit
 
 ## 10. Non-functional requirements
 
@@ -226,7 +259,8 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 - Export ต้อง farm-scoped ตามสิทธิ์และสร้าง audit event
 - Archive-before-delete เป็นค่าเริ่มต้นสำหรับข้อมูลที่มีประวัติ
 - ห้ามใช้ข้อมูลจริง/production จนกว่า retention, backup และ privacy policy
-  จะได้รับอนุมัติ
+  จะได้รับอนุมัติ ยกเว้น limited Tree Register scope ตาม DEC-046 ซึ่งยังต้องใช้
+  Farm `OPERATIONAL`, membership, audit และ data minimization ที่กำหนด
 
 ### Accessibility
 
@@ -257,10 +291,13 @@ Working Proposals ที่รอ Owner formal approval:
 - QR route `/t/{opaquePositionId}` ภายใต้ configurable base URL
 - Offline conflict review โดย `FARM_MANAGER` และ escalate ถึง `ORG_OWNER`
 
-รายการ Open/Field Validation:
+รายการ Open/Controlled Pilot Validation:
 
 - Organization Code/Farm Sequence จริง รวมถึง Zone/Row และทิศทางนับ
-- Sign-in method สำหรับคนสวน
+- Farm Profile จริง: ชื่อ ที่ตั้ง timezone และฤดูกาล; ค่าไม่ทราบให้คง `TBD`
+- trusted provisioning/activation ของ Farm จริงเป็น `classification=OPERATIONAL`
+  และ `exampleData=false`; หน้าเพิ่มสวนเดิมยังสร้าง Farm จำลองตาม DEC-043
+- นโยบาย account recovery เมื่อเปลี่ยนหรือสูญเสียเบอร์โทรศัพท์สำหรับ Phone OTP
 - Production domain สำหรับ QR ก่อนผลิตป้ายจริงและ Phase 3 sign-off
 - หน่วยมาตรฐานและรายการปุ๋ย/ยาที่ใช้จริง
 - วิธีวัดต้นและวิธีนับผลมาตรฐาน
@@ -269,16 +306,28 @@ Working Proposals ที่รอ Owner formal approval:
 
 ติดตามสถานะใน `00-Project-Management/Decision-Log.md`
 
-## 13. Gate 0 position
+## 13. Development, Gate และ Pilot position
 
-เอกสารนี้เป็น Source of Truth ฉบับร่างล่าสุด แต่ยังไม่อนุญาตให้เริ่ม Application Code จนกว่าจะผ่านรายการใน `08-Testing/Gate-0-Acceptance-Checklist.md` และได้รับข้อความอนุมัติ Gate 0
+Gate 0–6 ผ่านตาม Decision Log และปัจจุบัน Owner อนุมัติ Phase 7 planning/readiness
+การพัฒนาแต่ละ Phase ใช้ Mock Data Pack และ automated/local/emulator/browser
+evidence เป็นหลัก โดย Physical Device/Field evidence ไม่ block การสร้างฟังก์ชัน
 
-Gate แบ่งเป็น 3 ระดับเพื่อไม่ลดหลักฐานภาคสนาม:
+ลำดับปัจจุบันตาม DEC-027:
 
-1. **Gate 0 — Product & Documentation Readiness:** Owner อนุมัติ Scope,
-   Working Proposals, Role Matrix, Data Dictionary, Field Validation Plan,
-   UX Prototype และ security/data-policy baseline สำหรับเริ่ม Foundation
-2. **Field Validation Gate:** สำรวจ topology, ทดลองป้าย 5–10 ป้าย และข้อมูลต้น
-   30–50 ต้นให้เสร็จก่อนล็อก Phase 3 และก่อนผลิตป้ายจริง
-3. **Phase 7 — Operational Application Pilot:** ทดสอบแอปที่ผ่าน Gate 6 กับ
-   ผู้ใช้จริงก่อนขยายประมาณ 600 ต้น
+1. **Engineering Phases/Gates:** สร้างและตรวจแอปด้วยข้อมูล
+   `SIMULATED/TEST ONLY`; Phase ถัดไปยังต้องรอ Owner อนุมัติ Gate ตามลำดับ
+2. **Staging/Pilot Candidate:** Deploy แบบ private/access-controlled ด้วย Mock Data
+   หลังได้รับ approval ด้าน environment/deployment แยก
+3. **Controlled Operational Pilot:** ใช้แอป Pilot Candidate กับอุปกรณ์และข้อมูลจริง
+   แบบจำกัดหลังอนุมัติ privacy, retention, backup, evidence และ rollback
+4. **Production Readiness:** Physical Device/Field Validation ต้องผ่านและ defect
+   จาก Pilot ต้องถูกแก้ก่อน Production rollout, ป้ายถาวร หรือ scale-up
+
+ข้อยกเว้น DEC-046: limited operational Tree Register data entry ได้รับอนุมัติด้าน
+ชนิดข้อมูลแล้วเฉพาะ Firebase Production + Farm จริง แต่ source รุ่นนี้ยังรอคำสั่ง
+Deploy แยก และไม่ยกระดับ Physical/Field, Storage/รูปจริง, QR/ป้ายถาวร, PA-2,
+Controlled Pilot หรือโมดูลอื่นเป็น Approved
+
+รายละเอียด Mock Data และ timing ใช้
+`01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`
+เป็นข้อกำหนดเฉพาะด้านนี้

@@ -1,15 +1,15 @@
-# KDOMS UX/UI Knowledge v0.1
+# KDOMS UX/UI Knowledge v0.1.6
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1 |
-| สถานะ | Proposed — Owner Review Required |
+| เวอร์ชัน | 0.1.6 |
+| สถานะ | Approved Development Baseline — Orchard Two-View Selector/Complete Actions (DEC-047) and Limited Operational Tree Register Form (DEC-046); Field Usability Deferred |
 | เจ้าของเอกสาร | Project Owner |
 | Primary platform | Mobile web / PWA |
 | Secondary platform | Tablet and desktop management |
 | ภาษา | ไทยเป็นหลัก |
-| วันที่ปรับปรุง | 2026-08-31 |
-| Source of Truth | `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md` |
+| วันที่ปรับปรุง | 2026-09-01 |
+| Source of Truth | `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047) |
 
 ## 1. UX goal
 
@@ -60,6 +60,9 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 
 - ค่าเริ่มต้นคือ “วันนี้” และ “งานของฉัน”
 - รายการแสดงประเภท เป้าหมาย Zone/Row/Tree เวลา ความสำคัญ และสถานะ
+- ผู้สร้างเลือกถ่าย/แนบรูปประกอบได้ 0–3 รูปขณะใบงานยังเป็น Draft; หลัง Assign
+  ชุดรูปนี้เป็น read-only
+- แสดงจำนวนรูปประกอบใบงานเมื่อผู้มอบหมายแนบมา และ Worker เปิดดูได้ก่อนเริ่มงาน
 - งานรายต้นมี action “นำทาง/สแกนยืนยัน”
 - งานกลุ่มแสดงความคืบหน้าและ exception
 - Worker ไม่เห็น action จัดการที่ไม่มีสิทธิ์
@@ -76,7 +79,48 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 6. Unknown/damaged — กรอกรหัสหรือแจ้งป้ายเสีย
 7. Offline cached — บอกว่าข้อมูลอาจไม่ล่าสุดและเวลาซิงก์
 
-### 4.5 Tree profile
+### 4.5 Orchard Layout & Shared Target Selector
+
+- แสดง Farm name/code, Zone และจุดอ้างอิงด้านบนของแปลนตลอดเวลา
+- Row เป็นคอลัมน์ซ้ายไปขวา; Tree/Position เรียงบนลงล่างตาม sequence
+- แตะต้นเพื่อเลือก, แตะหัว Row เพื่อเลือกทั้งแถว และแตะ Zone เพื่อเลือกทั้งโซน
+- รองรับ Single, Tree Set, Row และ Zone พร้อมสรุปจำนวน/Tag ที่เลือกก่อนบันทึก
+- มีมุมมอง `แปลนต้น` และ `ตารางติ๊กเลือก` ที่ใช้ selection เดียวกัน; สลับแล้ว
+  ค่าเลือกต้องคงอยู่ และ horizontal pan อยู่เฉพาะภายในกรอบแต่ละ Zone
+- `ตารางติ๊กเลือก` แสดง Zone เป็น section แยก, Row เป็นคอลัมน์ซ้าย→ขวา,
+  Position เป็นรายการบน→ล่าง พร้อม checkbox ระดับ Zone/Row/Position ตาม mode
+- ต้อง render Zone ทุกค่าจากทะเบียนแบบ data-driven เช่น Z01/Z02/Z03 และห้าม
+  hard-code ว่าหนึ่ง Farm มี Zone เดียว
+- Position `empty`/Archived แสดงด้วย icon+label และปิดการเลือกเมื่อ Workflow ไม่รองรับ
+- หน้าแปลนแสดง action ครบตาม Role/Farm status: `สร้างงานทั่วไป`, `สร้างงานดูแล`,
+  `รายงานอาการ/โรค`, `บันทึกจำนวนผล` และ `สร้าง Harvest Lot`; action ที่ยังไม่ผ่าน
+  eligibility แสดง disabled reason โดยไม่ใช้สีอย่างเดียว
+- หน้าปลายทางกรอง navigation selection กับ Farm ปัจจุบันอีกครั้ง
+
+### 4.6 เพิ่ม/แก้ไขตำแหน่งปลูก
+
+- ใช้ชื่อหน้าจอ `เพิ่มตำแหน่งปลูก` หรือ `แก้ไขตำแหน่งปลูก` ตาม action จริง;
+  ห้ามใช้คำว่า `จำลอง` เมื่อ runtime เป็น Firebase Production และ Farm เป็น
+  `OPERATIONAL` (`isMock=false`)
+- แสดงชื่อ/รหัส Farm และป้ายสถานะข้อมูลที่หัวหน้าเสมอ: `ข้อมูลใช้งานจริง` สำหรับ
+  Farm ที่ผ่านเงื่อนไข DEC-046 หรือ `SIMULATED/TEST ONLY` สำหรับ Mock/Emulator/
+  Farm จำลอง
+- แบ่งแบบฟอร์มเป็น 3 ส่วน: `1. ตำแหน่งและรหัส`, `2. ข้อมูลต้นและรอบปลูก` และ
+  `3. ข้อมูลสำรวจเริ่มต้น` เพื่อไม่ให้ผู้ใช้กรอกข้อมูลยาวโดยขาดบริบท
+- ส่วนตำแหน่งให้เลือก Zone/Row เดิมหรือสร้างใหม่, ระบุลำดับตำแหน่งและทิศทางนับ
+  พร้อมสรุป Farm + Zone + Row + Position และ Tag preview ก่อนบันทึก
+- เมื่อสร้าง Zone/Row ใหม่ ต้องให้ผู้ใช้ยืนยันรหัสและทิศทางอย่างชัดเจน เพราะเป็น
+  ส่วนของตัวตนตำแหน่งถาวร; หากข้อมูล topology ยังไม่ยืนยันให้หยุดและใช้ `TBD`
+- ส่วนข้อมูลต้นให้เลือกสถานะ `มีต้น`/`ไม่มีต้น`; ถ้า `ไม่มีต้น` ให้ปิด field พันธุ์,
+  ปีปลูก, แหล่งพันธุ์ และข้อมูลสำรวจที่อ้างถึงต้นปัจจุบัน
+- ส่วนข้อมูลสำรวจใช้ progressive disclosure: วันที่สำรวจ, ผู้บันทึก และหมายเหตุก่อน;
+  เส้นรอบวง/ความสูง/พุ่ม/พิกัดแสดงเป็นข้อมูลเสริมพร้อมหน่วยและวิธีเก็บ
+- รูปถ่ายต้นจริงยังไม่เปิดในขอบเขต DEC-046 และต้องแสดงข้อความว่า `ยังไม่เปิดใช้รูปถ่าย`
+  แทนการแสดง control ที่กดแล้วใช้งานไม่ได้
+- มี primary action เดียวคือ `บันทึกตำแหน่งปลูก`; บนมือถือ action ต้องเข้าถึงง่าย,
+  สรุป validation ใกล้ field และไม่มี horizontal overflow ที่ 320px
+
+### 4.7 Tree profile
 
 - รหัสใหญ่ + Farm/Zone/Row + รูปอ้างอิง
 - พันธุ์ Planting Cycle สถานะ และการตรวจล่าสุด
@@ -84,26 +128,33 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 - Tabs/sections: Timeline, Care, Disease, Fruit, Harvest
 - Planting Cycle เดิมต้องดูย้อนหลังได้แต่แยกจากต้นปัจจุบัน
 
-### 4.6 Worker report
+### 4.8 Worker report
 
+- แสดงรูปประกอบจากผู้มอบหมายแยกส่วนและติดป้ายว่าเป็น “รูปอ้างอิง”
 - แสดง target และ scanned-confirmed state ที่หัวหน้า
 - ขั้นตอน checklist สั้น
-- Actual quantity + unit, material used, result, note, photos
+- Actual quantity + unit, material used, result, note และรูปหลักฐาน BEFORE/AFTER
+  รวมไม่เกิน 6 รูป โดยต้องมีอย่างน้อยประเภทละ 1 รูป
 - Save offline ชัดเจน
 - Submit confirmation สรุปสิ่งที่จะส่ง
 - หลังส่ง แสดง Pending sync หรือ Submitted/Waiting verification
 
-### 4.7 Manager verification
+### 4.9 Manager verification
 
-- Before/after, worker, time, target และ material variance
+- รูปประกอบเดิมของใบงานเทียบกับภาพก่อน–หลังที่ Worker ส่ง พร้อม worker, time,
+  target และ material variance
 - Approve, Request rework, Reject พร้อมเหตุผลบังคับในกรณีหลัง
 - การแก้ข้อมูลแทน Worker ต้อง audit
 
-### 4.8 Farm Management
+### 4.10 Farm Management
 
-- Farm list และ status
-- Farm profile, zones, members/roles
-- Archive flow แสดงผลกระทบต่องานเปิดและข้อมูล
+- `เพิ่มเติม → จัดการสวน` แสดงเฉพาะ `ORG_OWNER`; role อื่นเปิด Profile แบบอ่านอย่างเดียว
+- Farm list และ status พร้อมปุ่ม `เพิ่มสวน`
+- แบบฟอร์มสั้นแบ่งเป็นข้อมูลหลัก, ที่ตั้ง, timezone/ฤดูกาล และหมายเหตุ
+- แสดง preview Farm Code จาก Organization Code + Farm Sequence
+- Farm profile, zones, members/roles เป็นส่วนแยกที่ไม่ทำให้ข้อมูลข้ามสวน
+- Suspend/Archive flow แสดงผลกระทบต่องานเปิดและ Pending ก่อนยืนยัน
+- Archive ถูกปฏิเสธเมื่อยังมีงานเปิด/Pending และไม่มีปุ่ม Hard delete
 - อยู่ใน More/Admin ไม่อยู่ใน bottom nav สำหรับ Worker
 
 ## 5. Content and terminology
@@ -113,6 +164,8 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 - หลีกเลี่ยงคำว่า `Submit`, `Sync`, `Conflict` เดี่ยว ๆ; ใช้ `ส่งรายงาน`, `รอซิงก์`, `ข้อมูลขัดแย้ง`
 - Error ต้องบอกว่าเกิดอะไร ข้อมูลปลอดภัยหรือไม่ และต้องทำอย่างไรต่อ
 - ห้ามใช้ข้อความยืนยันคลุมเครือ เช่น “OK” สำหรับ action ที่สำคัญ
+- หน้าทะเบียนต้นต้องใช้ข้อความตาม classification จริงของ Farm; ห้ามซ่อนคำว่า
+  `SIMULATED/TEST ONLY` ในโหมดจำลอง และห้ามเติมคำว่า `จำลอง` ในโหมดใช้งานจริง
 
 ตัวอย่าง:
 
@@ -136,6 +189,8 @@ Farm Switcher อยู่ใน top app chrome ไม่ซ้ำในแต�
 - แสดงจำนวนรายการค้างส่งเมื่อมากกว่า 0
 - บันทึก action ได้เฉพาะข้อมูลที่ policy อนุญาตให้ queue
 - รูป pending มี thumbnail และ retry/remove ก่อน submit final
+- รูปประกอบใบงานที่จำเป็นต่อการทำงานควรมี thumbnail cache; หากยังไม่พร้อม offline
+  ต้องแสดงชัดว่าเปิดรูปไม่ได้และห้ามนำรูปจาก Work/Farm อื่นมาแทน
 - ห้ามแสดง “สำเร็จ” หากยังไม่ sync; ใช้ “บันทึกในเครื่องแล้ว”
 - Farm switching ต้องไม่ทำ pending item สูญหายหรือเปลี่ยน farm scope
 - Conflict เปิด comparison และให้ role ที่กำหนดตัดสินใจ
@@ -177,8 +232,13 @@ UX Preview ต้องสาธิตอย่างน้อย:
 8. เมื่อ Offline/Pending ให้ยกเลิกหรือยืนยันการสลับสวนได้ โดย pending item
    ยังคง Farm scope เดิม
 9. ทำ Worker Report แล้วเปิด Manager Verify เพื่อ Approve หรือ Request Rework
+10. Owner เพิ่ม/แก้ Farm Profile จำลอง ระงับ/เปิดใหม่ และเห็น Archive ถูกหยุด
+    เมื่อมีงานเปิดหรือ Pending
+11. เปิดหน้าเพิ่มตำแหน่งปลูก, ยืนยัน Zone/Row/ทิศทาง, ดู Tag preview และตรวจว่า
+    การเลือก `ไม่มีต้น` ปิดข้อมูลต้น/ข้อมูลสำรวจที่ไม่เกี่ยวข้อง
 
-ข้อมูลทั้งหมดใน Prototype เป็นข้อมูลจำลอง
+ข้อมูลใน Prototype/browser simulation เป็นข้อมูลจำลอง แม้หน้าตาและ validation จะใช้
+แบบเดียวกับหน้าจอใช้งานจริงตาม DEC-046
 
 ## 11. Usability acceptance
 
@@ -188,15 +248,28 @@ UX Preview ต้องสาธิตอย่างน้อย:
 - Mismatch แสดง expected/actual ที่ parse จาก code จริง
 - Main task flow ใช้ได้ที่ 320px โดยไม่มีข้อความ/ปุ่มทับกัน
 - ผู้ใช้เข้าใจความต่างระหว่าง `บันทึกในเครื่อง` และ `ซิงก์แล้ว`
+- ผู้ใช้แยกได้ว่ารูปใดเป็นรูปประกอบจากผู้มอบหมาย และรูปใดเป็นหลักฐานก่อน–หลัง
 - Role ที่ไม่มีสิทธิ์ไม่เห็น destructive/admin action
-- ทดสอบกับคนสวนจริงก่อนล็อก Knowledge เป็น Approved
+- Farm Management แยกจาก Farm Switcher และไม่มี Hard delete action
+- Shared Target Selector ใช้คำและพฤติกรรมเดียวกันใน Work, Disease, Fruit และ Harvest
+- แปลนเรียง Row ซ้าย→ขวาและ Position บน→ล่าง พร้อม list fallback และไม่มี
+  horizontal scroll ทั้งหน้าที่ 320px
+- หน้าเพิ่ม/แก้ตำแหน่งปลูกแสดง Farm/classification, แบ่ง 3 ส่วน, ยืนยันตัวตนตำแหน่ง
+  ก่อนบันทึก และไม่ยอมให้ `ไม่มีต้น` มีข้อมูลต้นปัจจุบันที่ขัดแย้งกัน
+- runtime/Farm ที่ไม่ผ่านเงื่อนไข DEC-046 ต้องยังแสดง `SIMULATED/TEST ONLY` และ
+  ไม่สร้าง record ที่มี `exampleData=false`
+- ระหว่าง Development ตรวจ UX ด้วย Mock Data, browser และ viewport simulation
+- ทดสอบกับผู้ใช้/อุปกรณ์จริงระหว่าง Controlled Pilot และแก้ผลก่อน Production
+  rollout; การไม่มี field usability evidence ไม่ block การสร้างหน้าจอ
 
 ## 12. Open UX decisions
 
 - Working Proposal: display name `Smart Durian Farm`; technical name `KDOMS`
-- วิธี sign-in ที่ง่ายและปลอดภัยที่สุด
+- UX สำหรับ Phone OTP: resend/timeout/error และกรณีเปลี่ยนหรือสูญเสียเบอร์โทรศัพท์
 - Worker ต้องเห็น Farm Switcher หรือระบบล็อกสวนประจำกะ
 - รูปแบบ Home ของ Owner กับ Worker แยกมากน้อยเพียงใด
 - ขั้นตอนอนุมัติการรักษาและการใช้สารเคมี
 - อุปกรณ์จริง สภาพถุงมือ/แสง/เครือข่าย
 - เกณฑ์แจ้งเตือนที่ไม่ทำให้ notification ล้น
+- UX สำหรับการ trusted-provision Farm `OPERATIONAL` และการยืนยัน topology โดย Owner;
+  ปุ่ม `เพิ่มสวน` ปัจจุบันยังสร้าง Farm จำลองเท่านั้น
