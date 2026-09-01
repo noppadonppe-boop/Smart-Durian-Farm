@@ -15,10 +15,16 @@ describe('network-denied foundation smoke', () => {
     const fetchMock = vi.fn(() => Promise.reject(new Error('Network denied')))
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.stubGlobal('fetch', fetchMock)
+    sessionStorage.clear()
     const user = userEvent.setup()
     const router = createMemoryRouter(routes, { initialEntries: ['/'] })
 
     render(<RouterProvider router={router} />)
+    await screen.findByRole('heading', { name: 'เข้าสู่ Smart Durian Farm' })
+    await user.click(screen.getByRole('button', { name: 'ขอรหัส OTP ทดสอบ' }))
+    await user.type(await screen.findByLabelText('รหัส OTP 6 หลัก'), '111111')
+    await user.click(screen.getByRole('button', { name: 'ยืนยัน OTP' }))
+    await screen.findAllByText('DEMO-F01')
     await user.click(screen.getByRole('button', { name: /ซิงก์แล้ว/u }))
 
     expect(

@@ -2,7 +2,126 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Phase 1 baseline is deny-by-default. Phase 2 adds tested farm-scoped rules.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function organizationMemberPath(organizationId) {
+      return /databases/(default)/documents/organizations/$(organizationId)/members/$(request.auth.uid);
+    }
+
+    function farmPath(organizationId, farmId) {
+      return /databases/(default)/documents/organizations/$(organizationId)/farms/$(farmId);
+    }
+
+    function farmMemberPath(organizationId, farmId) {
+      return /databases/(default)/documents/organizations/$(organizationId)/farms/$(farmId)/members/$(request.auth.uid);
+    }
+
+    function hasFarmMembership(organizationId, farmId) {
+      return signedIn()
+        && firestore.exists(organizationMemberPath(organizationId))
+        && firestore.get(organizationMemberPath(organizationId)).data.status == 'ACTIVE'
+        && firestore.exists(farmMemberPath(organizationId, farmId))
+        && firestore.get(farmMemberPath(organizationId, farmId)).data.status == 'ACTIVE'
+        && firestore.get(farmMemberPath(organizationId, farmId)).data.organizationId == organizationId
+        && firestore.get(farmMemberPath(organizationId, farmId)).data.farmId == farmId
+        && firestore.get(farmMemberPath(organizationId, farmId)).data.userId == request.auth.uid;
+    }
+
+    function canReadFarm(organizationId, farmId) {
+      return hasFarmMembership(organizationId, farmId)
+        && firestore.exists(farmPath(organizationId, farmId))
+        && firestore.get(farmPath(organizationId, farmId)).data.status in [
+          'ACTIVE', 'SUSPENDED', 'ARCHIVED'
+        ];
+    }
+
+    function canWriteFarm(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && firestore.get(farmPath(organizationId, farmId)).data.status == 'ACTIVE'
+        && firestore.get(farmMemberPath(organizationId, farmId)).data.role in [
+          'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY'
+        ];
+    }
+
+    function validUpload(organizationId, farmId) {
+      return request.resource != null
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp']
+        && request.resource.metadata.organizationId == organizationId
+        && request.resource.metadata.farmId == farmId
+        && request.resource.metadata.uploadedBy == request.auth.uid;
+    }
+
+    function workOrderPath(organizationId, farmId, workOrderId) {
+      return /databases/(default)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(workOrderId);
+    }
+
+    function canReadWorkEvidence(organizationId, farmId, workOrderId) {
+      let work = firestore.get(workOrderPath(organizationId, farmId, workOrderId)).data;
+      let role = firestore.get(farmMemberPath(organizationId, farmId)).data.role;
+      return canReadFarm(organizationId, farmId)
+        && firestore.exists(workOrderPath(organizationId, farmId, workOrderId))
+        && (
+          role in ['ORG_OWNER', 'FARM_MANAGER', 'AUDITOR']
+          || (role == 'AGRONOMIST'
+            && (work.category != 'GENERAL' || work.assignedUserId == request.auth.uid))
+          || (role == 'WORKER' && work.assignedUserId == request.auth.uid)
+        );
+    }
+
+    function canUploadWorkInstruction(organizationId, farmId, workOrderId) {
+      let work = firestore.get(workOrderPath(organizationId, farmId, workOrderId)).data;
+      let role = firestore.get(farmMemberPath(organizationId, farmId)).data.role;
+      return work.status == 'DRAFT'
+        && work.createdBy == request.auth.uid
+        && (
+          role in ['ORG_OWNER', 'FARM_MANAGER']
+          || (role == 'AGRONOMIST' && work.category in ['CARE', 'DISEASE_FOLLOW_UP'])
+        );
+    }
+
+    function canUploadWorkReport(organizationId, farmId, workOrderId) {
+      let work = firestore.get(workOrderPath(organizationId, farmId, workOrderId)).data;
+      return work.assignedUserId == request.auth.uid
+        && work.status == 'IN_PROGRESS'
+        && work.isPaused == false;
+    }
+
+      function validWorkEvidenceUpload(organizationId, farmId, workOrderId, fileName) {
+        return validUpload(organizationId, farmId)
+          && request.resource.contentType == 'image/webp'
+          && request.resource.metadata.workOrderId == workOrderId
+          && request.resource.metadata.uploadSessionId == fileName
+          && request.resource.metadata.evidencePhase in ['INSTRUCTION', 'BEFORE', 'AFTER']
+          && request.resource.metadata.processingVersion == 'work-photo-v1'
+          && request.resource.metadata.processingMode == 'CANVAS_REENCODED'
+          && request.resource.metadata.metadataStripped == 'true'
+          && request.resource.metadata.exampleData == 'true'
+        && firestore.exists(workOrderPath(organizationId, farmId, workOrderId))
+        && (
+          (request.resource.metadata.evidencePhase == 'INSTRUCTION'
+            && canUploadWorkInstruction(organizationId, farmId, workOrderId))
+          || (request.resource.metadata.evidencePhase in ['BEFORE', 'AFTER']
+            && canUploadWorkReport(organizationId, farmId, workOrderId))
+        );
+    }
+
+    match /organizations/{organizationId}/farms/{farmId}/files/{fileName} {
+      allow read: if canReadFarm(organizationId, farmId);
+      allow create: if canWriteFarm(organizationId, farmId)
+        && validUpload(organizationId, farmId);
+      allow update, delete: if false;
+    }
+
+    match /organizations/{organizationId}/farms/{farmId}/workEvidence/{workOrderId}/{fileName} {
+      allow read: if canReadWorkEvidence(organizationId, farmId, workOrderId);
+      allow create: if canWriteFarm(organizationId, farmId)
+        && validWorkEvidenceUpload(organizationId, farmId, workOrderId, fileName);
+      allow update, delete: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

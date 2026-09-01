@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "packId": "KDOMS-DISEASE-ANALYSIS-P1-MOCK-V1",
+    "version": "1.0.0",
+    "classification": "SIMULATED/TEST ONLY",
+    "deterministic": true,
+    "resettable": true,
+    "fixedClock": "1 ก.ย. 2569 12:00",
+    "realMedia": false,
+    "externalModel": false,
+    "productionUseAllowed": false
+  },
+  "analysisSessions": [
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "analysisSessionId": "analysis_demo_north_000001",
+      "incidentId": "disease_demo_000001",
+      "positionId": "pos_demo_a02c914ed730",
+      "plantingCycleId": "cycle_002",
+      "evidenceScenario": "CLEAR_SYMPTOM_PATTERN",
+      "observedSymptom": "SIMULATED/TEST ONLY — พบใบมีจุดสีผิดปกติ",
+      "analysisSource": "MOCK_DETERMINISTIC_V1",
+      "classification": "SIMULATED/TEST ONLY",
+      "status": "HUMAN_REVIEW_REQUIRED",
+      "qualityScorePercent": 92,
+      "candidateFindings": [
+        {
+          "findingCode": "MOCK_SYMPTOM_PATTERN_A",
+          "label": "กลุ่มรูปแบบอาการทางใบจำลอง A — ต้องให้ Agronomist ตรวจ",
+          "confidencePercent": 82,
+          "uncertaintyNote": "คะแนนจำลองเพื่อทดสอบ Workflow เท่านั้น ไม่ใช่ความแม่นยำทางวิชาการ"
+        }
+      ],
+      "abstainReason": null,
+      "reviewedBy": null,
+      "reviewDisposition": null,
+      "reviewedFindingLabel": "",
+      "reviewNote": "",
+      "diagnosisWritebackStatus": "NOT_WRITTEN",
+      "syncState": "LOCAL_ONLY",
+      "version": 1,
+      "exampleData": true,
+      "createdBy": "system_demo",
+      "createdAtLabel": "1 ก.ย. 2569 12:00 · SIMULATED/TEST ONLY",
+      "audit": [
+        {
+          "eventId": "analysisevt_demo_north_000001",
+          "eventType": "MOCK_ANALYSIS_COMPLETED",
+          "actorUserId": "system_demo",
+          "actorDisplayName": "ระบบข้อมูลจำลอง",
+          "description": "สร้าง candidate finding แบบ deterministic; ไม่มี diagnosis writeback",
+          "createdAtLabel": "1 ก.ย. 2569 12:00 · SIMULATED/TEST ONLY",
+          "sessionVersion": 1
+        }
+      ]
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_south_02",
+      "analysisSessionId": "analysis_demo_south_000001",
+      "incidentId": "disease_demo_south_000001",
+      "positionId": "pos_demo_b01d825ac619",
+      "plantingCycleId": "cycle_001",
+      "evidenceScenario": "LOW_QUALITY_PLACEHOLDER",
+      "observedSymptom": "SIMULATED/TEST ONLY — หลักฐานอาการจำลองยังไม่ชัดเจน",
+      "analysisSource": "MOCK_DETERMINISTIC_V1",
+      "classification": "SIMULATED/TEST ONLY",
+      "status": "HUMAN_REVIEW_REQUIRED",
+      "qualityScorePercent": 28,
+      "candidateFindings": [],
+      "abstainReason": "LOW_EVIDENCE_QUALITY",
+      "reviewedBy": null,
+      "reviewDisposition": null,
+      "reviewedFindingLabel": "",
+      "reviewNote": "",
+      "diagnosisWritebackStatus": "NOT_WRITTEN",
+      "syncState": "LOCAL_ONLY",
+      "version": 1,
+      "exampleData": true,
+      "createdBy": "system_demo",
+      "createdAtLabel": "1 ก.ย. 2569 12:00 · SIMULATED/TEST ONLY",
+      "audit": [
+        {
+          "eventId": "analysisevt_demo_south_000001",
+          "eventType": "MOCK_ANALYSIS_ABSTAINED",
+          "actorUserId": "system_demo",
+          "actorDisplayName": "ระบบข้อมูลจำลอง",
+          "description": "Abstain เพราะหลักฐานจำลองคุณภาพต่ำ; ไม่มี candidate finding",
+          "createdAtLabel": "1 ก.ย. 2569 12:00 · SIMULATED/TEST ONLY",
+          "sessionVersion": 1
+        }
+      ]
+    }
+  ]
+}

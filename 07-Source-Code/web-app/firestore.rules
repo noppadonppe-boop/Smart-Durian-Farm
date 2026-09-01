@@ -2,7 +2,2106 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Phase 1 baseline is deny-by-default. Phase 2 adds tested farm-scoped rules.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function organizationMemberPath(organizationId, userId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/members/$(userId);
+    }
+
+    function farmPath(organizationId, farmId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId);
+    }
+
+    function farmMemberPath(organizationId, farmId, userId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/members/$(userId);
+    }
+
+    function auditPath(organizationId, farmId, auditEventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/auditEvents/$(auditEventId);
+    }
+
+    function treePositionPath(organizationId, farmId, positionId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/treePositions/$(positionId);
+    }
+
+    function treeTagPath(organizationId, farmId, tagCode) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/treeTags/$(tagCode);
+    }
+
+    function treeEventPath(organizationId, farmId, positionId, eventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/treePositions/$(positionId)/events/$(eventId);
+    }
+
+    function treeCyclePath(organizationId, farmId, positionId, cycleId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/treePositions/$(positionId)/plantingCycles/$(cycleId);
+    }
+
+    function positionRoutePath(positionId) {
+      return /databases/$(database)/documents/positionRoutes/$(positionId);
+    }
+
+    function hasOrganizationMembership(organizationId) {
+      return signedIn()
+        && exists(organizationMemberPath(organizationId, request.auth.uid))
+        && get(organizationMemberPath(organizationId, request.auth.uid)).data.status == 'ACTIVE';
+    }
+
+    function isOrganizationOwner(organizationId) {
+      return hasOrganizationMembership(organizationId)
+        && get(organizationMemberPath(organizationId, request.auth.uid)).data.isOwner == true;
+    }
+
+    function isTargetOrganizationOwner(organizationId, userId) {
+      return exists(organizationMemberPath(organizationId, userId))
+        && get(organizationMemberPath(organizationId, userId)).data.status == 'ACTIVE'
+        && get(organizationMemberPath(organizationId, userId)).data.isOwner == true;
+    }
+
+    function hasFarmMembership(organizationId, farmId) {
+      return hasOrganizationMembership(organizationId)
+        && exists(farmMemberPath(organizationId, farmId, request.auth.uid))
+        && get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.status == 'ACTIVE'
+        && get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.organizationId == organizationId
+        && get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.farmId == farmId
+        && get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.userId == request.auth.uid;
+    }
+
+    function farmStatus(organizationId, farmId) {
+      return get(farmPath(organizationId, farmId)).data.status;
+    }
+
+    function canReadFarm(organizationId, farmId) {
+      return hasFarmMembership(organizationId, farmId)
+        && exists(farmPath(organizationId, farmId))
+        && farmStatus(organizationId, farmId) in ['ACTIVE', 'SUSPENDED', 'ARCHIVED'];
+    }
+
+    function canWriteFarm(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && farmStatus(organizationId, farmId) == 'ACTIVE';
+    }
+
+    function hasFarmRole(organizationId, farmId, allowedRoles) {
+      return hasFarmMembership(organizationId, farmId)
+        && get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.role in allowedRoles;
+    }
+
+    function currentFarmRole(organizationId, farmId) {
+      return get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.role;
+    }
+
+    function operationalAuditPath(organizationId, farmId, eventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/operationalAuditEvents/$(eventId);
+    }
+
+    function canReadOperationalAudit(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR']));
+    }
+
+    function canReviewOperationalConflict(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, ['ORG_OWNER', 'FARM_MANAGER']));
+    }
+
+    function canExportOperationalData(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, ['ORG_OWNER', 'FARM_MANAGER', 'AUDITOR']));
+    }
+
+    function validOperationalScope(data, organizationId, farmId) {
+      return data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.exampleData == true;
+    }
+
+    function validOperationalAudit(data, organizationId, farmId, eventId) {
+      return data.keys().hasAll([
+          'eventId', 'organizationId', 'farmId', 'actorUserId', 'eventType',
+          'targetType', 'targetId', 'reason', 'beforeSummary', 'afterSummary',
+          'createdAtLabel', 'exampleData', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'eventId', 'organizationId', 'farmId', 'actorUserId', 'eventType',
+          'targetType', 'targetId', 'reason', 'beforeSummary', 'afterSummary',
+          'createdAtLabel', 'exampleData', 'createdAt'
+        ])
+        && validOperationalScope(data, organizationId, farmId)
+        && data.eventId == eventId
+        && data.actorUserId == request.auth.uid
+        && data.eventType in [
+            'OFFLINE_SYNCED', 'OFFLINE_CONFLICT', 'CONFLICT_RESOLVED',
+            'CONFLICT_ESCALATED', 'PHOTO_RECOVERY_REGISTERED', 'PHOTO_RETRIED',
+            'ORPHAN_CLEANED', 'EXPORT_CREATED'
+        ]
+        && data.targetType in ['OFFLINE_OPERATION', 'MASTER_CONFLICT', 'PHOTO', 'EXPORT']
+        && data.targetId is string
+        && data.reason is string
+        && data.beforeSummary is string
+        && data.afterSummary is string
+        && data.createdAt == request.time;
+    }
+
+    function canReadCommercial(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, [
+          'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST',
+          'SALES_INVENTORY', 'VIEWER', 'AUDITOR'
+        ]);
+    }
+
+    function canWriteFruit(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, [
+          'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST'
+        ]);
+    }
+
+    function canManageCommercial(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, [
+          'ORG_OWNER', 'FARM_MANAGER', 'SALES_INVENTORY'
+        ]);
+    }
+
+    function canCorrectCommercial(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, ['ORG_OWNER', 'FARM_MANAGER']);
+    }
+
+    function validCommercialScope(data, organizationId, farmId) {
+      return data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.exampleData == true;
+    }
+
+    function validCommercialCreate(data, organizationId, farmId, recordId, idField) {
+      return validCommercialScope(data, organizationId, farmId)
+        && data[idField] == recordId
+        && data.actorUserId == request.auth.uid
+        && data.version == 1
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function validNextCropStage(before, after) {
+      return (before == 'FLOWERING' && after == 'EARLY_FRUIT')
+        || (before == 'EARLY_FRUIT' && after == 'MID_SEASON')
+        || (before == 'MID_SEASON' && after == 'PRE_SALE')
+        || (before == 'PRE_SALE' && after == 'HARVESTED');
+    }
+
+    function canManageTreeRegister(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, ['FARM_MANAGER']));
+    }
+
+    function canReportDamagedTag(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, [
+          'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER'
+        ]);
+    }
+
+    function isCanonicalRole(role) {
+      return role in [
+        'ORG_OWNER',
+        'FARM_MANAGER',
+        'AGRONOMIST',
+        'WORKER',
+        'SALES_INVENTORY',
+        'VIEWER',
+        'AUDITOR'
+      ];
+    }
+
+    function isMembershipStatus(status) {
+      return status in ['ACTIVE', 'REVOKED'];
+    }
+
+    function validFarmMembership(data, organizationId, farmId, userId) {
+      return data.keys().hasAll([
+          'membershipType', 'organizationId', 'farmId', 'userId',
+          'displayName', 'maskedPhone', 'role', 'status', 'version',
+          'auditEventId', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'membershipType', 'organizationId', 'farmId', 'userId',
+          'displayName', 'maskedPhone', 'role', 'status', 'version',
+          'auditEventId', 'exampleData', 'createdAt', 'updatedAt'
+        ])
+        && data.membershipType == 'FARM'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.userId == userId
+        && data.displayName is string
+        && data.maskedPhone is string
+        && isCanonicalRole(data.role)
+        && isMembershipStatus(data.status)
+        && data.version is int
+        && data.version > 0
+        && data.auditEventId is string
+        && data.updatedAt == request.time
+        && (data.role != 'ORG_OWNER' || isTargetOrganizationOwner(organizationId, userId));
+    }
+
+    function matchingMembershipAuditExists(organizationId, farmId, userId, data) {
+      return existsAfter(auditPath(organizationId, farmId, data.auditEventId))
+        && getAfter(auditPath(organizationId, farmId, data.auditEventId)).data.targetUserId == userId
+        && getAfter(auditPath(organizationId, farmId, data.auditEventId)).data.afterRole == data.role
+        && getAfter(auditPath(organizationId, farmId, data.auditEventId)).data.afterStatus == data.status
+        && getAfter(auditPath(organizationId, farmId, data.auditEventId)).data.membershipVersion == data.version;
+    }
+
+    function validAuditEvent(data, organizationId, farmId, auditEventId) {
+      return data.keys().hasOnly([
+          'auditEventId', 'organizationId', 'farmId', 'actorUserId',
+          'actorDisplayName', 'targetUserId', 'targetDisplayName',
+          'eventType', 'beforeRole', 'afterRole', 'beforeStatus',
+          'afterStatus', 'membershipVersion', 'createdAt'
+        ])
+        && data.auditEventId == auditEventId
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.actorUserId == request.auth.uid
+        && data.actorDisplayName is string
+        && data.targetUserId is string
+        && data.targetDisplayName is string
+        && data.eventType in ['ROLE_CHANGED', 'MEMBERSHIP_REVOKED', 'MEMBERSHIP_RESTORED']
+        && isCanonicalRole(data.beforeRole)
+        && isCanonicalRole(data.afterRole)
+        && isMembershipStatus(data.beforeStatus)
+        && isMembershipStatus(data.afterStatus)
+        && data.membershipVersion is int
+        && data.createdAt == request.time
+        && exists(farmMemberPath(organizationId, farmId, data.targetUserId))
+        && existsAfter(farmMemberPath(organizationId, farmId, data.targetUserId))
+        && data.beforeRole == get(farmMemberPath(organizationId, farmId, data.targetUserId)).data.role
+        && data.beforeStatus == get(farmMemberPath(organizationId, farmId, data.targetUserId)).data.status
+        && data.afterRole == getAfter(farmMemberPath(organizationId, farmId, data.targetUserId)).data.role
+        && data.afterStatus == getAfter(farmMemberPath(organizationId, farmId, data.targetUserId)).data.status
+        && data.membershipVersion == getAfter(farmMemberPath(organizationId, farmId, data.targetUserId)).data.version
+        && (
+          (data.eventType == 'ROLE_CHANGED'
+            && data.beforeStatus == 'ACTIVE'
+            && data.afterStatus == 'ACTIVE'
+            && data.beforeRole != data.afterRole)
+          || (data.eventType == 'MEMBERSHIP_REVOKED'
+            && data.beforeStatus == 'ACTIVE'
+            && data.afterStatus == 'REVOKED')
+          || (data.eventType == 'MEMBERSHIP_RESTORED'
+            && data.beforeStatus == 'REVOKED'
+            && data.afterStatus == 'ACTIVE')
+        );
+    }
+
+    function validTreePosition(data, organizationId, farmId, positionId) {
+      return data.keys().hasAll([
+          'recordType', 'organizationId', 'farmId', 'positionId',
+          'organizationCode', 'farmSequence', 'zoneCode', 'rowCode',
+          'treeSequence', 'tagCode', 'positionStatus', 'currentCycleNumber',
+          'qrPath', 'version', 'lastEventId', 'exampleData',
+          'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'recordType', 'organizationId', 'farmId', 'positionId',
+          'organizationCode', 'farmSequence', 'zoneCode', 'rowCode',
+          'treeSequence', 'tagCode', 'positionStatus', 'currentCycleNumber',
+          'qrPath', 'version', 'lastEventId', 'exampleData',
+          'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+        ])
+        && data.recordType == 'TREE_POSITION'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.positionId == positionId
+        && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
+        && data.organizationCode.matches('^[A-Z0-9]{2,10}$')
+        && data.farmSequence.matches('^F[0-9]{2,}$')
+        && data.zoneCode.matches('^Z[0-9]{2,}$')
+        && data.rowCode.matches('^R[0-9]{2,}$')
+        && data.treeSequence is int
+        && data.treeSequence > 0
+        && data.tagCode.matches('^[A-Z0-9]{2,10}-F[0-9]{2,}-Z[0-9]{2,}-R[0-9]{2,}-T[0-9]{3,}$')
+        && data.positionStatus in ['ACTIVE', 'ARCHIVED']
+        && data.currentCycleNumber is int
+        && data.currentCycleNumber > 0
+        && data.qrPath == '/t/' + positionId
+        && data.version is int
+        && data.version > 0
+        && data.lastEventId is string
+        && data.exampleData == true
+        && data.createdBy is string
+        && data.updatedBy is string;
+    }
+
+    function matchingTreeEventExists(organizationId, farmId, positionId, data) {
+      return existsAfter(treeEventPath(
+          organizationId, farmId, positionId, data.lastEventId
+        ))
+        && getAfter(treeEventPath(
+          organizationId, farmId, positionId, data.lastEventId
+        )).data.positionId == positionId
+        && getAfter(treeEventPath(
+          organizationId, farmId, positionId, data.lastEventId
+        )).data.positionVersion == data.version
+        && getAfter(treeEventPath(
+          organizationId, farmId, positionId, data.lastEventId
+        )).data.actorUserId == request.auth.uid;
+    }
+
+    function validPlantingCycle(data, cycleId) {
+      return data.keys().hasAll([
+          'recordType', 'cycleId', 'cycleNumber', 'variety',
+          'varietyConfidence', 'plantingYear', 'plantingYearCalendar',
+          'plantingYearConfidence', 'treeStatus', 'baselineDate', 'notes',
+          'startedAt', 'endedAt', 'version', 'createdBy', 'updatedBy',
+          'updatedAt', 'exampleData'
+        ])
+        && data.keys().hasOnly([
+          'recordType', 'cycleId', 'cycleNumber', 'variety',
+          'varietyConfidence', 'plantingYear', 'plantingYearCalendar',
+          'plantingYearConfidence', 'treeStatus', 'baselineDate', 'notes',
+          'startedAt', 'endedAt', 'version', 'createdBy', 'updatedBy',
+          'updatedAt', 'exampleData'
+        ])
+        && data.recordType == 'PLANTING_CYCLE'
+        && data.cycleId == cycleId
+        && data.cycleId.matches('^cycle_[0-9]{3,}$')
+        && data.cycleNumber is int
+        && data.cycleNumber > 0
+        && (data.variety == null || data.variety is string)
+        && data.varietyConfidence in ['confirmed', 'estimated', 'unknown']
+        && (data.plantingYear == null || (data.plantingYear is int && data.plantingYear > 0))
+        && (data.plantingYearCalendar == null || data.plantingYearCalendar in ['BE', 'CE'])
+        && data.plantingYearConfidence in ['confirmed', 'estimated', 'unknown']
+        && data.treeStatus in ['normal', 'watch', 'sick', 'recovering', 'dead', 'empty']
+        && data.baselineDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.notes is string
+        && (data.endedAt == null || data.endedAt is timestamp)
+        && data.version is int
+        && data.version > 0
+        && data.createdBy is string
+        && data.updatedBy is string
+        && data.exampleData == true;
+    }
+
+    function validTreeEvent(data, organizationId, farmId, positionId, eventId) {
+      return data.keys().hasAll([
+          'recordType', 'eventId', 'eventType', 'organizationId', 'farmId',
+          'positionId', 'actorUserId', 'actorDisplayName', 'description',
+          'positionVersion', 'exampleData', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'recordType', 'eventId', 'eventType', 'organizationId', 'farmId',
+          'positionId', 'actorUserId', 'actorDisplayName', 'description',
+          'positionVersion', 'exampleData', 'createdAt'
+        ])
+        && data.recordType == 'TREE_EVENT'
+        && data.eventId == eventId
+        && data.eventType in [
+          'TREE_POSITION_CREATED', 'TREE_POSITION_IMPORTED',
+          'TREE_CYCLE_UPDATED', 'TREE_CYCLE_REPLACED',
+          'TREE_POSITION_ARCHIVED', 'TAG_DAMAGED_REPORTED'
+        ]
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.positionId == positionId
+        && data.actorUserId == request.auth.uid
+        && data.actorDisplayName is string
+        && data.description is string
+        && data.positionVersion is int
+        && data.positionVersion > 0
+        && data.exampleData == true
+        && data.createdAt == request.time;
+    }
+
+    function validTreeTag(data, organizationId, farmId, tagCode) {
+      return data.keys().hasOnly([
+          'recordType', 'organizationId', 'farmId', 'positionId', 'tagCode',
+          'exampleData', 'createdBy', 'createdAt'
+        ])
+        && data.recordType == 'TREE_TAG_INDEX'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
+        && data.tagCode == tagCode
+        && data.exampleData == true
+        && data.createdBy == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
+    function validPositionRoute(data, positionId) {
+      return data.keys().hasOnly([
+          'recordType', 'organizationId', 'farmId', 'positionId',
+          'exampleData', 'createdBy', 'createdAt'
+        ])
+        && data.recordType == 'POSITION_ROUTE'
+        && data.organizationId is string
+        && data.farmId is string
+        && data.positionId == positionId
+        && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
+        && data.exampleData == true
+        && data.createdBy is string
+        && data.createdAt is timestamp;
+    }
+
+    function workOrderPath(organizationId, farmId, workOrderId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(workOrderId);
+    }
+
+    function workEventPath(organizationId, farmId, workOrderId, eventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(workOrderId)/events/$(eventId);
+    }
+
+    function careEventPath(organizationId, farmId, careEventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/careEvents/$(careEventId);
+    }
+
+    function careAuditPath(organizationId, farmId, careEventId, eventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/careEvents/$(careEventId)/events/$(eventId);
+    }
+
+    function diseasePath(organizationId, farmId, incidentId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/diseaseIncidents/$(incidentId);
+    }
+
+    function diseaseEventPath(organizationId, farmId, incidentId, eventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/diseaseIncidents/$(incidentId)/events/$(eventId);
+    }
+
+    function diseaseAnalysisPath(organizationId, farmId, analysisSessionId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/diseaseAnalysisSessions/$(analysisSessionId);
+    }
+
+    function diseaseAnalysisEventPath(organizationId, farmId, analysisSessionId, eventId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/diseaseAnalysisSessions/$(analysisSessionId)/events/$(eventId);
+    }
+
+    function treatmentLockPath(organizationId, farmId, incidentId) {
+      return /databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/diseaseTreatmentLocks/$(incidentId);
+    }
+
+    function canManageGeneralWork(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, ['ORG_OWNER', 'FARM_MANAGER']);
+    }
+
+    function canManageWorkCategory(organizationId, farmId, category) {
+      return canWriteFarm(organizationId, farmId)
+        && (
+          currentFarmRole(organizationId, farmId) in ['ORG_OWNER', 'FARM_MANAGER']
+          || (category in ['CARE', 'DISEASE_FOLLOW_UP']
+            && currentFarmRole(organizationId, farmId) == 'AGRONOMIST')
+        );
+    }
+
+    function hasWorkManagerRole(organizationId, farmId, category) {
+      return currentFarmRole(organizationId, farmId) in ['ORG_OWNER', 'FARM_MANAGER']
+        || (category in ['CARE', 'DISEASE_FOLLOW_UP']
+          && currentFarmRole(organizationId, farmId) == 'AGRONOMIST');
+    }
+
+    function isOperationalRole(organizationId, farmId) {
+      return hasFarmRole(organizationId, farmId, [
+        'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER'
+      ]);
+    }
+
+    function isWorkStatus(status) {
+      return status in [
+        'DRAFT', 'ASSIGNED', 'ACCEPTED', 'IN_PROGRESS', 'SUBMITTED',
+        'VERIFIED', 'REJECTED', 'REWORK', 'CLOSED'
+      ];
+    }
+
+    function validWorkTarget(target) {
+      return target is map
+        && target.kind in ['TREE', 'ROW', 'ZONE', 'TREE_SET']
+        && target.zoneCode.matches('^Z[0-9]{2,}$')
+        && (target.rowCode == null || target.rowCode.matches('^R[0-9]{2,}$'))
+        && target.positionIds is list
+        && target.positionIds.size() > 0
+        && (target.kind != 'TREE' || target.positionIds.size() == 1)
+        && (target.kind != 'TREE_SET' || target.positionIds.size() > 1)
+        && (target.kind != 'ROW' || target.rowCode != null);
+    }
+
+    function validWorkInstructionPhoto(photo, organizationId, farmId, workOrderId) {
+      return photo is map
+        && photo.keys().hasOnly([
+          'photoId', 'phase', 'uploadState', 'storagePath', 'note'
+        ])
+        && photo.photoId is string
+        && photo.photoId.matches('^photo_instruction_[A-Za-z0-9_-]+$')
+        && photo.phase == 'INSTRUCTION'
+        && photo.uploadState == 'UPLOADED'
+        && photo.storagePath is string
+        && photo.storagePath == 'organizations/' + organizationId + '/farms/' + farmId
+          + '/workEvidence/' + workOrderId + '/' + photo.photoId
+        && photo.note is string;
+    }
+
+    function validWorkReportPhotos(photos, organizationId, farmId, workOrderId) {
+      return photos is list
+        && photos.size() >= 2
+        && photos.size() <= 6
+        && photos[0].phase == 'BEFORE'
+        && photos[0].uploadState == 'UPLOADED'
+        && photos[0].photoId.matches('^photo_before_[A-Za-z0-9_-]+$')
+        && photos[0].storagePath == 'organizations/' + organizationId
+          + '/farms/' + farmId + '/workEvidence/' + workOrderId
+          + '/' + photos[0].photoId
+        && photos[1].phase == 'AFTER'
+        && photos[1].uploadState == 'UPLOADED'
+        && photos[1].photoId.matches('^photo_after_[A-Za-z0-9_-]+$')
+        && photos[1].storagePath == 'organizations/' + organizationId
+          + '/farms/' + farmId + '/workEvidence/' + workOrderId
+          + '/' + photos[1].photoId;
+    }
+
+    function validWorkRecord(data, organizationId, farmId, workOrderId) {
+      return data.recordType == 'WORK_ORDER'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.workOrderId == workOrderId
+        && data.workOrderId.matches('^work_[A-Za-z0-9_-]{12,}$')
+        && data.title is string
+        && data.title.size() > 0
+        && data.description is string
+        && data.category in ['GENERAL', 'CARE', 'DISEASE_FOLLOW_UP']
+        && (data.careType == null || data.careType in [
+          'FERTILIZER', 'CHEMICAL', 'WATER', 'PRUNING', 'INSPECTION'
+        ])
+        && ((data.category == 'CARE' && data.careType != null)
+          || (data.category != 'CARE' && data.careType == null))
+        && data.priority in ['NORMAL', 'URGENT']
+        && validWorkTarget(data.target)
+        && data.dueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && (data.assignedUserId == null || data.assignedUserId is string)
+        && isWorkStatus(data.status)
+        && data.isPaused is bool
+        && data.instructionPhotos is list
+        && data.instructionPhotos.size() <= 3
+        && (data.targetConfirmedPositionId == null || data.targetConfirmedPositionId is string)
+        && data.rejectionReason is string
+        && data.reworkReason is string
+        && (data.sourceDiseaseIncidentId == null || data.sourceDiseaseIncidentId is string)
+        && data.version is int
+        && data.version > 0
+        && data.lastEventId is string
+        && data.exampleData == true
+        && data.createdBy is string
+        && data.updatedBy is string;
+    }
+
+    function validWorkEvent(data, organizationId, farmId, workOrderId, eventId) {
+      return data.recordType == 'WORK_EVENT'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.workOrderId == workOrderId
+        && data.eventId == eventId
+        && data.eventType in [
+          'WORK_CREATED', 'WORK_INSTRUCTION_PHOTOS_SAVED',
+          'WORK_ASSIGNED', 'WORK_ACCEPTED', 'WORK_STARTED',
+          'WORK_PAUSED', 'WORK_RESUMED', 'WORK_TARGET_CONFIRMED',
+          'WORK_REPORT_SAVED', 'WORK_SUBMITTED', 'WORK_VERIFIED',
+          'WORK_REJECTED', 'WORK_REWORK_REQUESTED', 'WORK_CLOSED'
+        ]
+        && data.actorUserId == request.auth.uid
+        && data.actorDisplayName is string
+        && isWorkStatus(data.beforeStatus)
+        && isWorkStatus(data.afterStatus)
+        && data.reason is string
+        && data.workVersion is int
+        && data.exampleData == true
+        && data.createdAt == request.time;
+    }
+
+    function matchingWorkEventExists(organizationId, farmId, workOrderId, data) {
+      return existsAfter(workEventPath(
+          organizationId, farmId, workOrderId, data.lastEventId
+        ))
+        && getAfter(workEventPath(
+          organizationId, farmId, workOrderId, data.lastEventId
+        )).data.actorUserId == request.auth.uid
+        && getAfter(workEventPath(
+          organizationId, farmId, workOrderId, data.lastEventId
+        )).data.workVersion == data.version
+        && getAfter(workEventPath(
+          organizationId, farmId, workOrderId, data.lastEventId
+        )).data.afterStatus == data.status;
+    }
+
+    function canReadWork(data, organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && (
+          isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR'])
+          || (hasFarmRole(organizationId, farmId, ['AGRONOMIST'])
+            && (data.category != 'GENERAL' || data.assignedUserId == request.auth.uid))
+          || (hasFarmRole(organizationId, farmId, ['WORKER'])
+            && data.assignedUserId == request.auth.uid)
+        );
+    }
+
+    function assignedTransitionAllowed(oldData, newData) {
+      return (oldData.status == 'ASSIGNED' && newData.status == 'ACCEPTED')
+        || ((oldData.status == 'ACCEPTED' || oldData.status == 'REWORK')
+          && newData.status == 'IN_PROGRESS')
+        || (oldData.status == 'IN_PROGRESS' && newData.status == 'IN_PROGRESS')
+        || (oldData.status == 'IN_PROGRESS' && newData.status == 'SUBMITTED'
+          && oldData.isPaused == false && newData.report != null);
+    }
+
+    function validAssignedWorkUpdate(oldData, newData) {
+      return oldData.assignedUserId == request.auth.uid
+        && newData.assignedUserId == oldData.assignedUserId
+        && assignedTransitionAllowed(oldData, newData)
+        && newData.diff(oldData).affectedKeys().hasOnly([
+          'status', 'isPaused', 'report', 'targetConfirmedPositionId',
+          'version', 'lastEventId', 'updatedBy', 'updatedAt'
+        ])
+        && (newData.targetConfirmedPositionId == oldData.targetConfirmedPositionId
+          || (newData.target.kind == 'TREE'
+            && newData.targetConfirmedPositionId == newData.target.positionIds[0]
+            && newData.status in ['ACCEPTED', 'IN_PROGRESS']))
+        && (newData.report == oldData.report
+          || (newData.status == 'IN_PROGRESS'
+            && newData.isPaused == false
+            && newData.report.targetConfirmedPositionId == newData.targetConfirmedPositionId
+            && validWorkReportPhotos(
+              newData.report.photos,
+              newData.organizationId,
+              newData.farmId,
+              newData.workOrderId
+            )
+            && newData.report.completions is list
+            && newData.report.completions.size() == newData.target.positionIds.size()));
+    }
+
+    function validManagerWorkUpdate(oldData, newData) {
+      return (
+          (oldData.status == 'DRAFT' && newData.status == 'DRAFT'
+            && oldData.instructionPhotos.size() == 0
+            && newData.instructionPhotos.size() > 0
+            && newData.instructionPhotos.size() <= 3
+            && newData.assignedUserId == oldData.assignedUserId)
+          || (oldData.status == 'DRAFT' && newData.status == 'ASSIGNED'
+            && newData.assignedUserId is string && newData.assignedUserId.size() > 0)
+          || (oldData.status == 'SUBMITTED' && newData.status in ['VERIFIED', 'REJECTED', 'REWORK']
+            && (newData.status != 'REJECTED' || newData.rejectionReason.size() > 0)
+            && (newData.status != 'REWORK' || newData.reworkReason.size() > 0))
+          || (oldData.status in ['VERIFIED', 'REJECTED'] && newData.status == 'CLOSED')
+        )
+        && newData.diff(oldData).affectedKeys().hasOnly([
+          'status', 'assignedUserId', 'instructionPhotos', 'rejectionReason', 'reworkReason',
+          'version', 'lastEventId', 'updatedBy', 'updatedAt'
+        ]);
+    }
+
+    function validCareRecord(data, organizationId, farmId, careEventId) {
+      return data.recordType == 'CARE_EVENT'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.careEventId == careEventId
+        && data.workOrderId is string
+        && data.careType in ['FERTILIZER', 'CHEMICAL', 'WATER', 'PRUNING', 'INSPECTION']
+        && data.positionIds is list && data.positionIds.size() > 0
+        && data.materials is list && data.notes is string
+        && data.approvalStatus in ['NOT_REQUIRED', 'PENDING_SPECIALIST', 'APPROVED']
+        && (data.approvedBy == null || data.approvedBy is string)
+        && data.version is int && data.version > 0
+        && data.lastEventId is string && data.exampleData == true;
+    }
+
+    function validCareAudit(data, organizationId, farmId, careEventId, eventId) {
+      return data.recordType == 'CARE_EVENT_AUDIT'
+        && data.organizationId == organizationId && data.farmId == farmId
+        && data.careEventId == careEventId && data.eventId == eventId
+        && data.eventType in ['CARE_RECORDED', 'SPECIALIST_APPROVED']
+        && data.actorUserId == request.auth.uid
+        && data.careVersion is int && data.careVersion > 0
+        && data.exampleData == true && data.createdAt == request.time;
+    }
+
+    function matchingCareAuditExists(organizationId, farmId, careEventId, data) {
+      return existsAfter(careAuditPath(organizationId, farmId, careEventId, data.lastEventId))
+        && getAfter(careAuditPath(organizationId, farmId, careEventId, data.lastEventId)).data.careVersion == data.version
+        && getAfter(careAuditPath(organizationId, farmId, careEventId, data.lastEventId)).data.actorUserId == request.auth.uid;
+    }
+
+    function validDiseaseRecord(data, organizationId, farmId, incidentId) {
+      return data.recordType == 'DISEASE_INCIDENT'
+        && data.organizationId == organizationId && data.farmId == farmId
+        && data.incidentId == incidentId
+        && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
+        && data.observedSymptom is string && data.observedSymptom.size() > 0
+        && data.severity in ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+        && data.suspectedDiagnosis is string && data.confirmedDiagnosis is string
+        && data.treatmentPlan is string && data.followUpDate is string
+        && data.status in ['OPEN', 'AWAITING_DIAGNOSIS', 'TREATING', 'FOLLOW_UP', 'CLOSED']
+        && data.specialistApprovalStatus in ['PENDING_SPECIALIST', 'APPROVED']
+        && data.outcome is string
+        && (data.treatmentWorkOrderId == null || data.treatmentWorkOrderId is string)
+        && (data.treatmentOperationId == null || data.treatmentOperationId is string)
+        && data.version is int && data.version > 0
+        && data.lastEventId is string && data.exampleData == true
+        && data.reportedBy is string && data.updatedBy is string;
+    }
+
+    function validDiseaseAudit(data, organizationId, farmId, incidentId, eventId) {
+      return data.recordType == 'DISEASE_EVENT'
+        && data.organizationId == organizationId && data.farmId == farmId
+        && data.incidentId == incidentId && data.eventId == eventId
+        && data.eventType in [
+          'SYMPTOM_OBSERVED', 'ASSESSMENT_RECORDED',
+          'FOLLOW_UP_RECORDED', 'INCIDENT_CLOSED',
+          'PHOTO_PLACEHOLDER_ADDED', 'PHOTO_UPLOAD_STARTED',
+          'PHOTO_UPLOAD_COMPLETED', 'PHOTO_UPLOAD_FAILED',
+          'PHOTO_UPLOAD_RETRIED', 'TREATMENT_WORK_CREATED'
+        ]
+        && data.actorUserId == request.auth.uid
+        && data.actorDisplayName is string && data.description is string
+        && data.incidentVersion is int && data.incidentVersion > 0
+        && data.exampleData == true && data.createdAt == request.time;
+    }
+
+    function validDiseasePhoto(photo, organizationId, farmId, incidentId, positionId) {
+      return photo is map
+        && photo.keys().hasOnly([
+          'photoId', 'organizationId', 'farmId', 'incidentId', 'positionId',
+          'placeholderKind', 'mimeType', 'sizeBytes', 'note', 'source',
+          'classification', 'uploadState', 'retryCount', 'lastError',
+          'containsExifOrGps', 'externalStorage', 'lifecycleMode', 'version',
+          'createdBy', 'createdAtLabel', 'lastOperationId', 'createdAt', 'updatedAt'
+        ])
+        && photo.photoId.matches('^diseasephoto_[A-Za-z0-9_-]{12,}$')
+        && photo.organizationId == organizationId
+        && photo.farmId == farmId
+        && photo.incidentId == incidentId
+        && photo.positionId == positionId
+        && photo.placeholderKind in ['LEAF_SPOT', 'TRUNK_AREA', 'CANOPY']
+        && photo.mimeType in ['image/jpeg', 'image/png', 'image/webp']
+        && photo.sizeBytes is int && photo.sizeBytes > 0
+        && photo.sizeBytes <= 5 * 1024 * 1024
+        && photo.note is string && photo.note.size() > 0
+        && photo.source == 'SYNTHETIC_PLACEHOLDER'
+        && photo.classification == 'SIMULATED/TEST ONLY'
+        && photo.uploadState in ['PENDING', 'UPLOADING', 'UPLOADED', 'FAILED']
+        && photo.retryCount is int && photo.retryCount >= 0 && photo.retryCount <= 3
+        && photo.lastError is string
+        && photo.containsExifOrGps == false
+        && photo.externalStorage == false
+        && photo.lifecycleMode == 'DRY_RUN'
+        && photo.version is int && photo.version > 0
+        && photo.createdBy is string
+        && photo.createdAtLabel is string
+        && photo.lastOperationId is string
+        && photo.createdAt is timestamp
+        && photo.updatedAt is timestamp;
+    }
+
+    function matchingDiseaseAuditExists(organizationId, farmId, incidentId, data) {
+      let event = getAfter(
+        diseaseEventPath(organizationId, farmId, incidentId, data.lastEventId)
+      ).data;
+      return event.incidentVersion == data.version
+        && event.actorUserId == request.auth.uid;
+    }
+
+    function matchingDiseaseRecordExists(organizationId, farmId, incidentId, eventId, version) {
+      let incident = getAfter(diseasePath(organizationId, farmId, incidentId)).data;
+      return incident.lastEventId == eventId && incident.version == version;
+    }
+
+    function validTreatmentLinkTarget(organizationId, farmId, incidentId, positionId, workOrderId) {
+      let work = get(workOrderPath(organizationId, farmId, workOrderId)).data;
+      return work.sourceDiseaseIncidentId == incidentId
+        && work.target.kind == 'TREE'
+        && work.target.positionIds[0] == positionId;
+    }
+
+    function canReadDiseaseAnalysis(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, [
+            'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'AUDITOR'
+          ]));
+    }
+
+    function canRunDiseaseAnalysis(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, [
+            'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST'
+          ]));
+    }
+
+    function canReviewDiseaseAnalysis(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && hasFarmRole(organizationId, farmId, ['AGRONOMIST']);
+    }
+
+    function validDiseaseCandidateFinding(finding) {
+      return finding is map
+        && finding.keys().hasOnly([
+          'findingCode', 'label', 'confidencePercent', 'uncertaintyNote'
+        ])
+        && finding.findingCode == 'MOCK_SYMPTOM_PATTERN_A'
+        && finding.label is string && finding.label.size() > 0
+        && finding.confidencePercent is int
+        && finding.confidencePercent >= 0 && finding.confidencePercent <= 100
+        && finding.uncertaintyNote is string && finding.uncertaintyNote.size() > 0;
+    }
+
+    function validDiseaseAnalysisResult(data) {
+      return data.qualityScorePercent is int
+        && data.qualityScorePercent >= 0 && data.qualityScorePercent <= 100
+        && data.candidateFindings is list
+        && (
+          (data.abstainReason == null
+            && data.candidateFindings.size() == 1
+            && validDiseaseCandidateFinding(data.candidateFindings[0]))
+          || (data.abstainReason in [
+              'LOW_EVIDENCE_QUALITY', 'CONFLICTING_OBSERVATIONS'
+            ] && data.candidateFindings.size() == 0)
+        );
+    }
+
+    function validDiseaseAnalysisSession(data, organizationId, farmId, analysisSessionId) {
+      return data.keys().hasAll([
+          'recordType', 'organizationId', 'farmId', 'analysisSessionId',
+          'incidentId', 'positionId', 'plantingCycleId', 'evidenceScenario',
+          'observedSymptom', 'analysisSource', 'classification', 'status',
+          'qualityScorePercent', 'candidateFindings', 'abstainReason',
+          'reviewedBy', 'reviewDisposition', 'reviewedFindingLabel', 'reviewNote',
+          'diagnosisWritebackStatus', 'version', 'lastEventId', 'createdBy',
+          'updatedBy', 'exampleData', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'recordType', 'organizationId', 'farmId', 'analysisSessionId',
+          'incidentId', 'positionId', 'plantingCycleId', 'evidenceScenario',
+          'observedSymptom', 'analysisSource', 'classification', 'status',
+          'qualityScorePercent', 'candidateFindings', 'abstainReason',
+          'reviewedBy', 'reviewDisposition', 'reviewedFindingLabel', 'reviewNote',
+          'diagnosisWritebackStatus', 'version', 'lastEventId', 'createdBy',
+          'updatedBy', 'exampleData', 'createdAt', 'updatedAt'
+        ])
+        && data.recordType == 'DISEASE_ANALYSIS_SESSION'
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.analysisSessionId == analysisSessionId
+        && data.analysisSessionId.matches('^analysis_[A-Za-z0-9_-]{12,}$')
+        && data.incidentId.matches('^disease_[A-Za-z0-9_-]{8,}$')
+        && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
+        && data.plantingCycleId.matches('^cycle_[A-Za-z0-9_-]{3,}$')
+        && data.evidenceScenario in [
+          'CLEAR_SYMPTOM_PATTERN', 'LOW_QUALITY_PLACEHOLDER',
+          'CONFLICTING_OBSERVATIONS'
+        ]
+        && data.observedSymptom is string && data.observedSymptom.size() > 0
+        && data.analysisSource == 'MOCK_DETERMINISTIC_V1'
+        && data.classification == 'SIMULATED/TEST ONLY'
+        && data.status in ['HUMAN_REVIEW_REQUIRED', 'REVIEWED']
+        && validDiseaseAnalysisResult(data)
+        && (data.reviewedBy == null || data.reviewedBy is string)
+        && (data.reviewDisposition == null || data.reviewDisposition in [
+          'ACCEPTED', 'CORRECTED', 'REJECTED'
+        ])
+        && data.reviewedFindingLabel is string
+        && data.reviewNote is string
+        && data.diagnosisWritebackStatus == 'NOT_WRITTEN'
+        && data.version is int && data.version > 0
+        && data.lastEventId is string
+        && data.createdBy is string && data.updatedBy is string
+        && data.exampleData == true;
+    }
+
+    function validDiseaseAnalysisEvent(data, organizationId, farmId, analysisSessionId, eventId) {
+      return data.keys().hasOnly([
+          'recordType', 'eventId', 'eventType', 'organizationId', 'farmId',
+          'analysisSessionId', 'actorUserId', 'actorDisplayName', 'description',
+          'sessionVersion', 'exampleData', 'createdAt'
+        ])
+        && data.recordType == 'DISEASE_ANALYSIS_EVENT'
+        && data.eventId == eventId
+        && data.eventType in [
+          'MOCK_ANALYSIS_COMPLETED', 'MOCK_ANALYSIS_ABSTAINED',
+          'HUMAN_REVIEW_ACCEPTED', 'HUMAN_REVIEW_CORRECTED',
+          'HUMAN_REVIEW_REJECTED'
+        ]
+        && data.organizationId == organizationId && data.farmId == farmId
+        && data.analysisSessionId == analysisSessionId
+        && data.actorUserId == request.auth.uid
+        && data.actorDisplayName is string && data.description is string
+        && data.sessionVersion is int && data.sessionVersion > 0
+        && data.exampleData == true && data.createdAt == request.time;
+    }
+
+    function matchingDiseaseAnalysisEventExists(organizationId, farmId, analysisSessionId, data) {
+      let event = getAfter(diseaseAnalysisEventPath(
+        organizationId, farmId, analysisSessionId, data.lastEventId
+      )).data;
+      return event.analysisSessionId == analysisSessionId
+        && event.sessionVersion == data.version
+        && event.actorUserId == request.auth.uid;
+    }
+
+    function matchingDiseaseAnalysisSessionExists(organizationId, farmId, analysisSessionId, eventId, version) {
+      let session = getAfter(diseaseAnalysisPath(
+        organizationId, farmId, analysisSessionId
+      )).data;
+      return session.lastEventId == eventId && session.version == version;
+    }
+
+    // Explicit recursive match is required for collection-group queries.
+    // The query must constrain membershipType, userId and status to these values.
+    match /{memberPath=**}/members/{userId} {
+      allow list: if signedIn()
+        && resource.data.membershipType == 'FARM'
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == 'ACTIVE';
+    }
+
+    match /positionRoutes/{positionId} {
+      allow get: if validPositionRoute(resource.data, positionId)
+        && canReadFarm(resource.data.organizationId, resource.data.farmId);
+      allow list: if false;
+      allow create: if validPositionRoute(request.resource.data, positionId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && canManageTreeRegister(
+          request.resource.data.organizationId,
+          request.resource.data.farmId
+        )
+        && existsAfter(treePositionPath(
+          request.resource.data.organizationId,
+          request.resource.data.farmId,
+          positionId
+        ))
+        && getAfter(treePositionPath(
+          request.resource.data.organizationId,
+          request.resource.data.farmId,
+          positionId
+        )).data.positionId == positionId;
+      allow update, delete: if false;
+    }
+
+    match /organizations/{organizationId} {
+      allow get: if hasOrganizationMembership(organizationId);
+      allow list: if false;
+      allow create, delete: if false;
+      allow update: if isOrganizationOwner(organizationId)
+        && request.resource.data.organizationId == organizationId
+        && request.resource.data.organizationId == resource.data.organizationId;
+
+      match /members/{userId} {
+        allow get, list: if signedIn()
+          && resource.data.organizationId == organizationId
+          && resource.data.userId == userId
+          && (request.auth.uid == userId || isOrganizationOwner(organizationId));
+        // Organization bootstrap and owner assignment require a future trusted backend.
+        allow create, update, delete: if false;
+      }
+
+      match /farms/{farmId} {
+        allow get: if canReadFarm(organizationId, farmId);
+        allow list: if false;
+        allow create, delete: if false;
+        allow update: if isOrganizationOwner(organizationId)
+          && request.resource.data.organizationId == organizationId
+          && request.resource.data.farmId == farmId
+          && request.resource.data.organizationId == resource.data.organizationId
+          && request.resource.data.farmId == resource.data.farmId
+          && request.resource.data.status in ['ACTIVE', 'SUSPENDED', 'ARCHIVED'];
+
+        match /members/{userId} {
+          allow get: if signedIn()
+            && (request.auth.uid == userId || isOrganizationOwner(organizationId));
+          allow list: if isOrganizationOwner(organizationId);
+          allow create, delete: if false;
+          allow update: if isOrganizationOwner(organizationId)
+            && farmStatus(organizationId, farmId) == 'ACTIVE'
+            && userId != request.auth.uid
+            && request.resource.data.organizationId == resource.data.organizationId
+            && request.resource.data.farmId == resource.data.farmId
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.displayName == resource.data.displayName
+            && request.resource.data.maskedPhone == resource.data.maskedPhone
+            && request.resource.data.version == resource.data.version + 1
+            && validFarmMembership(request.resource.data, organizationId, farmId, userId)
+            && matchingMembershipAuditExists(
+              organizationId,
+              farmId,
+              userId,
+              request.resource.data
+            );
+        }
+
+        match /secureRecords/{recordId} {
+          allow read: if canReadFarm(organizationId, farmId)
+            && resource.data.organizationId == organizationId
+            && resource.data.farmId == farmId;
+          allow create: if canWriteFarm(organizationId, farmId)
+            && hasFarmRole(organizationId, farmId, [
+              'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY'
+            ])
+            && request.resource.data.organizationId == organizationId
+            && request.resource.data.farmId == farmId
+            && request.resource.data.recordId == recordId
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.version == 1;
+          allow update: if canWriteFarm(organizationId, farmId)
+            && hasFarmRole(organizationId, farmId, [
+              'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY'
+            ])
+            && request.resource.data.organizationId == organizationId
+            && request.resource.data.farmId == farmId
+            && request.resource.data.recordId == recordId
+            && request.resource.data.organizationId == resource.data.organizationId
+            && request.resource.data.farmId == resource.data.farmId
+            && request.resource.data.recordId == resource.data.recordId
+            && request.resource.data.createdBy == resource.data.createdBy
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.version == resource.data.version + 1;
+          allow delete: if false;
+        }
+
+        match /treePositions/{positionId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageTreeRegister(organizationId, farmId)
+            && validTreePosition(request.resource.data, organizationId, farmId, positionId)
+            && request.resource.data.positionStatus == 'ACTIVE'
+            && request.resource.data.version == 1
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && matchingTreeEventExists(
+              organizationId, farmId, positionId, request.resource.data
+            )
+            && existsAfter(treeTagPath(
+              organizationId, farmId, request.resource.data.tagCode
+            ))
+            && getAfter(treeTagPath(
+              organizationId, farmId, request.resource.data.tagCode
+            )).data.positionId == positionId
+            && existsAfter(positionRoutePath(positionId))
+            && getAfter(positionRoutePath(positionId)).data.farmId == farmId;
+          allow update: if canManageTreeRegister(organizationId, farmId)
+            && resource.data.positionStatus == 'ACTIVE'
+            && validTreePosition(request.resource.data, organizationId, farmId, positionId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'positionStatus', 'currentCycleNumber', 'version', 'lastEventId',
+              'updatedBy', 'updatedAt'
+            ])
+            && request.resource.data.positionStatus in ['ACTIVE', 'ARCHIVED']
+            && request.resource.data.currentCycleNumber >= resource.data.currentCycleNumber
+            && request.resource.data.currentCycleNumber <= resource.data.currentCycleNumber + 1
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && matchingTreeEventExists(
+              organizationId, farmId, positionId, request.resource.data
+            );
+          allow delete: if false;
+
+          match /plantingCycles/{cycleId} {
+            allow read: if canReadFarm(organizationId, farmId);
+            allow create: if canManageTreeRegister(organizationId, farmId)
+              && validPlantingCycle(request.resource.data, cycleId)
+              && request.resource.data.createdBy == request.auth.uid
+              && request.resource.data.updatedBy == request.auth.uid
+              && request.resource.data.startedAt == request.time
+              && request.resource.data.updatedAt == request.time
+              && existsAfter(treePositionPath(organizationId, farmId, positionId))
+              && getAfter(treePositionPath(
+                organizationId, farmId, positionId
+              )).data.currentCycleNumber == request.resource.data.cycleNumber
+              && (
+                (!exists(treePositionPath(organizationId, farmId, positionId))
+                  && getAfter(treePositionPath(
+                    organizationId, farmId, positionId
+                  )).data.version == 1)
+                || (exists(treePositionPath(organizationId, farmId, positionId))
+                  && getAfter(treePositionPath(
+                    organizationId, farmId, positionId
+                  )).data.version == get(treePositionPath(
+                    organizationId, farmId, positionId
+                  )).data.version + 1)
+              );
+            allow update: if canManageTreeRegister(organizationId, farmId)
+              && validPlantingCycle(request.resource.data, cycleId)
+              && request.resource.data.cycleId == resource.data.cycleId
+              && request.resource.data.cycleNumber == resource.data.cycleNumber
+              && request.resource.data.createdBy == resource.data.createdBy
+              && request.resource.data.startedAt == resource.data.startedAt
+              && request.resource.data.version == resource.data.version + 1
+              && request.resource.data.updatedBy == request.auth.uid
+              && request.resource.data.updatedAt == request.time
+              && getAfter(treePositionPath(
+                organizationId, farmId, positionId
+              )).data.version == get(treePositionPath(
+                organizationId, farmId, positionId
+              )).data.version + 1
+              && (
+                (getAfter(treePositionPath(
+                  organizationId, farmId, positionId
+                )).data.currentCycleNumber == resource.data.cycleNumber
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    'variety', 'varietyConfidence', 'plantingYear',
+                    'plantingYearCalendar', 'plantingYearConfidence',
+                    'treeStatus', 'notes', 'version', 'updatedBy', 'updatedAt'
+                  ]))
+                || (getAfter(treePositionPath(
+                  organizationId, farmId, positionId
+                )).data.currentCycleNumber == resource.data.cycleNumber + 1
+                  && request.resource.data.endedAt == request.time
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    'endedAt', 'version', 'updatedBy', 'updatedAt'
+                  ]))
+              );
+            allow delete: if false;
+          }
+
+          match /events/{eventId} {
+            allow read: if canReadFarm(organizationId, farmId);
+            allow create: if validTreeEvent(
+                request.resource.data, organizationId, farmId, positionId, eventId
+              )
+              && (
+                (request.resource.data.eventType == 'TAG_DAMAGED_REPORTED'
+                  && canReportDamagedTag(organizationId, farmId)
+                  && exists(treePositionPath(organizationId, farmId, positionId))
+                  && request.resource.data.positionVersion == get(treePositionPath(
+                    organizationId, farmId, positionId
+                  )).data.version)
+                || (request.resource.data.eventType != 'TAG_DAMAGED_REPORTED'
+                  && canManageTreeRegister(organizationId, farmId)
+                  && existsAfter(treePositionPath(organizationId, farmId, positionId))
+                  && getAfter(treePositionPath(
+                    organizationId, farmId, positionId
+                  )).data.lastEventId == eventId
+                  && getAfter(treePositionPath(
+                    organizationId, farmId, positionId
+                  )).data.version == request.resource.data.positionVersion)
+              );
+            allow update, delete: if false;
+          }
+        }
+
+        match /treeTags/{tagCode} {
+          allow get: if canReadFarm(organizationId, farmId);
+          allow list: if false;
+          allow create: if canManageTreeRegister(organizationId, farmId)
+            && validTreeTag(request.resource.data, organizationId, farmId, tagCode)
+            && existsAfter(treePositionPath(
+              organizationId, farmId, request.resource.data.positionId
+            ))
+            && getAfter(treePositionPath(
+              organizationId, farmId, request.resource.data.positionId
+            )).data.tagCode == tagCode;
+          allow update, delete: if false;
+        }
+
+        match /treeImports/{idempotencyKey} {
+          allow read: if canManageTreeRegister(organizationId, farmId);
+          allow create: if canManageTreeRegister(organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'recordType', 'idempotencyKey', 'organizationId', 'farmId',
+              'actorUserId', 'status', 'importedCount', 'positionIds',
+              'exampleData', 'createdAt'
+            ])
+            && request.resource.data.recordType == 'TREE_IMPORT'
+            && request.resource.data.idempotencyKey == idempotencyKey
+            && request.resource.data.organizationId == organizationId
+            && request.resource.data.farmId == farmId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.status == 'COMPLETED'
+            && request.resource.data.importedCount is int
+            && request.resource.data.importedCount > 0
+            && request.resource.data.importedCount <= 50
+            && request.resource.data.positionIds is list
+            && request.resource.data.positionIds.size() == request.resource.data.importedCount
+            && request.resource.data.exampleData == true
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /workOrders/{workOrderId} {
+          allow read: if canReadWork(resource.data, organizationId, farmId);
+          allow create: if canManageWorkCategory(
+              organizationId, farmId, request.resource.data.category
+            )
+            && validWorkRecord(request.resource.data, organizationId, farmId, workOrderId)
+            && request.resource.data.status == 'DRAFT'
+            && request.resource.data.version == 1
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && matchingWorkEventExists(
+              organizationId, farmId, workOrderId, request.resource.data
+            );
+          allow update: if canWriteFarm(organizationId, farmId)
+            && request.resource.data.organizationId == resource.data.organizationId
+            && request.resource.data.farmId == resource.data.farmId
+            && request.resource.data.workOrderId == resource.data.workOrderId
+            && request.resource.data.createdBy == resource.data.createdBy
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.category == resource.data.category
+            && request.resource.data.careType == resource.data.careType
+            && request.resource.data.target == resource.data.target
+            && request.resource.data.sourceDiseaseIncidentId == resource.data.sourceDiseaseIncidentId
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && matchingWorkEventExists(
+              organizationId, farmId, workOrderId, request.resource.data
+            )
+            && (
+              (isOperationalRole(organizationId, farmId)
+                && validAssignedWorkUpdate(resource.data, request.resource.data))
+              || (hasWorkManagerRole(organizationId, farmId, resource.data.category)
+                && validManagerWorkUpdate(resource.data, request.resource.data))
+            );
+          allow delete: if false;
+
+          match /events/{eventId} {
+            allow read: if exists(workOrderPath(organizationId, farmId, workOrderId))
+              && canReadWork(
+                get(workOrderPath(organizationId, farmId, workOrderId)).data,
+                organizationId, farmId
+              );
+            allow create: if validWorkEvent(
+                request.resource.data, organizationId, farmId, workOrderId, eventId
+              )
+              && existsAfter(workOrderPath(organizationId, farmId, workOrderId))
+              && getAfter(workOrderPath(
+                organizationId, farmId, workOrderId
+              )).data.lastEventId == eventId
+              && getAfter(workOrderPath(
+                organizationId, farmId, workOrderId
+              )).data.version == request.resource.data.workVersion;
+            allow update, delete: if false;
+          }
+        }
+
+        match /workOperations/{operationId} {
+          allow get: if canReadFarm(organizationId, farmId)
+            && isOperationalRole(organizationId, farmId);
+          allow list: if false;
+          allow create: if canWriteFarm(organizationId, farmId)
+            && isOperationalRole(organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'recordType', 'operationId', 'organizationId', 'farmId',
+              'scope', 'targetId', 'actorUserId', 'exampleData', 'createdAt'
+            ])
+            && request.resource.data.recordType == 'WORK_OPERATION'
+            && request.resource.data.operationId == operationId
+            && request.resource.data.organizationId == organizationId
+            && request.resource.data.farmId == farmId
+            && request.resource.data.scope is string
+            && request.resource.data.targetId is string
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.exampleData == true
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /careEvents/{careEventId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageWorkCategory(organizationId, farmId, 'CARE')
+            && validCareRecord(request.resource.data, organizationId, farmId, careEventId)
+            && request.resource.data.version == 1
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && existsAfter(workOrderPath(
+              organizationId, farmId, request.resource.data.workOrderId
+            ))
+            && getAfter(workOrderPath(
+              organizationId, farmId, request.resource.data.workOrderId
+            )).data.status == 'VERIFIED'
+            && matchingCareAuditExists(
+              organizationId, farmId, careEventId, request.resource.data
+            );
+          allow update: if canWriteFarm(organizationId, farmId)
+            && hasFarmRole(organizationId, farmId, ['AGRONOMIST'])
+            && validCareRecord(request.resource.data, organizationId, farmId, careEventId)
+            && resource.data.approvalStatus == 'PENDING_SPECIALIST'
+            && request.resource.data.approvalStatus == 'APPROVED'
+            && request.resource.data.approvedBy == request.auth.uid
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'approvalStatus', 'approvedBy', 'version', 'lastEventId',
+              'updatedBy', 'updatedAt'
+            ])
+            && matchingCareAuditExists(
+              organizationId, farmId, careEventId, request.resource.data
+            );
+          allow delete: if false;
+
+          match /events/{eventId} {
+            allow read: if canReadFarm(organizationId, farmId);
+            allow create: if validCareAudit(
+                request.resource.data, organizationId, farmId, careEventId, eventId
+              )
+              && existsAfter(careEventPath(organizationId, farmId, careEventId))
+              && getAfter(careEventPath(
+                organizationId, farmId, careEventId
+              )).data.lastEventId == eventId
+              && getAfter(careEventPath(
+                organizationId, farmId, careEventId
+              )).data.version == request.resource.data.careVersion;
+            allow update, delete: if false;
+          }
+        }
+
+        match /diseaseTreatmentLocks/{incidentId} {
+          allow get: if canReadFarm(organizationId, farmId)
+            && hasFarmRole(organizationId, farmId, [
+              'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST'
+            ]);
+          allow list: if false;
+          allow create: if canWriteFarm(organizationId, farmId)
+            && hasFarmRole(organizationId, farmId, ['AGRONOMIST'])
+            && request.resource.data.keys().hasOnly([
+              'recordType', 'organizationId', 'farmId', 'incidentId',
+              'positionId', 'workOrderId', 'operationId', 'actorUserId',
+              'exampleData', 'createdAt'
+            ])
+            && request.resource.data.recordType == 'DISEASE_TREATMENT_LOCK'
+            && request.resource.data.organizationId == organizationId
+            && request.resource.data.farmId == farmId
+            && request.resource.data.incidentId == incidentId
+            && request.resource.data.positionId is string
+            && request.resource.data.workOrderId.matches('^work_treatment_[A-Za-z0-9_-]{12,}$')
+            && request.resource.data.operationId.matches('^disease_treatment_work_[A-Za-z0-9_-]{6,}$')
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.exampleData == true
+            && request.resource.data.createdAt == request.time
+            && exists(diseasePath(organizationId, farmId, incidentId))
+            && get(diseasePath(organizationId, farmId, incidentId)).data.positionId
+              == request.resource.data.positionId
+            && get(diseasePath(organizationId, farmId, incidentId)).data.specialistApprovalStatus
+              == 'APPROVED'
+            && get(diseasePath(organizationId, farmId, incidentId)).data.treatmentWorkOrderId
+              == null;
+          allow update, delete: if false;
+        }
+
+        match /diseaseIncidents/{incidentId} {
+          allow read: if canReadFarm(organizationId, farmId)
+            && (
+              isOrganizationOwner(organizationId)
+              || hasFarmRole(organizationId, farmId, [
+                'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'AUDITOR'
+              ])
+            );
+          allow create: if canWriteFarm(organizationId, farmId)
+            && isOperationalRole(organizationId, farmId)
+            && validDiseaseRecord(
+              request.resource.data, organizationId, farmId, incidentId
+            )
+            && request.resource.data.version == 1
+            && request.resource.data.reportedBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && exists(treePositionPath(
+              organizationId, farmId, request.resource.data.positionId
+            ))
+            && (!hasFarmRole(organizationId, farmId, ['WORKER'])
+              || request.resource.data.suspectedDiagnosis == '')
+            && request.resource.data.treatmentWorkOrderId == null
+            && request.resource.data.treatmentOperationId == null
+            && matchingDiseaseAuditExists(
+              organizationId, farmId, incidentId, request.resource.data
+            );
+          allow update: if (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'version', 'lastEventId', 'updatedBy', 'updatedAt'
+              ])
+              && canWriteFarm(organizationId, farmId)
+              && isOperationalRole(organizationId, farmId)
+              && resource.data.status != 'CLOSED'
+              && request.resource.data.version == resource.data.version + 1
+              && request.resource.data.updatedBy == request.auth.uid
+              && request.resource.data.updatedAt == request.time
+              && matchingDiseaseAuditExists(
+                organizationId, farmId, incidentId, request.resource.data
+              )
+            ) || (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'treatmentWorkOrderId', 'treatmentOperationId',
+                'version', 'lastEventId', 'updatedBy', 'updatedAt'
+              ])
+              && canWriteFarm(organizationId, farmId)
+              && hasFarmRole(organizationId, farmId, ['AGRONOMIST'])
+              && resource.data.treatmentWorkOrderId == null
+              && request.resource.data.treatmentWorkOrderId is string
+              && resource.data.treatmentOperationId == null
+              && request.resource.data.treatmentOperationId is string
+              && resource.data.specialistApprovalStatus == 'APPROVED'
+              && request.resource.data.version == resource.data.version + 1
+              && request.resource.data.updatedBy == request.auth.uid
+              && request.resource.data.updatedAt == request.time
+              && validTreatmentLinkTarget(
+                organizationId, farmId, incidentId, resource.data.positionId,
+                request.resource.data.treatmentWorkOrderId
+              )
+              && matchingDiseaseAuditExists(
+                organizationId, farmId, incidentId, request.resource.data
+              )
+            ) || (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'suspectedDiagnosis', 'confirmedDiagnosis', 'treatmentPlan',
+                'followUpDate', 'status', 'specialistApprovalStatus', 'outcome',
+                'version', 'lastEventId', 'updatedBy', 'updatedAt'
+              ])
+              && canWriteFarm(organizationId, farmId)
+              && hasFarmRole(organizationId, farmId, ['AGRONOMIST'])
+              && validDiseaseRecord(
+                request.resource.data, organizationId, farmId, incidentId
+              )
+              && request.resource.data.treatmentWorkOrderId == resource.data.treatmentWorkOrderId
+              && request.resource.data.treatmentOperationId == resource.data.treatmentOperationId
+              && request.resource.data.version == resource.data.version + 1
+              && request.resource.data.updatedBy == request.auth.uid
+              && request.resource.data.updatedAt == request.time
+              && matchingDiseaseAuditExists(
+                organizationId, farmId, incidentId, request.resource.data
+              )
+            );
+          allow delete: if false;
+
+          match /photos/{photoId} {
+            allow read: if canReadFarm(organizationId, farmId)
+              && (
+                isOrganizationOwner(organizationId)
+                || hasFarmRole(organizationId, farmId, [
+                  'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'AUDITOR'
+                ])
+              );
+            allow create: if canWriteFarm(organizationId, farmId)
+              && isOperationalRole(organizationId, farmId)
+              && exists(diseasePath(organizationId, farmId, incidentId))
+              && validDiseasePhoto(
+                request.resource.data,
+                organizationId,
+                farmId,
+                incidentId,
+                get(diseasePath(organizationId, farmId, incidentId)).data.positionId
+              )
+              && request.resource.data.photoId == photoId
+              && request.resource.data.uploadState == 'PENDING'
+              && request.resource.data.retryCount == 0
+              && request.resource.data.version == 1
+              && request.resource.data.createdBy == request.auth.uid
+              && request.resource.data.createdAt == request.time
+              && request.resource.data.updatedAt == request.time;
+            allow update: if canWriteFarm(organizationId, farmId)
+              && isOperationalRole(organizationId, farmId)
+              && validDiseasePhoto(
+                request.resource.data,
+                organizationId,
+                farmId,
+                incidentId,
+                resource.data.positionId
+              )
+              && request.resource.data.photoId == resource.data.photoId
+              && request.resource.data.organizationId == resource.data.organizationId
+              && request.resource.data.farmId == resource.data.farmId
+              && request.resource.data.incidentId == resource.data.incidentId
+              && request.resource.data.positionId == resource.data.positionId
+              && request.resource.data.placeholderKind == resource.data.placeholderKind
+              && request.resource.data.mimeType == resource.data.mimeType
+              && request.resource.data.sizeBytes == resource.data.sizeBytes
+              && request.resource.data.note == resource.data.note
+              && request.resource.data.source == resource.data.source
+              && request.resource.data.classification == resource.data.classification
+              && request.resource.data.containsExifOrGps == false
+              && request.resource.data.externalStorage == false
+              && request.resource.data.lifecycleMode == 'DRY_RUN'
+              && request.resource.data.createdBy == resource.data.createdBy
+              && request.resource.data.createdAtLabel == resource.data.createdAtLabel
+              && request.resource.data.createdAt == resource.data.createdAt
+              && request.resource.data.version == resource.data.version + 1
+              && request.resource.data.updatedAt == request.time
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'uploadState', 'retryCount', 'lastError', 'version',
+                'lastOperationId', 'updatedAt'
+              ])
+              && request.resource.data.lastOperationId != resource.data.lastOperationId
+              && (
+                (resource.data.uploadState == 'PENDING'
+                  && request.resource.data.uploadState == 'UPLOADING'
+                  && request.resource.data.retryCount == resource.data.retryCount)
+                || (resource.data.uploadState == 'UPLOADING'
+                  && request.resource.data.uploadState in ['UPLOADED', 'FAILED']
+                  && request.resource.data.retryCount == resource.data.retryCount)
+                || (resource.data.uploadState == 'FAILED'
+                  && request.resource.data.uploadState == 'UPLOADING'
+                  && request.resource.data.retryCount == resource.data.retryCount + 1)
+              );
+            allow delete: if false;
+          }
+
+          match /events/{eventId} {
+            allow read: if canReadFarm(organizationId, farmId);
+            allow create: if validDiseaseAudit(
+                request.resource.data, organizationId, farmId, incidentId, eventId
+              )
+              && matchingDiseaseRecordExists(
+                organizationId, farmId, incidentId, eventId,
+                request.resource.data.incidentVersion
+              );
+            allow update, delete: if false;
+          }
+        }
+
+        match /diseaseAnalysisSessions/{analysisSessionId} {
+          allow read: if canReadDiseaseAnalysis(organizationId, farmId);
+          allow create: if canRunDiseaseAnalysis(organizationId, farmId)
+            && validDiseaseAnalysisSession(
+              request.resource.data, organizationId, farmId, analysisSessionId
+            )
+            && request.resource.data.status == 'HUMAN_REVIEW_REQUIRED'
+            && request.resource.data.reviewedBy == null
+            && request.resource.data.reviewDisposition == null
+            && request.resource.data.reviewedFindingLabel == ''
+            && request.resource.data.reviewNote == ''
+            && request.resource.data.version == 1
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && exists(diseasePath(
+              organizationId, farmId, request.resource.data.incidentId
+            ))
+            && get(diseasePath(
+              organizationId, farmId, request.resource.data.incidentId
+            )).data.positionId == request.resource.data.positionId
+            && get(diseasePath(
+              organizationId, farmId, request.resource.data.incidentId
+            )).data.observedSymptom == request.resource.data.observedSymptom
+            && exists(treePositionPath(
+              organizationId, farmId, request.resource.data.positionId
+            ))
+            && exists(treeCyclePath(
+              organizationId, farmId, request.resource.data.positionId,
+              request.resource.data.plantingCycleId
+            ))
+            && matchingDiseaseAnalysisEventExists(
+              organizationId, farmId, analysisSessionId, request.resource.data
+            );
+          allow update: if canReviewDiseaseAnalysis(organizationId, farmId)
+            && resource.data.status == 'HUMAN_REVIEW_REQUIRED'
+            && request.resource.data.status == 'REVIEWED'
+            && validDiseaseAnalysisSession(
+              request.resource.data, organizationId, farmId, analysisSessionId
+            )
+            && request.resource.data.reviewedBy == request.auth.uid
+            && request.resource.data.reviewDisposition in [
+              'ACCEPTED', 'CORRECTED', 'REJECTED'
+            ]
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'reviewedBy', 'reviewDisposition',
+              'reviewedFindingLabel', 'reviewNote', 'version', 'lastEventId',
+              'updatedBy', 'updatedAt'
+            ])
+            && (
+              (request.resource.data.reviewDisposition == 'ACCEPTED'
+                && resource.data.abstainReason == null
+                && resource.data.candidateFindings.size() == 1
+                && request.resource.data.reviewedFindingLabel
+                  == resource.data.candidateFindings[0].label)
+              || (request.resource.data.reviewDisposition == 'CORRECTED'
+                && request.resource.data.reviewedFindingLabel.size() > 0
+                && request.resource.data.reviewNote.size() > 0)
+              || (request.resource.data.reviewDisposition == 'REJECTED'
+                && request.resource.data.reviewedFindingLabel == ''
+                && request.resource.data.reviewNote.size() > 0)
+            )
+            && matchingDiseaseAnalysisEventExists(
+              organizationId, farmId, analysisSessionId, request.resource.data
+            );
+          allow delete: if false;
+
+          match /events/{eventId} {
+            allow read: if canReadDiseaseAnalysis(organizationId, farmId);
+            allow create: if validDiseaseAnalysisEvent(
+                request.resource.data, organizationId, farmId,
+                analysisSessionId, eventId
+              )
+              && matchingDiseaseAnalysisSessionExists(
+                organizationId, farmId, analysisSessionId, eventId,
+                request.resource.data.sessionVersion
+              );
+            allow update, delete: if false;
+          }
+        }
+
+        match /diseaseAnalysisOperations/{operationId} {
+          allow get: if canReadDiseaseAnalysis(organizationId, farmId);
+          allow list: if false;
+          allow create: if request.resource.data.keys().hasOnly([
+              'recordType', 'operationId', 'organizationId', 'farmId',
+              'scope', 'targetId', 'actorUserId', 'exampleData', 'createdAt'
+            ])
+            && request.resource.data.recordType == 'DISEASE_ANALYSIS_OPERATION'
+            && request.resource.data.operationId == operationId
+            && request.resource.data.organizationId == organizationId
+            && request.resource.data.farmId == farmId
+            && request.resource.data.scope in ['CREATE_ANALYSIS', 'REVIEW_ANALYSIS']
+            && request.resource.data.targetId is string
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.exampleData == true
+            && request.resource.data.createdAt == request.time
+            && (
+              (request.resource.data.scope == 'CREATE_ANALYSIS'
+                && canRunDiseaseAnalysis(organizationId, farmId))
+              || (request.resource.data.scope == 'REVIEW_ANALYSIS'
+                && canReviewDiseaseAnalysis(organizationId, farmId))
+            );
+          allow update, delete: if false;
+        }
+
+        match /cropCycles/{cropCycleId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create: if canWriteFruit(organizationId, farmId)
+            && validCommercialCreate(
+              request.resource.data, organizationId, farmId, cropCycleId, 'cropCycleId'
+            )
+            && request.resource.data.status == 'ACTIVE'
+            && request.resource.data.stage in [
+              'FLOWERING', 'EARLY_FRUIT', 'MID_SEASON', 'PRE_SALE', 'HARVESTED'
+            ];
+          allow update: if canWriteFruit(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.cropCycleId == resource.data.cropCycleId
+            && request.resource.data.cycleCode == resource.data.cycleCode
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && validNextCropStage(resource.data.stage, request.resource.data.stage)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'stage', 'version', 'actorUserId', 'updatedAt'
+            ]);
+          allow delete: if false;
+        }
+
+        match /fruitObservations/{observationId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create: if canWriteFruit(organizationId, farmId)
+            && validCommercialCreate(
+              request.resource.data, organizationId, farmId, observationId, 'observationId'
+            )
+            && request.resource.data.cropCycleId is string
+            && request.resource.data.stage in [
+              'FLOWERING', 'EARLY_FRUIT', 'MID_SEASON', 'PRE_SALE', 'HARVESTED'
+            ]
+            && request.resource.data.valueQuality in ['MEASURED', 'ESTIMATED', 'UNKNOWN']
+            && request.resource.data.countingMode in ['MANUAL', 'AI_ASSISTED']
+            && request.resource.data.countMethod in ['FULL_COUNT', 'SAMPLE', 'ESTIMATE', 'UNKNOWN']
+            && (
+              (request.resource.data.countingMode == 'MANUAL'
+                && request.resource.data.sourceCountSessionId == null)
+              || (request.resource.data.countingMode == 'AI_ASSISTED'
+                && request.resource.data.stage != 'FLOWERING'
+                && request.resource.data.sourceCountSessionId is string
+                && request.resource.data.sourceCountSessionId.size() > 0
+                && request.resource.data.valueQuality == 'ESTIMATED'
+                && request.resource.data.countMethod in ['SAMPLE', 'ESTIMATE'])
+            )
+            && request.resource.data.unit == 'fruit';
+          allow update: if canCorrectCommercial(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.observationId == resource.data.observationId
+            && request.resource.data.cropCycleId == resource.data.cropCycleId
+            && resource.data.archivedAtLabel == null
+            && request.resource.data.archivedAtLabel is string
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'archivedAtLabel', 'version', 'actorUserId', 'updatedAt'
+            ]);
+          allow delete: if false;
+        }
+
+        match /harvestLots/{harvestLotId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create: if canManageCommercial(organizationId, farmId)
+            && validCommercialCreate(
+              request.resource.data, organizationId, farmId, harvestLotId, 'harvestLotId'
+            )
+            && request.resource.data.cropCycleId is string
+            && request.resource.data.soldWeightKg == 0
+            && request.resource.data.status in ['HARVESTING', 'GRADED'];
+          allow update: if canManageCommercial(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.harvestLotId == resource.data.harvestLotId
+            && request.resource.data.cropCycleId == resource.data.cropCycleId
+            && request.resource.data.lotCode == resource.data.lotCode
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.soldWeightKg >= 0
+            && request.resource.data.soldWeightKg <= request.resource.data.totalWeightKg
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'soldWeightKg', 'status', 'version', 'actorUserId', 'updatedAt'
+            ]);
+          allow delete: if false;
+        }
+
+        match /salesLots/{salesLotId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create: if canManageCommercial(organizationId, farmId)
+            && validCommercialCreate(
+              request.resource.data, organizationId, farmId, salesLotId, 'salesLotId'
+            )
+            && request.resource.data.customerReference is string
+            && request.resource.data.allocations is list
+            && request.resource.data.allocations.size() > 0
+            && request.resource.data.weightKg > 0
+            && request.resource.data.grossAmountBaht >= 0
+            && request.resource.data.outstandingBaht >= 0
+            && request.resource.data.status in [
+              'CONFIRMED', 'PARTIALLY_RECEIVED', 'PAID'
+            ];
+          allow update: if canCorrectCommercial(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.salesLotId == resource.data.salesLotId
+            && request.resource.data.lotCode == resource.data.lotCode
+            && request.resource.data.customerReference == resource.data.customerReference
+            && request.resource.data.allocations == resource.data.allocations
+            && request.resource.data.weightKg == resource.data.weightKg
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.outstandingBaht >= 0
+            && request.resource.data.status in [
+              'CONFIRMED', 'PARTIALLY_RECEIVED', 'PAID', 'ARCHIVED'
+            ]
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'unitPriceBahtPerKg', 'depositBaht', 'receivedBaht',
+              'grossAmountBaht', 'outstandingBaht', 'status', 'version',
+              'audit', 'actorUserId', 'updatedAt'
+            ]);
+          allow delete: if false;
+        }
+
+        match /inventoryItems/{itemId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create: if canManageCommercial(organizationId, farmId)
+            && validCommercialCreate(
+              request.resource.data, organizationId, farmId, itemId, 'itemId'
+            )
+            && request.resource.data.baseUnit is string
+            && request.resource.data.reorderLevel >= 0
+            && request.resource.data.status == 'ACTIVE';
+          allow update: if canCorrectCommercial(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.itemId == resource.data.itemId
+            && request.resource.data.baseUnit == resource.data.baseUnit
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time;
+          allow delete: if false;
+        }
+
+        match /inventoryMovements/{movementId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create: if canManageCommercial(organizationId, farmId)
+            && validCommercialCreate(
+              request.resource.data, organizationId, farmId, movementId, 'movementId'
+            )
+            && request.resource.data.itemId is string
+            && request.resource.data.lotId is string
+            && request.resource.data.movementType in ['RECEIPT', 'ISSUE', 'ADJUSTMENT']
+            && request.resource.data.quantity != 0
+            && request.resource.data.quantityDelta != 0
+            && request.resource.data.unit is string
+            && request.resource.data.reason is string
+            && request.resource.data.referenceId is string
+            && (request.resource.data.movementType != 'ADJUSTMENT'
+              || canCorrectCommercial(organizationId, farmId));
+          allow update, delete: if false;
+        }
+
+        match /inventoryBalances/{lotId} {
+          allow read: if canReadCommercial(organizationId, farmId);
+          allow create, update: if canManageCommercial(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.lotId == lotId
+            && request.resource.data.balance >= 0
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && ((!exists(/databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/inventoryBalances/$(lotId))
+                && request.resource.data.version == 1)
+              || request.resource.data.version == resource.data.version + 1);
+          allow delete: if false;
+        }
+
+        match /commercialOperations/{operationId} {
+          allow get: if canReadCommercial(organizationId, farmId);
+          allow list: if false;
+          allow create: if canWriteFarm(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.operationId == operationId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.resultCollection in [
+              'cropCycles', 'fruitObservations', 'harvestLots',
+              'salesLots', 'inventoryMovements'
+            ]
+            && request.resource.data.resultId is string
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /commercialAuditEvents/{eventId} {
+          allow read: if canReadFarm(organizationId, farmId)
+            && (isOrganizationOwner(organizationId)
+              || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR']));
+          allow create: if canWriteFarm(organizationId, farmId)
+            && validCommercialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.eventId == eventId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.eventType in [
+              'CREATED', 'CORRECTED', 'ARCHIVED', 'STOCK_RECORDED'
+            ]
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /dashboardViews/{roleBucket} {
+          allow get: if canReadFarm(organizationId, farmId)
+            && roleBucket in [
+              'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST',
+              'WORKER', 'SALES_INVENTORY', 'VIEWER'
+            ]
+            && (
+              (isOrganizationOwner(organizationId) && roleBucket == 'ORG_OWNER')
+              || roleBucket == currentFarmRole(organizationId, farmId)
+            );
+          allow list, create, update, delete: if false;
+        }
+
+        match /offlineOperations/{operationId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canWriteFarm(organizationId, farmId)
+            && validOperationalScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasAll([
+              'operationId', 'idempotencyKey', 'organizationId', 'farmId',
+              'actorUserId', 'capturedRole', 'kind', 'label', 'targetId',
+              'payloadFingerprint', 'requiredRoles', 'status', 'attemptCount',
+              'createdAtLabel', 'updatedAtLabel', 'exampleData', 'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.keys().hasOnly([
+              'operationId', 'idempotencyKey', 'organizationId', 'farmId',
+              'actorUserId', 'capturedRole', 'kind', 'label', 'targetId',
+              'payloadFingerprint', 'requiredRoles', 'status', 'attemptCount',
+              'resultEventId', 'conflictReason', 'createdAtLabel', 'updatedAtLabel',
+              'exampleData', 'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.operationId == operationId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.capturedRole == currentFarmRole(organizationId, farmId)
+            && request.resource.data.kind in ['WORK_REPORT', 'PHOTO_UPLOAD', 'MASTER_UPDATE']
+            && request.resource.data.requiredRoles is list
+            && currentFarmRole(organizationId, farmId) in request.resource.data.requiredRoles
+            && request.resource.data.status == 'PENDING'
+            && request.resource.data.attemptCount == 0
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time;
+          allow update: if canReadFarm(organizationId, farmId)
+            && validOperationalScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.operationId == resource.data.operationId
+            && request.resource.data.idempotencyKey == resource.data.idempotencyKey
+            && request.resource.data.organizationId == resource.data.organizationId
+            && request.resource.data.farmId == resource.data.farmId
+            && request.resource.data.actorUserId == resource.data.actorUserId
+            && request.resource.data.capturedRole == resource.data.capturedRole
+            && request.resource.data.kind == resource.data.kind
+            && request.resource.data.targetId == resource.data.targetId
+            && request.resource.data.payloadFingerprint == resource.data.payloadFingerprint
+            && request.resource.data.requiredRoles == resource.data.requiredRoles
+            && request.resource.data.actorUserId == request.auth.uid
+            && resource.data.status in ['PENDING', 'SYNCING']
+            && request.resource.data.status in ['SYNCED', 'CONFLICT']
+            && request.resource.data.attemptCount == resource.data.attemptCount + 1
+            && request.resource.data.updatedAt == request.time
+            && existsAfter(operationalAuditPath(
+              organizationId, farmId,
+              request.resource.data.status == 'SYNCED'
+                ? request.resource.data.resultEventId
+                : 'audit_sync_' + operationId
+            ))
+            && (
+              (request.resource.data.status == 'SYNCED'
+                && canWriteFarm(organizationId, farmId)
+                && currentFarmRole(organizationId, farmId) in request.resource.data.requiredRoles)
+              || (request.resource.data.status == 'CONFLICT'
+                && request.resource.data.conflictReason is string)
+            );
+          allow delete: if false;
+        }
+
+        match /masterConflicts/{conflictId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create, delete: if false;
+          allow update: if canReviewOperationalConflict(organizationId, farmId)
+            && validOperationalScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.conflictId == resource.data.conflictId
+            && request.resource.data.entityType == resource.data.entityType
+            && request.resource.data.entityId == resource.data.entityId
+            && request.resource.data.fieldName == resource.data.fieldName
+            && request.resource.data.serverValue == resource.data.serverValue
+            && request.resource.data.deviceValue == resource.data.deviceValue
+            && resource.data.status == 'OPEN'
+            && request.resource.data.status in ['RESOLVED', 'ESCALATED']
+            && request.resource.data.resolution in [
+              'KEEP_SERVER', 'APPLY_DEVICE_AS_CORRECTION', 'ESCALATE'
+            ]
+            && request.resource.data.resolutionReason is string
+            && request.resource.data.resolutionReason.size() >= 8
+            && request.resource.data.resolvedByUserId == request.auth.uid
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.updatedAt == request.time;
+        }
+
+          match /photoRecoveries/{recoveryId} {
+            allow read: if canReadFarm(organizationId, farmId);
+            allow create: if canWriteFarm(organizationId, farmId)
+              && request.resource.data.keys().hasAll([
+                'recoveryId', 'organizationId', 'farmId', 'workOrderId', 'photoId',
+                'phase', 'actorUserId', 'storagePath', 'status', 'failureMode',
+                'retryCount', 'lastError', 'updatedAtLabel', 'exampleData',
+                'createdAt', 'updatedAt'
+              ])
+              && request.resource.data.keys().hasOnly([
+                'recoveryId', 'organizationId', 'farmId', 'workOrderId', 'photoId',
+                'phase', 'actorUserId', 'storagePath', 'status', 'failureMode',
+                'retryCount', 'lastError', 'updatedAtLabel', 'exampleData',
+                'createdAt', 'updatedAt'
+              ])
+              && validOperationalScope(request.resource.data, organizationId, farmId)
+              && request.resource.data.recoveryId == recoveryId
+              && request.resource.data.actorUserId == request.auth.uid
+              && request.resource.data.phase in ['INSTRUCTION', 'BEFORE', 'AFTER']
+              && request.resource.data.status in ['FAILED', 'ORPHANED']
+              && request.resource.data.failureMode == (
+                request.resource.data.status == 'FAILED' ? 'PARTIAL_ONCE' : 'ORPHANED_OBJECT'
+              )
+              && request.resource.data.retryCount == 0
+              && request.resource.data.lastError is string
+              && request.resource.data.lastError.size() >= 4
+              && request.resource.data.lastError.size() <= 500
+              && request.resource.data.storagePath == 'organizations/' + organizationId
+                + '/farms/' + farmId + '/workEvidence/'
+                + request.resource.data.workOrderId + '/' + request.resource.data.photoId
+              && exists(/databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(request.resource.data.workOrderId))
+              && (
+                (request.resource.data.phase == 'INSTRUCTION'
+                  && get(/databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(request.resource.data.workOrderId)).data.createdBy == request.auth.uid)
+                || (request.resource.data.phase in ['BEFORE', 'AFTER']
+                  && get(/databases/$(database)/documents/organizations/$(organizationId)/farms/$(farmId)/workOrders/$(request.resource.data.workOrderId)).data.assignedUserId == request.auth.uid)
+              )
+              && request.resource.data.createdAt == request.time
+              && request.resource.data.updatedAt == request.time;
+            allow delete: if false;
+            allow update: if canWriteFarm(organizationId, farmId)
+            && validOperationalScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.recoveryId == resource.data.recoveryId
+            && request.resource.data.workOrderId == resource.data.workOrderId
+              && request.resource.data.photoId == resource.data.photoId
+              && request.resource.data.phase == resource.data.phase
+              && request.resource.data.actorUserId == resource.data.actorUserId
+            && request.resource.data.storagePath == resource.data.storagePath
+            && request.resource.data.failureMode == resource.data.failureMode
+            && request.resource.data.updatedAt == request.time
+            && (
+              (resource.data.status in ['FAILED', 'PENDING', 'ORPHANED']
+                && request.resource.data.status == 'UPLOADED'
+                && request.resource.data.retryCount == resource.data.retryCount + 1
+                && hasFarmRole(organizationId, farmId, [
+                  'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER'
+                ]))
+              || (resource.data.status == 'ORPHANED'
+                && request.resource.data.status == 'CLEANED'
+                && request.resource.data.retryCount == resource.data.retryCount
+                && canReviewOperationalConflict(organizationId, farmId))
+            );
+        }
+
+        match /exportOperations/{exportId} {
+          allow read: if canExportOperationalData(organizationId, farmId)
+            && (resource.data.actorUserId == request.auth.uid
+              || isOrganizationOwner(organizationId)
+              || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR']));
+          allow create: if canExportOperationalData(organizationId, farmId)
+            && validOperationalScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.exportId == exportId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.columns == [
+              'eventId', 'organizationId', 'farmId', 'actorUserId', 'eventType',
+              'targetType', 'targetId', 'reason', 'beforeSummary', 'afterSummary',
+              'createdAtLabel'
+            ]
+            && request.resource.data.rowCount is int
+            && request.resource.data.rowCount >= 0
+            && request.resource.data.csvText is string
+            && request.resource.data.csvText.size() < 200000
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /operationalAuditEvents/{eventId} {
+          allow read: if canReadOperationalAudit(organizationId, farmId);
+          allow create: if hasFarmMembership(organizationId, farmId)
+            && validOperationalAudit(
+              request.resource.data, organizationId, farmId, eventId
+            );
+          allow update, delete: if false;
+        }
+
+        match /auditEvents/{auditEventId} {
+          allow read: if canReadFarm(organizationId, farmId)
+            && (
+              isOrganizationOwner(organizationId)
+              || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR'])
+            );
+          allow create: if isOrganizationOwner(organizationId)
+            && farmStatus(organizationId, farmId) == 'ACTIVE'
+            && validAuditEvent(request.resource.data, organizationId, farmId, auditEventId);
+          allow update, delete: if false;
+        }
+
+        match /{farmDocument=**} {
+          allow read, write: if false;
+        }
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

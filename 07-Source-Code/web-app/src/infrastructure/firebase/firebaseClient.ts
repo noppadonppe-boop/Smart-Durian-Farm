@@ -22,6 +22,10 @@ export interface FirebaseEmulatorClients {
 
 let clients: FirebaseEmulatorClients | undefined
 
+function isLoopbackHost(host: string): boolean {
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1'
+}
+
 function splitHost(value: string): [host: string, port: number] {
   const separator = value.lastIndexOf(':')
   const host = value.slice(0, separator)
@@ -43,6 +47,21 @@ export function createFirebaseEmulatorClients(
     )
   }
 
+  if (environment.firebase.projectId !== 'demo-smart-durian') {
+    throw new Error('Local development allows only the demo-smart-durian emulator project.')
+  }
+
+  const [authHost] = splitHost(environment.firebase.authEmulatorHost)
+  const [firestoreHost, firestorePort] = splitHost(
+    environment.firebase.firestoreEmulatorHost,
+  )
+  const [storageHost, storagePort] = splitHost(
+    environment.firebase.storageEmulatorHost,
+  )
+  if (![authHost, firestoreHost, storageHost].every(isLoopbackHost)) {
+    throw new Error('Firebase services must use local loopback emulators in this phase.')
+  }
+
   if (clients) return clients
 
   const app =
@@ -56,12 +75,6 @@ export function createFirebaseEmulatorClients(
   const auth = getAuth(app)
   const firestore = getFirestore(app)
   const storage = getStorage(app)
-  const [firestoreHost, firestorePort] = splitHost(
-    environment.firebase.firestoreEmulatorHost,
-  )
-  const [storageHost, storagePort] = splitHost(
-    environment.firebase.storageEmulatorHost,
-  )
 
   connectAuthEmulator(
     auth,

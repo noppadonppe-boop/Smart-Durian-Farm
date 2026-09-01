@@ -3,6 +3,9 @@ import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    manifest: true,
+  },
   plugins: [
     react(),
     VitePWA({
@@ -45,6 +48,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    exclude: ['src/security/**/*.emulator.test.ts', 'node_modules/**', 'dist/**'],
     css: true,
     coverage: {
       provider: 'v8',

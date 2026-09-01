@@ -2,6 +2,7 @@ export type DataAdapterMode = 'mock' | 'firebase-emulator'
 
 export interface AppEnvironment {
   dataAdapter: DataAdapterMode
+  qrBaseUrl: string
   firebase: {
     projectId: string
     apiKey: string
@@ -19,6 +20,7 @@ function adapterMode(value: string | undefined): DataAdapterMode {
 
 export const appEnvironment: AppEnvironment = Object.freeze({
   dataAdapter: adapterMode(import.meta.env.VITE_DATA_ADAPTER),
+  qrBaseUrl: import.meta.env.VITE_QR_BASE_URL ?? 'http://localhost:5173',
   firebase: {
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'demo-smart-durian',
     apiKey:

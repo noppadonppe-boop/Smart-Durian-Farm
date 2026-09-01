@@ -10,17 +10,22 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "performance:budget": "node scripts/check-performance-budget.mjs",
     "preview": "vite preview",
+    "preview:slow": "node scripts/serve-throttled-preview.mjs",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "vitest:emulator": "vitest run --config vitest.emulator.config.ts",
+    "test:emulator": "node scripts/firebase-local.cjs emulators:exec --project demo-smart-durian --only auth,firestore,storage \"pnpm vitest:emulator\"",
+    "seed:emulator": "node scripts/seed-phase2-emulator.mjs",
     "smoke:offline": "node scripts/check-no-external-runtime.mjs",
     "firebase:local": "node scripts/firebase-local.cjs",
     "emulators": "node scripts/firebase-local.cjs emulators:start --project demo-smart-durian --only auth,firestore,storage",
     "emulators:smoke": "node scripts/firebase-local.cjs emulators:exec --project demo-smart-durian --only auth,firestore,storage \"node scripts/emulator-healthcheck.mjs\"",
-    "validate": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm smoke:offline"
+    "validate": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm performance:budget && pnpm smoke:offline && pnpm test:emulator"
   },
   "dependencies": {
     "firebase": "^12.18.0",
@@ -33,6 +38,7 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
