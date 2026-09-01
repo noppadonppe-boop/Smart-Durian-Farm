@@ -77,6 +77,24 @@ import type {
   DiseaseAnalysisReviewInput,
   DiseaseAnalysisSessionRecord,
 } from '../domain/diseaseAnalysis'
+import type {
+  AnnualCycleCorrection,
+  AnnualCycleDraft,
+  AnnualCycleMutationContext,
+  AnnualCycleRecord,
+  AnnualCycleSnapshot,
+  AnnualCycleStatus,
+  AnnualPlanItemDraft,
+  AnnualPlanItemRecord,
+} from '../domain/annualFarmCycle'
+import type {
+  LaborCostDraft,
+  LaborCostRecord,
+  ManagementCostSnapshot,
+  ManagementReportContext,
+  OperatingExpenseDraft,
+  OperatingExpenseRecord,
+} from '../domain/managementReporting'
 import type { AuthAdapterMode, DataAdapterMode } from '../config/environment'
 
 export interface PhoneOtpChallenge {
@@ -426,7 +444,69 @@ export interface OperationalHardeningRepository {
 export interface Phase6Adapters extends Phase5Adapters {
   operationalRepository: OperationalHardeningRepository
   diseaseAnalysisRepository: DiseaseAnalysisRepository
+  annualCycleRepository: AnnualCycleRepository
+  managementReportingRepository: ManagementReportingRepository
   productionMockSeeder?: ProductionMockSeeder
+}
+
+export interface ManagementReportingRepository {
+  listSnapshot(
+    context: ManagementReportContext,
+    annualCycleId?: string,
+  ): Promise<ManagementCostSnapshot>
+  createLaborCost(
+    context: ManagementReportContext,
+    cycle: AnnualCycleRecord,
+    idempotencyKey: string,
+    draft: LaborCostDraft,
+  ): Promise<LaborCostRecord>
+  createOperatingExpense(
+    context: ManagementReportContext,
+    cycle: AnnualCycleRecord,
+    idempotencyKey: string,
+    draft: OperatingExpenseDraft,
+  ): Promise<OperatingExpenseRecord>
+  resetMockPack?(): Promise<void>
+}
+
+export interface AnnualCycleRepository {
+  listSnapshot(
+    context: AnnualCycleMutationContext,
+    selectedAnnualCycleId?: string,
+  ): Promise<AnnualCycleSnapshot>
+  createCycle(
+    context: AnnualCycleMutationContext,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+  ): Promise<AnnualCycleRecord>
+  updateCycle(
+    context: AnnualCycleMutationContext,
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+    reason: string,
+  ): Promise<AnnualCycleRecord>
+  transitionCycle(
+    context: AnnualCycleMutationContext,
+    annualCycleId: string,
+    idempotencyKey: string,
+    nextStatus: AnnualCycleStatus,
+    reason: string,
+  ): Promise<AnnualCycleRecord>
+  correctCycle(
+    context: AnnualCycleMutationContext,
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+    reason: string,
+  ): Promise<{ cycle: AnnualCycleRecord; correction: AnnualCycleCorrection }>
+  createPlanItem(
+    context: AnnualCycleMutationContext,
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualPlanItemDraft,
+  ): Promise<AnnualPlanItemRecord>
+  resetMockPack?(): Promise<void>
 }
 
 export interface ProductionMockSeedResult {

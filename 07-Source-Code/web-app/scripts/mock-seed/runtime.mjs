@@ -39,14 +39,15 @@ async function loadJson(relativePath) {
 }
 
 export async function loadMockPacks() {
-  const [foundation, work, commercial, operations, diseaseAnalysis] = await Promise.all([
+  const [foundation, annualCycles, work, commercial, operations, diseaseAnalysis] = await Promise.all([
     loadJson('../../src/demo/phase2-demo-seed.json'),
+    loadJson('../../src/demo/annual-cycle-mock-data-pack-v1.0.json'),
     loadJson('../../src/demo/phase4-mock-data-pack-v1.0.json'),
     loadJson('../../src/demo/phase5-mock-data-pack-v1.0.json'),
     loadJson('../../src/demo/phase6-mock-data-pack-v1.0.json'),
     loadJson('../../src/demo/disease-analysis-p1-mock-data-pack-v1.0.json'),
   ])
-  return { foundation, work, commercial, operations, diseaseAnalysis }
+  return { foundation, annualCycles, work, commercial, operations, diseaseAnalysis }
 }
 
 async function jsonResponse(response) {

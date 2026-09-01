@@ -46,6 +46,22 @@ service cloud.firestore {
       return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farmOperations/$(operationId);
     }
 
+    function annualCyclePath(organizationId, farmId, annualCycleId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/annualCycles/$(annualCycleId);
+    }
+
+    function annualCycleCorrectionPath(organizationId, farmId, correctionId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/annualCycleCorrections/$(correctionId);
+    }
+
+    function annualCycleAuditPath(organizationId, farmId, eventId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/annualCycleAuditEvents/$(eventId);
+    }
+
+    function annualCycleGuardPath(organizationId, farmId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/annualCycleGuards/current;
+    }
+
     function treePositionPath(organizationId, farmId, positionId) {
       return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/treePositions/$(positionId);
     }
@@ -193,6 +209,41 @@ service cloud.firestore {
     function canCorrectCommercial(organizationId, farmId) {
       return canWriteFarm(organizationId, farmId)
         && hasFarmRole(organizationId, farmId, ['ORG_OWNER', 'FARM_MANAGER']);
+    }
+
+    function canManageAnnualCycle(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && isOrganizationOwner(organizationId);
+    }
+
+    function canManageAnnualPlan(organizationId, farmId) {
+      return canWriteFarm(organizationId, farmId)
+        && (isOrganizationOwner(organizationId)
+          || hasFarmRole(organizationId, farmId, ['ORG_OWNER', 'FARM_MANAGER']));
+    }
+
+    function validAnnualScope(data, organizationId, farmId) {
+      return data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.exampleData == true;
+    }
+
+    function validAnnualTransition(before, after) {
+      return (before == 'DRAFT' && after == 'PLANNED')
+        || (before == 'PLANNED' && after in ['DRAFT', 'ACTIVE'])
+        || (before == 'ACTIVE' && after == 'CLOSING')
+        || (before == 'CLOSING' && after in ['ACTIVE', 'CLOSED']);
+    }
+
+    function annualSnapshotMatches(snapshot, cycle) {
+      return snapshot.cycleCode == cycle.cycleCode
+        && snapshot.name == cycle.name
+        && snapshot.periodStart == cycle.periodStart
+        && snapshot.periodEndExclusive == cycle.periodEndExclusive
+        && snapshot.timezone == cycle.timezone
+        && snapshot.notes == cycle.notes
+        && snapshot.status == cycle.status
+        && snapshot.revision == cycle.revision;
     }
 
     function validCommercialScope(data, organizationId, farmId) {
@@ -2232,12 +2283,269 @@ service cloud.firestore {
           allow update, delete: if false;
         }
 
+        match /annualCycles/{annualCycleId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageAnnualCycle(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.annualCycleId == annualCycleId
+            && request.resource.data.status == 'DRAFT'
+            && request.resource.data.revision == 1
+            && request.resource.data.version == 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time;
+          allow update: if canManageAnnualCycle(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.annualCycleId == resource.data.annualCycleId
+            && request.resource.data.organizationId == resource.data.organizationId
+            && request.resource.data.farmId == resource.data.farmId
+            && request.resource.data.createdBy == resource.data.createdBy
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.version == resource.data.version + 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && (
+              (
+                resource.data.status in ['DRAFT', 'PLANNED']
+                && request.resource.data.status == resource.data.status
+                && request.resource.data.revision == resource.data.revision
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'cycleCode', 'name', 'periodStart', 'periodEndExclusive', 'timezone',
+                  'notes', 'previousAnnualCycleId', 'version', 'updatedBy',
+                  'actorUserId', 'updatedAtLabel', 'updatedAt'
+                ])
+              )
+              || (
+                validAnnualTransition(resource.data.status, request.resource.data.status)
+                && request.resource.data.revision == resource.data.revision
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'status', 'version', 'updatedBy', 'actorUserId', 'updatedAtLabel', 'updatedAt'
+                ])
+                && (
+                  (request.resource.data.status in ['DRAFT', 'PLANNED'])
+                  || (request.resource.data.status in ['ACTIVE', 'CLOSING']
+                    && getAfter(annualCycleGuardPath(organizationId, farmId)).data.annualCycleId == annualCycleId
+                    && getAfter(annualCycleGuardPath(organizationId, farmId)).data.status == request.resource.data.status)
+                  || (request.resource.data.status == 'CLOSED'
+                    && !existsAfter(annualCycleGuardPath(organizationId, farmId)))
+                )
+              )
+              || (
+                resource.data.status in ['ACTIVE', 'CLOSING', 'CLOSED']
+                && request.resource.data.status == resource.data.status
+                && request.resource.data.revision == resource.data.revision + 1
+                && request.resource.data.lastCorrectionId is string
+                && request.resource.data.supersedesRevisionId is string
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                  'cycleCode', 'name', 'periodStart', 'periodEndExclusive', 'timezone',
+                  'notes', 'previousAnnualCycleId', 'revision', 'supersedesRevisionId',
+                  'lastCorrectionId', 'version', 'updatedBy', 'actorUserId',
+                  'updatedAtLabel', 'updatedAt'
+                ])
+                && existsAfter(annualCycleCorrectionPath(
+                  organizationId, farmId, request.resource.data.lastCorrectionId
+                ))
+                && getAfter(annualCycleCorrectionPath(
+                  organizationId, farmId, request.resource.data.lastCorrectionId
+                )).data.annualCycleId == annualCycleId
+                && getAfter(annualCycleCorrectionPath(
+                  organizationId, farmId, request.resource.data.lastCorrectionId
+                )).data.beforeRevision == resource.data.revision
+                && getAfter(annualCycleCorrectionPath(
+                  organizationId, farmId, request.resource.data.lastCorrectionId
+                )).data.afterRevision == request.resource.data.revision
+                && getAfter(annualCycleCorrectionPath(
+                  organizationId, farmId, request.resource.data.lastCorrectionId
+                )).data.auditEventId is string
+                && existsAfter(annualCycleAuditPath(
+                  organizationId,
+                  farmId,
+                  getAfter(annualCycleCorrectionPath(
+                    organizationId, farmId, request.resource.data.lastCorrectionId
+                  )).data.auditEventId
+                ))
+                && getAfter(annualCycleAuditPath(
+                  organizationId,
+                  farmId,
+                  getAfter(annualCycleCorrectionPath(
+                    organizationId, farmId, request.resource.data.lastCorrectionId
+                  )).data.auditEventId
+                )).data.eventType == 'CYCLE_CORRECTED'
+                && getAfter(annualCycleAuditPath(
+                  organizationId,
+                  farmId,
+                  getAfter(annualCycleCorrectionPath(
+                    organizationId, farmId, request.resource.data.lastCorrectionId
+                  )).data.auditEventId
+                )).data.targetId == request.resource.data.lastCorrectionId
+                && getAfter(annualCycleAuditPath(
+                  organizationId,
+                  farmId,
+                  getAfter(annualCycleCorrectionPath(
+                    organizationId, farmId, request.resource.data.lastCorrectionId
+                  )).data.auditEventId
+                )).data.recordVersion == request.resource.data.version
+              )
+            );
+          allow delete: if false;
+        }
+
+        match /annualCycleGuards/{guardId} {
+          allow get: if canReadFarm(organizationId, farmId);
+          allow list: if false;
+          allow create: if guardId == 'current'
+            && canManageAnnualCycle(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.annualCycleId is string
+            && request.resource.data.status in ['ACTIVE', 'CLOSING']
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && existsAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            ))
+            && getAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.status == request.resource.data.status;
+          allow update: if guardId == 'current'
+            && canManageAnnualCycle(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.annualCycleId == resource.data.annualCycleId
+            && request.resource.data.status in ['ACTIVE', 'CLOSING']
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && getAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.status == request.resource.data.status;
+          allow delete: if guardId == 'current'
+            && canManageAnnualCycle(organizationId, farmId)
+            && getAfter(annualCyclePath(
+              organizationId, farmId, resource.data.annualCycleId
+            )).data.status == 'CLOSED';
+        }
+
+        match /annualPlanItems/{planItemId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageAnnualPlan(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.planItemId == planItemId
+            && request.resource.data.annualCycleId is string
+            && existsAfter(annualCyclePath(organizationId, farmId, request.resource.data.annualCycleId))
+            && getAfter(annualCyclePath(organizationId, farmId, request.resource.data.annualCycleId)).data.status != 'CLOSED'
+            && request.resource.data.target.scope in ['FARM', 'ZONE', 'TREE_SET']
+            && (
+              (request.resource.data.target.scope == 'FARM'
+                && request.resource.data.target.zoneCodes.size() == 0
+                && request.resource.data.target.positionIds.size() == 0)
+              || (request.resource.data.target.scope == 'ZONE'
+                && request.resource.data.target.zoneCodes.size() > 0
+                && request.resource.data.target.positionIds.size() == 0)
+              || (request.resource.data.target.scope == 'TREE_SET'
+                && request.resource.data.target.positionIds.size() > 0)
+            )
+            && request.resource.data.status == 'PLANNED'
+            && request.resource.data.version == 1
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /annualCycleCorrections/{correctionId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageAnnualCycle(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.correctionId == correctionId
+            && request.resource.data.annualCycleId is string
+            && request.resource.data.auditEventId is string
+            && request.resource.data.reason is string
+            && request.resource.data.reason.size() > 0
+            && request.resource.data.beforeRevision + 1 == request.resource.data.afterRevision
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && exists(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            ))
+            && get(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.revision == request.resource.data.beforeRevision
+            && getAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.revision == request.resource.data.afterRevision
+            && getAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.lastCorrectionId == correctionId
+            && annualSnapshotMatches(
+              request.resource.data.before,
+              get(annualCyclePath(
+                organizationId, farmId, request.resource.data.annualCycleId
+              )).data
+            )
+            && annualSnapshotMatches(
+              request.resource.data.after,
+              getAfter(annualCyclePath(
+                organizationId, farmId, request.resource.data.annualCycleId
+              )).data
+            )
+            && existsAfter(annualCycleAuditPath(
+              organizationId, farmId, request.resource.data.auditEventId
+            ))
+            && getAfter(annualCycleAuditPath(
+              organizationId, farmId, request.resource.data.auditEventId
+            )).data.annualCycleId == request.resource.data.annualCycleId
+            && getAfter(annualCycleAuditPath(
+              organizationId, farmId, request.resource.data.auditEventId
+            )).data.eventType == 'CYCLE_CORRECTED'
+            && getAfter(annualCycleAuditPath(
+              organizationId, farmId, request.resource.data.auditEventId
+            )).data.targetId == correctionId
+            && getAfter(annualCycleAuditPath(
+              organizationId, farmId, request.resource.data.auditEventId
+            )).data.recordVersion == getAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.version;
+          allow update, delete: if false;
+        }
+
+        match /annualCycleAuditEvents/{eventId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageAnnualPlan(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.eventId == eventId
+            && request.resource.data.annualCycleId is string
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /annualCycleOperations/{operationId} {
+          allow get: if canReadFarm(organizationId, farmId);
+          allow list: if false;
+          allow create: if canManageAnnualPlan(organizationId, farmId)
+            && validAnnualScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.operationId == operationId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
         match /cropCycles/{cropCycleId} {
           allow read: if canReadCommercial(organizationId, farmId);
           allow create: if canWriteFruit(organizationId, farmId)
             && validCommercialCreate(
               request.resource.data, organizationId, farmId, cropCycleId, 'cropCycleId'
             )
+            && request.resource.data.annualCycleId is string
+            && existsAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            ))
+            && getAfter(annualCyclePath(
+              organizationId, farmId, request.resource.data.annualCycleId
+            )).data.status != 'CLOSED'
             && request.resource.data.status == 'ACTIVE'
             && request.resource.data.stage in [
               'FLOWERING', 'EARLY_FRUIT', 'MID_SEASON', 'PRE_SALE', 'HARVESTED'
@@ -2245,6 +2553,7 @@ service cloud.firestore {
           allow update: if canWriteFruit(organizationId, farmId)
             && validCommercialScope(request.resource.data, organizationId, farmId)
             && request.resource.data.cropCycleId == resource.data.cropCycleId
+            && request.resource.data.annualCycleId == resource.data.annualCycleId
             && request.resource.data.cycleCode == resource.data.cycleCode
             && request.resource.data.version == resource.data.version + 1
             && request.resource.data.actorUserId == request.auth.uid

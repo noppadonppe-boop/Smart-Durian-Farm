@@ -2,6 +2,116 @@
   box-sizing: border-box;
 }
 
+/* DEC-049 management reporting is Mock-first and reuses the field design system. */
+.report-control-panel,
+.report-summary,
+.report-breakdown,
+.report-entry-section {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #d9e2da);
+  border-radius: 20px;
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.report-filter-grid,
+.report-cost-grid,
+.report-entry-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.report-filter-grid label,
+.report-filter-grid > div,
+.report-cost-grid article {
+  display: grid;
+  gap: .35rem;
+}
+
+.report-filter-grid > div,
+.report-cost-grid article {
+  background: var(--surface-subtle, #f5f8f5);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.report-filter-grid strong,
+.report-cost-grid strong {
+  font-size: 1.15rem;
+}
+
+.report-metrics article strong {
+  overflow-wrap: anywhere;
+}
+
+.report-quality-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.report-quality-flags span {
+  background: #fff4d6;
+  border: 1px solid #e1b85b;
+  border-radius: 999px;
+  color: #634700;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: .35rem .65rem;
+}
+
+.report-table-wrap {
+  overflow-x: auto;
+}
+
+.report-table-wrap table {
+  border-collapse: collapse;
+  min-width: 760px;
+  width: 100%;
+}
+
+.report-table-wrap th,
+.report-table-wrap td {
+  border-bottom: 1px solid var(--border, #d9e2da);
+  padding: .75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-table-wrap td small {
+  display: block;
+  margin-top: .25rem;
+}
+
+.report-entry-grid > details {
+  border: 1px solid var(--border, #d9e2da);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.report-entry-grid summary {
+  cursor: pointer;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 480px) {
+  .report-control-panel,
+  .report-summary,
+  .report-breakdown,
+  .report-entry-section {
+    border-radius: 14px;
+    padding: .9rem;
+  }
+
+  .report-filter-grid,
+  .report-cost-grid,
+  .report-entry-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 html {
   background: var(--color-canvas);
 }
@@ -1340,6 +1450,240 @@ code {
   .app-main {
     padding-inline: var(--space-3);
   }
+}
+
+/* DEC-048 — Annual Farm Management Cycle (Mock-first) */
+.annual-cycle-switcher {
+  min-width: min(17rem, 34vw);
+  padding: var(--space-2) var(--space-3);
+  display: grid;
+  gap: 0.2rem;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.annual-cycle-switcher > label,
+.annual-cycle-switcher > small {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+}
+
+.annual-cycle-switcher > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.annual-cycle-switcher select {
+  min-width: 0;
+  flex: 1;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.annual-cycle-switcher a {
+  color: var(--color-primary-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.annual-section {
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.annual-section > summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.annual-section__header,
+.annual-plan-list article > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.annual-section__header h2,
+.annual-section > h2 {
+  margin: var(--space-2) 0;
+  font-size: 1.1rem;
+}
+
+.annual-cycle-list,
+.annual-plan-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.annual-cycle-list > button {
+  min-height: 68px;
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.annual-cycle-list > button[aria-current="true"] {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.annual-cycle-list > button > span {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.annual-cycle-list > button > span:last-child {
+  text-align: right;
+}
+
+.annual-cycle-list small,
+.annual-plan-list small,
+.annual-correction small {
+  color: var(--color-muted);
+}
+
+.annual-status {
+  display: inline-flex;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.annual-status--closed { color: var(--color-muted); background: var(--color-surface-soft); }
+.annual-status--closing { color: var(--color-warning); background: var(--color-warning-soft); }
+
+.annual-definition-grid,
+.annual-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.annual-definition-grid > div,
+.annual-metrics > article {
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--color-surface-soft);
+  border-radius: var(--radius-md);
+}
+
+.annual-definition-grid dt,
+.annual-metrics span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.annual-definition-grid dd {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.annual-metrics > article {
+  display: grid;
+}
+
+.annual-metrics strong { font-size: 1.45rem; }
+
+.annual-plan-list {
+  margin-top: var(--space-3);
+}
+
+.annual-plan-list article,
+.annual-correction {
+  padding: var(--space-3);
+  background: var(--color-surface-soft);
+  border-radius: var(--radius-md);
+}
+
+.annual-plan-list article p,
+.annual-correction p { margin: var(--space-2) 0; }
+
+.annual-transition-panel {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.annual-transition-panel label,
+.annual-form label {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.annual-transition-panel input,
+.annual-form input,
+.annual-form select,
+.annual-form textarea {
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.annual-form {
+  margin-top: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.annual-form textarea { min-height: 6rem; resize: vertical; }
+
+.annual-feedback {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-md);
+}
+
+.annual-feedback--error {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+@media (min-width: 46rem) {
+  .annual-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .annual-form .primary-action { width: max-content; }
+}
+
+@media (max-width: 50rem) {
+  .context-row { flex-wrap: wrap; }
+  .annual-cycle-switcher { min-width: 0; flex: 1 1 100%; order: 3; }
+}
+
+@media (max-width: 30rem) {
+  .annual-definition-grid,
+  .annual-metrics { grid-template-columns: minmax(0, 1fr); }
+  .annual-cycle-list > button { align-items: flex-start; flex-direction: column; }
+  .annual-cycle-list > button > span:last-child { text-align: left; }
 }
 
 /* Phase 6 — Dashboard, Offline, Audit & Security Hardening */

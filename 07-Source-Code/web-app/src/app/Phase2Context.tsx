@@ -93,6 +93,25 @@ import type {
   DiseaseAnalysisReviewInput,
   DiseaseAnalysisSessionRecord,
 } from '../domain/diseaseAnalysis'
+import type {
+  AnnualCycleCorrection,
+  AnnualCycleDraft,
+  AnnualCycleRecord,
+  AnnualCycleSnapshot,
+  AnnualCycleStatus,
+  AnnualPlanItemDraft,
+  AnnualPlanItemRecord,
+} from '../domain/annualFarmCycle'
+import {
+  buildFarmManagementReport,
+  type FarmManagementReport,
+  type LaborCostDraft,
+  type LaborCostRecord,
+  type ManagementCostSnapshot,
+  type OperatingExpenseDraft,
+  type OperatingExpenseRecord,
+  type ReportPeriodKind,
+} from '../domain/managementReporting'
 
 interface PendingOperation {
   operationId: string
@@ -118,6 +137,51 @@ export interface Phase2ContextValue {
   otpChallenge: PhoneOtpChallenge | undefined
   pendingOperations: readonly PendingOperation[]
   pendingSwitchTarget: FarmAccess | undefined
+  annualCycleSnapshot: AnnualCycleSnapshot
+  annualCyclesLoading: boolean
+  selectAnnualCycle: (annualCycleId: string) => void
+  refreshAnnualCycles: () => Promise<AnnualCycleSnapshot>
+  createAnnualCycle: (
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+  ) => Promise<AnnualCycleRecord>
+  updateAnnualCycle: (
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+    reason: string,
+  ) => Promise<AnnualCycleRecord>
+  transitionAnnualCycle: (
+    annualCycleId: string,
+    idempotencyKey: string,
+    nextStatus: AnnualCycleStatus,
+    reason: string,
+  ) => Promise<AnnualCycleRecord>
+  correctAnnualCycle: (
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+    reason: string,
+  ) => Promise<{ cycle: AnnualCycleRecord; correction: AnnualCycleCorrection }>
+  createAnnualPlanItem: (
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualPlanItemDraft,
+  ) => Promise<AnnualPlanItemRecord>
+  listManagementCostSnapshot: () => Promise<ManagementCostSnapshot>
+  createLaborCost: (
+    idempotencyKey: string,
+    draft: LaborCostDraft,
+  ) => Promise<LaborCostRecord>
+  createOperatingExpense: (
+    idempotencyKey: string,
+    draft: OperatingExpenseDraft,
+  ) => Promise<OperatingExpenseRecord>
+  generateManagementReport: (
+    kind: ReportPeriodKind,
+    anchorDate: string,
+  ) => Promise<FarmManagementReport>
+  resetManagementReportingMockData: () => Promise<void>
   requestOtp: (phoneNumber: string) => Promise<void>
   verifyOtp: (code: string) => Promise<void>
   cancelOtp: () => void
@@ -372,6 +436,10 @@ function ResolvedPhase2Provider({
   const [otpChallenge, setOtpChallenge] = useState<PhoneOtpChallenge>()
   const [pendingOperations, setPendingOperations] = useState<readonly PendingOperation[]>([])
   const [pendingSwitchTarget, setPendingSwitchTarget] = useState<FarmAccess>()
+  const [annualCycleSnapshot, setAnnualCycleSnapshot] = useState<AnnualCycleSnapshot>({
+    cycles: [], selectedCycle: null, planItems: [], corrections: [], audit: [],
+  })
+  const [annualCyclesLoading, setAnnualCyclesLoading] = useState(false)
 
   const loadFarmAccess = useCallback(
     async (nextIdentity: AuthenticatedIdentity) => {
@@ -410,6 +478,51 @@ function ResolvedPhase2Provider({
   }, [adapters.auth, loadFarmAccess])
 
   const currentFarm = farms.find((farm) => farm.farmId === currentFarmId)
+
+  const loadAnnualCycles = useCallback(async (
+    requestedAnnualCycleId?: string,
+  ): Promise<AnnualCycleSnapshot> => {
+    if (!identity || !currentFarm) {
+      const empty: AnnualCycleSnapshot = {
+        cycles: [], selectedCycle: null, planItems: [], corrections: [], audit: [],
+      }
+      setAnnualCycleSnapshot(empty)
+      return empty
+    }
+    setAnnualCyclesLoading(true)
+    try {
+      const storedId = sessionStorage.getItem(`kdoms.annualCycleId.${currentFarm.farmId}`) ?? undefined
+      const next = await adapters.annualCycleRepository.listSnapshot(
+        { actor: identity, farm: currentFarm },
+        requestedAnnualCycleId ?? storedId,
+      )
+      setAnnualCycleSnapshot(next)
+      if (next.selectedCycle) {
+        sessionStorage.setItem(
+          `kdoms.annualCycleId.${currentFarm.farmId}`,
+          next.selectedCycle.annualCycleId,
+        )
+      }
+      return next
+    } finally {
+      setAnnualCyclesLoading(false)
+    }
+  }, [adapters.annualCycleRepository, currentFarm, identity])
+
+  useEffect(() => {
+    if (!identity || !currentFarm) return
+    const timeoutId = window.setTimeout(() => {
+      void loadAnnualCycles()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [currentFarm, identity, loadAnnualCycles])
+
+  const selectAnnualCycle = useCallback((annualCycleId: string) => {
+    if (!annualCycleSnapshot.cycles.some((cycle) => cycle.annualCycleId === annualCycleId)) {
+      throw new Error('ไม่พบรอบปีในสวนปัจจุบัน')
+    }
+    void loadAnnualCycles(annualCycleId)
+  }, [annualCycleSnapshot.cycles, loadAnnualCycles])
 
   const requestOtp = useCallback(
     async (phoneNumber: string) => {
@@ -555,6 +668,77 @@ function ResolvedPhase2Provider({
     if (!identity || !currentFarm) throw new Error('ยังไม่มีผู้ใช้หรือสวนปัจจุบัน')
     return { identity, currentFarm }
   }, [currentFarm, identity])
+
+  const annualMutationContext = useCallback(() => {
+    const context = requireFarmAndIdentity()
+    return { actor: context.identity, farm: context.currentFarm }
+  }, [requireFarmAndIdentity])
+
+  const refreshAnnualCycles = useCallback(async () => {
+    return loadAnnualCycles(annualCycleSnapshot.selectedCycle?.annualCycleId)
+  }, [annualCycleSnapshot.selectedCycle?.annualCycleId, loadAnnualCycles])
+
+  const createAnnualCycle = useCallback(async (
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+  ) => {
+    const result = await adapters.annualCycleRepository.createCycle(
+      annualMutationContext(), idempotencyKey, draft,
+    )
+    await loadAnnualCycles(result.annualCycleId)
+    return result
+  }, [adapters.annualCycleRepository, annualMutationContext, loadAnnualCycles])
+
+  const updateAnnualCycle = useCallback(async (
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+    reason: string,
+  ) => {
+    const result = await adapters.annualCycleRepository.updateCycle(
+      annualMutationContext(), annualCycleId, idempotencyKey, draft, reason,
+    )
+    await loadAnnualCycles(annualCycleId)
+    return result
+  }, [adapters.annualCycleRepository, annualMutationContext, loadAnnualCycles])
+
+  const transitionAnnualCycle = useCallback(async (
+    annualCycleId: string,
+    idempotencyKey: string,
+    nextStatus: AnnualCycleStatus,
+    reason: string,
+  ) => {
+    const result = await adapters.annualCycleRepository.transitionCycle(
+      annualMutationContext(), annualCycleId, idempotencyKey, nextStatus, reason,
+    )
+    await loadAnnualCycles(annualCycleId)
+    return result
+  }, [adapters.annualCycleRepository, annualMutationContext, loadAnnualCycles])
+
+  const correctAnnualCycle = useCallback(async (
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualCycleDraft,
+    reason: string,
+  ) => {
+    const result = await adapters.annualCycleRepository.correctCycle(
+      annualMutationContext(), annualCycleId, idempotencyKey, draft, reason,
+    )
+    await loadAnnualCycles(annualCycleId)
+    return result
+  }, [adapters.annualCycleRepository, annualMutationContext, loadAnnualCycles])
+
+  const createAnnualPlanItem = useCallback(async (
+    annualCycleId: string,
+    idempotencyKey: string,
+    draft: AnnualPlanItemDraft,
+  ) => {
+    const result = await adapters.annualCycleRepository.createPlanItem(
+      annualMutationContext(), annualCycleId, idempotencyKey, draft,
+    )
+    await loadAnnualCycles(annualCycleId)
+    return result
+  }, [adapters.annualCycleRepository, annualMutationContext, loadAnnualCycles])
 
   const farmManagementContext = useCallback((): FarmManagementContext => {
     const context = requireFarmAndIdentity()
@@ -1061,6 +1245,79 @@ function ResolvedPhase2Provider({
     await adapters.commercialRepository.resetMockPack()
   }, [adapters.commercialRepository])
 
+  const selectedManagementCycle = useCallback(() => {
+    const selected = annualCycleSnapshot.selectedCycle
+    if (!selected) throw new Error('กรุณาเลือกรอบบริหารสวนรายปีก่อนบันทึกต้นทุนหรือสร้างรายงาน')
+    return selected
+  }, [annualCycleSnapshot.selectedCycle])
+
+  const listManagementCostSnapshot = useCallback(async () => {
+    const cycle = selectedManagementCycle()
+    return adapters.managementReportingRepository.listSnapshot(
+      workContext(),
+      cycle.annualCycleId,
+    )
+  }, [adapters.managementReportingRepository, selectedManagementCycle, workContext])
+
+  const createLaborCost = useCallback(async (
+    idempotencyKey: string,
+    draft: LaborCostDraft,
+  ) => adapters.managementReportingRepository.createLaborCost(
+    workContext(),
+    selectedManagementCycle(),
+    idempotencyKey,
+    draft,
+  ), [adapters.managementReportingRepository, selectedManagementCycle, workContext])
+
+  const createOperatingExpense = useCallback(async (
+    idempotencyKey: string,
+    draft: OperatingExpenseDraft,
+  ) => adapters.managementReportingRepository.createOperatingExpense(
+    workContext(),
+    selectedManagementCycle(),
+    idempotencyKey,
+    draft,
+  ), [adapters.managementReportingRepository, selectedManagementCycle, workContext])
+
+  const generateManagementReport = useCallback(async (
+    kind: ReportPeriodKind,
+    anchorDate: string,
+  ) => {
+    const cycle = selectedManagementCycle()
+    const context = workContext()
+    const [workOrders, diseaseIncidents, commercial, costs] = await Promise.all([
+      adapters.workRepository.listWorkOrders(context),
+      adapters.workRepository.listDiseaseIncidents(context),
+      adapters.commercialRepository.listSnapshot(context),
+      adapters.managementReportingRepository.listSnapshot(context, cycle.annualCycleId),
+    ])
+    return buildFarmManagementReport({
+      context,
+      kind,
+      anchorDate,
+      annualCycle: cycle,
+      annualPlanItems: annualCycleSnapshot.planItems,
+      workOrders,
+      diseaseIncidents,
+      commercial,
+      costs,
+    })
+  }, [
+    adapters.commercialRepository,
+    adapters.managementReportingRepository,
+    adapters.workRepository,
+    annualCycleSnapshot.planItems,
+    selectedManagementCycle,
+    workContext,
+  ])
+
+  const resetManagementReportingMockData = useCallback(async () => {
+    if (!adapters.managementReportingRepository.resetMockPack) {
+      throw new Error('Reset นี้ใช้ได้เฉพาะ Management Reporting Mock Data Pack')
+    }
+    await adapters.managementReportingRepository.resetMockPack()
+  }, [adapters.managementReportingRepository])
+
   const operationalContext = useCallback(() => {
     const context = requireFarmAndIdentity()
     return { actor: context.identity, farm: context.currentFarm }
@@ -1271,6 +1528,20 @@ function ResolvedPhase2Provider({
       otpChallenge,
       pendingOperations,
       pendingSwitchTarget,
+      annualCycleSnapshot,
+      annualCyclesLoading,
+      selectAnnualCycle,
+      refreshAnnualCycles,
+      createAnnualCycle,
+      updateAnnualCycle,
+      transitionAnnualCycle,
+      correctAnnualCycle,
+      createAnnualPlanItem,
+      listManagementCostSnapshot,
+      createLaborCost,
+      createOperatingExpense,
+      generateManagementReport,
+      resetManagementReportingMockData,
       requestOtp,
       verifyOtp,
       cancelOtp,
@@ -1445,6 +1716,20 @@ function ResolvedPhase2Provider({
       otpChallenge,
       pendingOperations,
       pendingSwitchTarget,
+      annualCycleSnapshot,
+      annualCyclesLoading,
+      selectAnnualCycle,
+      refreshAnnualCycles,
+      createAnnualCycle,
+      updateAnnualCycle,
+      transitionAnnualCycle,
+      correctAnnualCycle,
+      createAnnualPlanItem,
+      listManagementCostSnapshot,
+      createLaborCost,
+      createOperatingExpense,
+      generateManagementReport,
+      resetManagementReportingMockData,
       requestFarmSwitch,
       requestOtp,
       seedProductionMockData,

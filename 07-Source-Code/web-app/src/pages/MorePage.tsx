@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { usePhase2 } from '../app/usePhase2'
 import { permissionsFor, roleLabels } from '../domain/farm'
 import { canReadCommercial } from '../domain/commercialTraceability'
+import { canViewManagementReports } from '../domain/managementReporting'
 import { PageHeader } from './PageHeader'
 
 export function MorePage() {
@@ -48,6 +49,16 @@ export function MorePage() {
         description="เมนูปรับตามบทบาทและไม่แสดง action ที่ไม่มีสิทธิ์"
       />
       <div className="admin-links" aria-label="เมนูตามสิทธิ์">
+        <Link to="/annual-cycles">
+          <span aria-hidden="true">◷</span>
+          <div><strong>รอบบริหารสวนรายปี</strong><small>มิ.ย.–พ.ค. หรือวันเริ่มเฉพาะสวน · แผนระดับสวน/โซน</small></div>
+          <span aria-hidden="true">›</span>
+        </Link>
+        {canViewManagementReports(currentFarm.role) ? <Link to="/reports">
+          <span aria-hidden="true">▤</span>
+          <div><strong>รายงานผลสวนและต้นทุน</strong><small>สัปดาห์ · เดือน · 3 เดือน · ปี พร้อมค่าแรงและค่าใช้จ่าย</small></div>
+          <span aria-hidden="true">›</span>
+        </Link> : null}
         <Link to="/orchard-layout">
           <span aria-hidden="true">▦</span>
           <div><strong>แปลนสวนและเลือกตำแหน่ง</strong><small>โซน · แถวซ้ายไปขวา · ต้นบนลงล่าง</small></div>

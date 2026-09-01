@@ -659,6 +659,104 @@ export async function seedWorkCareDisease({
   }
 }
 
+export async function seedAnnualCycles({ firestore, packs, rootSegments = [], userMappings }) {
+  assertMockPack(packs.annualCycles, 'Annual Farm Management Cycle')
+  for (const cycle of packs.annualCycles.cycles) {
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      cycle.organizationId,
+      cycle.farmId,
+      'annualCycles',
+      cycle.annualCycleId,
+    ), {
+      ...cycle,
+      actorUserId: uidFor(userMappings, cycle.updatedBy),
+      createdBy: uidFor(userMappings, cycle.createdBy),
+      updatedBy: uidFor(userMappings, cycle.updatedBy),
+      classification: 'SIMULATED/TEST ONLY',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    if (cycle.status === 'ACTIVE' || cycle.status === 'CLOSING') {
+      await setDoc(farmDoc(
+        firestore,
+        rootSegments,
+        cycle.organizationId,
+        cycle.farmId,
+        'annualCycleGuards',
+        'current',
+      ), {
+        organizationId: cycle.organizationId,
+        farmId: cycle.farmId,
+        annualCycleId: cycle.annualCycleId,
+        status: cycle.status,
+        actorUserId: uidFor(userMappings, cycle.updatedBy),
+        classification: 'SIMULATED/TEST ONLY',
+        exampleData: true,
+        updatedAt: serverTimestamp(),
+      })
+    }
+  }
+  for (const plan of packs.annualCycles.planItems) {
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      plan.organizationId,
+      plan.farmId,
+      'annualPlanItems',
+      plan.planItemId,
+    ), {
+      ...plan,
+      actorUserId: uidFor(userMappings, plan.updatedBy),
+      createdBy: uidFor(userMappings, plan.createdBy),
+      updatedBy: uidFor(userMappings, plan.updatedBy),
+      classification: 'SIMULATED/TEST ONLY',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  }
+  for (const correction of packs.annualCycles.corrections) {
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      correction.organizationId,
+      correction.farmId,
+      'annualCycleCorrections',
+      correction.correctionId,
+    ), {
+      ...correction,
+      actorUserId: uidFor(userMappings, correction.actorUserId),
+      classification: 'SIMULATED/TEST ONLY',
+      createdAt: serverTimestamp(),
+    })
+  }
+  for (const event of packs.annualCycles.audit) {
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      event.organizationId,
+      event.farmId,
+      'annualCycleAuditEvents',
+      event.eventId,
+    ), {
+      ...event,
+      actorUserId: uidFor(userMappings, event.actorUserId),
+      classification: 'SIMULATED/TEST ONLY',
+      createdAt: serverTimestamp(),
+    })
+  }
+  return {
+    annualCycles: packs.annualCycles.cycles.length,
+    annualPlanItems: packs.annualCycles.planItems.length,
+    annualCycleCorrections: packs.annualCycles.corrections.length,
+    annualCycleAuditEvents: packs.annualCycles.audit.length,
+    annualCycleGuards: packs.annualCycles.cycles.filter(
+      (cycle) => cycle.status === 'ACTIVE' || cycle.status === 'CLOSING',
+    ).length,
+  }
+}
+
 export async function seedCommercialTraceability({ firestore, packs, rootSegments = [], userMappings }) {
   assertMockPack(packs.commercial, 'Phase 5')
   const collections = [
@@ -953,6 +1051,7 @@ export async function seedDiseaseAnalysis({ firestore, packs, rootSegments = [],
 
 export const seeders = Object.freeze({
   foundation: seedFoundation,
+  'annual-cycles': seedAnnualCycles,
   trees: seedTreeRegister,
   work: seedWorkCareDisease,
   commercial: seedCommercialTraceability,

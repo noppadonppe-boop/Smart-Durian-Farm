@@ -28,6 +28,7 @@
     "test:emulator": "node scripts/firebase-local.cjs emulators:exec --project demo-smart-durian --only auth,firestore,storage \"pnpm vitest:emulator\"",
     "seed:emulator": "node scripts/seed-emulator.mjs --module all",
     "seed:emulator:foundation": "node scripts/seed-emulator.mjs --module foundation",
+    "seed:emulator:annual-cycles": "node scripts/seed-emulator.mjs --module annual-cycles",
     "seed:emulator:trees": "node scripts/seed-emulator.mjs --module trees",
     "seed:emulator:work": "node scripts/seed-emulator.mjs --module work",
     "seed:emulator:commercial": "node scripts/seed-emulator.mjs --module commercial",

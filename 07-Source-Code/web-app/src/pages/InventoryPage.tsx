@@ -60,6 +60,7 @@ export function InventoryPage() {
       await recordInventoryMovement(idempotencyKey, {
         itemId: formText(form, 'itemId'),
         lotId: formText(form, 'lotId'),
+        effectiveOn: formText(form, 'effectiveOn'),
         movementType: formText(form, 'movementType') as InventoryMovementType,
         quantity: Number(formText(form, 'quantity')),
         unit: formText(form, 'unit'),
@@ -122,6 +123,7 @@ export function InventoryPage() {
       {canManageCommercial(currentFarm.role) && selectedItem && selectedLot ? <details className="inventory-form-panel" open><summary>+ บันทึก Inventory Movement</summary><form className="commercial-form" onSubmit={(event) => { void onMovement(event) }}>
         <label>Item<select name="itemId" value={selectedItem.itemId} onChange={(event) => selectItem(event.target.value)}>{activeItems.map((item) => <option value={item.itemId} key={item.itemId}>{item.itemCode} · {item.name}</option>)}</select></label>
         <label>Lot<select name="lotId" value={selectedLot.lotId} onChange={(event) => setSelectedLotId(event.target.value)}>{selectedItem.lots.map((lot) => <option value={lot.lotId} key={lot.lotId}>{lot.lotCode} ({selectedItem.baseUnit})</option>)}</select><small>แสดงเฉพาะล็อตของ Item ที่เลือก</small></label>
+        <label>วันที่เคลื่อนไหว<input name="effectiveOn" type="date" required defaultValue="2026-08-31" /></label>
         <label>ประเภท<select name="movementType" defaultValue="ISSUE"><option value="RECEIPT">รับเข้า</option><option value="ISSUE">เบิกใช้</option>{canApproveCommercialCorrection(currentFarm.role) ? <option value="ADJUSTMENT">ปรับยอดโดย Owner/Manager</option> : null}</select></label>
         <label>จำนวน<input name="quantity" type="number" step="0.001" required defaultValue="1" /><small>Adjustment ใช้ค่าลบได้; Receipt/Issue ใช้ค่าบวก</small></label>
         <label>หน่วย<input name="unit" readOnly value={selectedItem.baseUnit} /><small>กำหนดจากหน่วยฐานของ Item เพื่อไม่คาดเดาการแปลง</small></label>

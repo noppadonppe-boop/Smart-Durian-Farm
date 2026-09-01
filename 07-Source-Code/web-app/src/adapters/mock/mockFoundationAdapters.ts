@@ -37,6 +37,8 @@ import { MockWorkCareDiseaseRepository } from './mockWorkCareDiseaseRepository'
 import { MockCommercialTraceabilityRepository } from './mockCommercialTraceabilityRepository'
 import { MockOperationalHardeningRepository } from './mockOperationalHardeningRepository'
 import { MockDiseaseAnalysisRepository } from './mockDiseaseAnalysisRepository'
+import { MockAnnualCycleRepository } from './mockAnnualCycleRepository'
+import { MockManagementReportingRepository } from './mockManagementReportingRepository'
 import type { AuthAdapterMode } from '../../config/environment'
 
 interface DemoMembership {
@@ -612,6 +614,7 @@ export function createMockPhase2Adapters(
   )
   const workRepository = new MockWorkCareDiseaseRepository()
   const operationalRepository = new MockOperationalHardeningRepository()
+  const annualCycleRepository = new MockAnnualCycleRepository()
   return {
     auth: options.auth ?? new MockPhoneOtpGateway(users),
     repository: new MockPhase2Repository(
@@ -622,9 +625,11 @@ export function createMockPhase2Adapters(
     ),
     treeRepository,
     workRepository,
-    commercialRepository: new MockCommercialTraceabilityRepository(),
+    commercialRepository: new MockCommercialTraceabilityRepository(annualCycleRepository),
     operationalRepository,
     diseaseAnalysisRepository: new MockDiseaseAnalysisRepository(workRepository, treeRepository),
+    annualCycleRepository,
+    managementReportingRepository: new MockManagementReportingRepository(),
     mode: 'mock',
     authMode: options.authMode ?? 'mock',
   }

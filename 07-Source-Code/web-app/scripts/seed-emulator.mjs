@@ -13,13 +13,14 @@ import {
 } from './mock-seed/runtime.mjs'
 import { verifySeed } from './mock-seed/verify.mjs'
 
-const moduleOrder = ['foundation', 'trees', 'work', 'commercial', 'operations', 'disease-analysis']
+const moduleOrder = ['foundation', 'annual-cycles', 'trees', 'work', 'commercial', 'operations', 'disease-analysis']
 const rootSegments = ['durian-smartfarm', 'root']
 const dependencies = Object.freeze({
   foundation: [],
+  'annual-cycles': ['foundation'],
   trees: ['foundation'],
   work: ['trees'],
-  commercial: ['work'],
+  commercial: ['work', 'annual-cycles'],
   operations: ['commercial'],
   'disease-analysis': ['work'],
 })

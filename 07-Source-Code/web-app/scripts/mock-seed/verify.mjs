@@ -33,6 +33,34 @@ export async function verifySeed({ firestore, storage, packs, rootSegments = [],
     assertEqual(await count(firestore, [...rootSegments, 'positionRoutes']), results.trees.positionRoutes, 'Position routes')
   }
 
+  if (modules.includes('annual-cycles')) {
+    assertEqual(
+      await countGroup(firestore, 'annualCycles'),
+      results['annual-cycles'].annualCycles,
+      'Annual farm management cycles',
+    )
+    assertEqual(
+      await countGroup(firestore, 'annualPlanItems'),
+      results['annual-cycles'].annualPlanItems,
+      'Annual plan items',
+    )
+    assertEqual(
+      await countGroup(firestore, 'annualCycleCorrections'),
+      results['annual-cycles'].annualCycleCorrections,
+      'Annual cycle corrections',
+    )
+    assertEqual(
+      await countGroup(firestore, 'annualCycleAuditEvents'),
+      results['annual-cycles'].annualCycleAuditEvents,
+      'Annual cycle audit events',
+    )
+    for (const cycle of packs.annualCycles.cycles) {
+      if (cycle.exampleData !== true || !cycle.notes.includes('SIMULATED/TEST ONLY')) {
+        throw new Error(`Unsafe Annual Cycle fixture: ${cycle.annualCycleId}`)
+      }
+    }
+  }
+
   if (modules.includes('work')) {
     assertEqual(await countGroup(firestore, 'workOrders'), results.work.workOrders, 'Work orders')
     assertEqual(await countGroup(firestore, 'careEvents'), results.work.careRecords, 'Care events')

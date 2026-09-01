@@ -59,6 +59,7 @@ export function ProductionPage() {
   const location = useLocation()
   const {
     currentFarm,
+    annualCycleSnapshot,
     listTreePositions,
     listCommercialSnapshot,
     createCropCycle,
@@ -180,6 +181,7 @@ export function ProductionPage() {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     void submit(() => createCropCycle(idempotency('crop', formSignature(form)), {
+      annualCycleId: formText(form, 'annualCycleId'),
       cycleCode: formText(form, 'cycleCode'),
       name: formText(form, 'name'),
       stage: formText(form, 'stage') as CropStage,
@@ -277,6 +279,7 @@ export function ProductionPage() {
     const weightKg = Number(formText(form, 'weightKg'))
     void submit(() => createSalesLot(idempotency('sale', formSignature(form)), {
       lotCode: formText(form, 'lotCode'),
+      soldOn: formText(form, 'soldOn'),
       customerReference: formText(form, 'customerReference'),
       allocations: [{ harvestLotId: formText(form, 'harvestLotId'), weightKg }],
       quantityFruit: numberOrNull(form, 'quantityFruit'),
@@ -338,6 +341,7 @@ export function ProductionPage() {
             return <article className="commercial-card" key={cycle.cropCycleId}>
               <small>{cycle.cycleCode}</small><h3>{cycle.name}</h3><span className="quality-pill quality-pill--measured">{cropStageLabels[cycle.stage]}</span>
               <p>{cycle.zoneCodes.join(', ')} · เก็บเกี่ยวคาดการณ์ {cycle.expectedHarvestDate ?? 'ยังไม่ทราบ'}</p>
+              <small>รอบบริหารสวน: {annualCycleSnapshot.cycles.find((item) => item.annualCycleId === cycle.annualCycleId)?.cycleCode ?? cycle.annualCycleId}</small>
               {nextStage && canRecordFruitObservation(currentFarm.role) ? <button className="secondary-action" disabled={submitting} type="button" onClick={() => void submit(
                 () => advanceCropCycleStage(cycle.cropCycleId, idempotency('crop-stage', `${cycle.cropCycleId}:${nextStage}`), nextStage),
                 `เปลี่ยน Stage เป็น ${cropStageLabels[nextStage]} แล้ว`,
@@ -375,6 +379,7 @@ export function ProductionPage() {
 
         {canRecordFruitObservation(currentFarm.role) ? <section className="commercial-form-stack" aria-label="ฟอร์ม Crop Cycle และ Fruit Observation">
           <details><summary>+ สร้าง Crop Cycle</summary><form className="commercial-form" onSubmit={onCreateCycle}>
+            <label>รอบบริหารสวน<select name="annualCycleId" required defaultValue={annualCycleSnapshot.selectedCycle?.annualCycleId}>{annualCycleSnapshot.cycles.filter((cycle) => cycle.status !== 'CLOSED').map((cycle) => <option key={cycle.annualCycleId} value={cycle.annualCycleId}>{cycle.cycleCode} · {cycle.name}</option>)}</select></label>
             <label>รหัสรอบ<input name="cycleCode" required defaultValue={`CROP-${currentFarm.farmCode}-DEMO-02`} /></label>
             <label>ชื่อรอบ<input name="name" required defaultValue="รอบผลผลิตจำลองใหม่" /></label>
             <label>Stage<select name="stage" defaultValue="FLOWERING">{cropStages.map((stage) => <option key={stage} value={stage}>{cropStageLabels[stage]}</option>)}</select></label>
@@ -461,6 +466,7 @@ export function ProductionPage() {
           <details><summary>+ สร้าง Sales Lot</summary><form className="commercial-form" onSubmit={onSale}>
             <label>Harvest Lot<select name="harvestLotId" defaultValue={availableHarvests[0]?.harvestLotId}>{availableHarvests.map((lot) => <option key={lot.harvestLotId} value={lot.harvestLotId}>{lot.lotCode} · เหลือ {(lot.totalWeightKg ?? 0) - lot.soldWeightKg} kg</option>)}</select></label>
             <label>รหัส Sales Lot<input name="lotCode" required defaultValue={`S-${currentFarm.farmCode}-DEMO-02`} /></label>
+            <label>วันที่ขาย<input name="soldOn" type="date" required defaultValue="2026-08-31" /></label>
             <label>Customer reference<input name="customerReference" required defaultValue="BUYER-DEMO-002" /></label>
             <label>จำนวนผล<input name="quantityFruit" type="number" min="0" defaultValue="20" /></label>
             <label>น้ำหนัก kg<input name="weightKg" type="number" min="0.001" step="0.001" required defaultValue="50" /></label>

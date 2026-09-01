@@ -1,4 +1,5 @@
-import type { CommercialTraceabilityRepository } from '../contracts'
+import type { AnnualCycleRepository, CommercialTraceabilityRepository } from '../contracts'
+import annualCyclePack from '../../demo/annual-cycle-mock-data-pack-v1.0.json'
 import phase5Pack from '../../demo/phase5-mock-data-pack-v1.0.json'
 import {
   assertCommercialScope,
@@ -88,6 +89,8 @@ function auditEvent(
 }
 
 export class MockCommercialTraceabilityRepository implements CommercialTraceabilityRepository {
+  constructor(private readonly annualCycleRepository?: AnnualCycleRepository) {}
+
   private pack = clonePack()
   private readonly completedOperations = new Map<string, unknown>()
   private audit: CommercialAuditEvent[] = []
@@ -200,6 +203,16 @@ export class MockCommercialTraceabilityRepository implements CommercialTraceabil
     if (existing) return existing
     if (!canRecordFruitObservation(context.farm.role)) throw new Error('บทบาทนี้ไม่มีสิทธิ์สร้าง Crop Cycle')
     const validated = validateCropCycle(draft)
+    const annualCycle = this.annualCycleRepository
+      ? (await this.annualCycleRepository.listSnapshot(context, validated.annualCycleId)).cycles.find(
+          (item) => item.annualCycleId === validated.annualCycleId && item.status !== 'CLOSED',
+        )
+      : annualCyclePack.cycles.find((item) =>
+          item.organizationId === context.farm.organizationId &&
+          item.farmId === context.farm.farmId &&
+          item.annualCycleId === validated.annualCycleId &&
+          item.status !== 'CLOSED')
+    if (!annualCycle) throw new Error('ไม่พบ Annual Cycle ที่เปิดรับ Crop Cycle ในสวนนี้')
     const duplicate = this.pack.cropCycles.some((item) =>
       item.organizationId === context.farm.organizationId && item.farmId === context.farm.farmId &&
       item.cycleCode.toUpperCase() === validated.cycleCode.toUpperCase())

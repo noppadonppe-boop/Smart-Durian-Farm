@@ -7,7 +7,6 @@ import {
   roleLabels,
   type SyncState,
 } from '../domain/farm'
-import { FarmSwitcher, PendingFarmSwitchDialog } from './FarmSwitcher'
 import { usePhase2 } from './usePhase2'
 import { navigationItems, userManualNavigationItem } from './navigation'
 
@@ -16,6 +15,15 @@ const NoFarmPage = lazy(async () => ({
 }))
 const SignInPage = lazy(async () => ({
   default: (await import('../pages/SignInPage')).SignInPage,
+}))
+const AnnualCycleSwitcher = lazy(async () => ({
+  default: (await import('./AnnualCycleSwitcher')).AnnualCycleSwitcher,
+}))
+const FarmSwitcher = lazy(async () => ({
+  default: (await import('./FarmSwitcher')).FarmSwitcher,
+}))
+const PendingFarmSwitchDialog = lazy(async () => ({
+  default: (await import('./FarmSwitcher')).PendingFarmSwitchDialog,
 }))
 
 function AuthPageFallback() {
@@ -132,7 +140,12 @@ export function AppLayout() {
         </div>
 
         <div className="context-row" aria-label="บริบทสวนปัจจุบัน">
-          <FarmSwitcher />
+          <Suspense fallback={<div className="farm-switcher" aria-busy="true">กำลังโหลดสวน…</div>}>
+            <FarmSwitcher />
+          </Suspense>
+          <Suspense fallback={<div className="annual-cycle-switcher" aria-busy="true">กำลังโหลดรอบปี…</div>}>
+            <AnnualCycleSwitcher />
+          </Suspense>
           <button
             className={`sync-control sync-control--${syncState}`}
             type="button"
@@ -214,7 +227,9 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
-      <PendingFarmSwitchDialog />
+      <Suspense fallback={null}>
+        <PendingFarmSwitchDialog />
+      </Suspense>
     </div>
   )
 }

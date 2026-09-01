@@ -561,6 +561,32 @@ describe('Smart Durian local mock app', () => {
     expect(screen.queryByText(/33 kg/u)).not.toBeInTheDocument()
   })
 
+  it('builds four-period farm reports and records management labor cost without payroll', async () => {
+    renderApp('/reports')
+    const owner = await signIn()
+
+    expect(await screen.findByRole('heading', { name: 'รายงานการจัดการสวนและต้นทุน' })).toBeInTheDocument()
+    expect((await screen.findAllByText('26,100.00 บาท')).length).toBeGreaterThan(0)
+    expect(screen.getByText('13,512.50 บาท')).toBeInTheDocument()
+    const periodSelect = screen.getByLabelText('รอบรายงาน')
+    expect(within(periodSelect).getAllByRole('option')).toHaveLength(4)
+
+    await owner.click(screen.getByRole('button', { name: 'บันทึกค่าแรง' }))
+
+    expect(await screen.findByText('บันทึกต้นทุนแรงงานแบบจำลองและ Audit แล้ว')).toBeInTheDocument()
+    expect(await screen.findByText('4,050.00 บาท')).toBeInTheDocument()
+    expect(screen.getAllByText(/ไม่ใช่ Payroll/u).length).toBeGreaterThan(0)
+  })
+
+  it('denies the farm-level management cost report to a worker', async () => {
+    renderApp('/reports')
+    await signIn('+16505550102', '222222')
+
+    expect(await screen.findByRole('heading', { name: 'รายงานการจัดการสวน' })).toBeInTheDocument()
+    expect(screen.getByText(/ไม่มีสิทธิ์ดูข้อมูลต้นทุน/u)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'บันทึกค่าแรง' })).not.toBeInTheDocument()
+  })
+
   it('keeps Inventory lot and unit coupled to the selected item', async () => {
     renderApp('/inventory')
     const user = await signIn()

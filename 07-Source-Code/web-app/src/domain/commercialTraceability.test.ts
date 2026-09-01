@@ -161,7 +161,7 @@ describe('Phase 5 commercial calculations', () => {
   })
 
   it('traces a partial sale back through harvest and crop cycle', () => {
-    const cycle = { organizationId: 'o', farmId: 'f', cropCycleId: 'c', cycleCode: 'C-01',
+    const cycle = { organizationId: 'o', farmId: 'f', annualCycleId: 'a', cropCycleId: 'c', cycleCode: 'C-01',
       name: 'SIMULATED', stage: 'HARVESTED', zoneCodes: ['Z01'], varietyReference: 'DEMO',
       expectedHarvestDate: null, status: 'ACTIVE', version: 1, exampleData: true } satisfies CropCycleRecord
     const harvest = { organizationId: 'o', farmId: 'f', harvestLotId: 'h', cropCycleId: 'c',

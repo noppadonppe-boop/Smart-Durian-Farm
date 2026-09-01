@@ -21,6 +21,8 @@ const salesId = 'phase5_sales_03'
 const agronomistId = 'phase5_agronomist_04'
 const workerId = 'phase5_worker_05'
 const viewerId = 'phase5_viewer_06'
+const annualA = 'annual_phase5_a_2026'
+const annualB = 'annual_phase5_b_2026'
 const cropA = 'crop_phase5_a_001'
 const cropB = 'crop_phase5_b_001'
 const harvestA = 'harvest_phase5_a_001'
@@ -95,8 +97,19 @@ async function seed() {
     for (const [currentFarm, cropCycleId, code] of [
       [farmA, cropA, 'CROP-A'], [farmB, cropB, 'CROP-B'],
     ] as const) {
+      const annualCycleId = currentFarm === farmA ? annualA : annualB
+      await setDoc(doc(firestore, `${farmPath(currentFarm)}/annualCycles/${annualCycleId}`), {
+        organizationId, farmId: currentFarm, annualCycleId,
+        cycleCode: `AFY-${code}`, name: 'Annual Cycle จำลอง',
+        periodStart: '2026-06-01', periodEndExclusive: '2027-06-01',
+        timezone: 'Asia/Bangkok', notes: 'SIMULATED/TEST ONLY', previousAnnualCycleId: null,
+        status: 'ACTIVE', revision: 1, supersedesRevisionId: null,
+        lastCorrectionId: null, version: 1, createdBy: ownerId, updatedBy: ownerId,
+        createdAtLabel: 'seed', updatedAtLabel: 'seed', exampleData: true,
+        actorUserId: ownerId, createdAt: now, updatedAt: now,
+      })
       await setDoc(doc(firestore, `${farmPath(currentFarm)}/cropCycles/${cropCycleId}`), {
-        organizationId, farmId: currentFarm, cropCycleId, cycleCode: code,
+        organizationId, farmId: currentFarm, annualCycleId, cropCycleId, cycleCode: code,
         name: 'Crop จำลอง', stage: 'PRE_SALE', zoneCodes: ['Z01'],
         varietyReference: 'VARIETY-DEMO', expectedHarvestDate: '2026-09-15',
         status: 'ACTIVE', version: 1, exampleData: true, actorUserId: ownerId,
@@ -150,6 +163,25 @@ beforeEach(async () => {
 afterAll(async () => environment.cleanup())
 
 describe('Firebase Phase 5 Commercial repository and Rules', () => {
+  it('fails closed before a live Crop write when Annual linkage is unavailable', async () => {
+    const ownerFirestore = environment.authenticatedContext(ownerId).firestore() as unknown as Firestore
+    const mixedModeRepository = new FirebaseCommercialTraceabilityRepository(ownerFirestore, false)
+    const context = { actor: identity(ownerId), farm: farm('ORG_OWNER', ownerId) }
+    const before = (await mixedModeRepository.listSnapshot(context)).cropCycles.length
+
+    await expect(mixedModeRepository.createCropCycle(context, 'blocked-live-crop', {
+      annualCycleId: annualA,
+      cycleCode: 'CROP-BLOCKED',
+      name: 'ต้องไม่ถูกเขียน',
+      stage: 'FLOWERING',
+      zoneCodes: ['Z01'],
+      varietyReference: 'VARIETY-DEMO',
+      expectedHarvestDate: null,
+    })).rejects.toThrow('ANNUAL_CYCLE_LINKAGE_UNAVAILABLE')
+
+    expect((await mixedModeRepository.listSnapshot(context)).cropCycles).toHaveLength(before)
+  })
+
   it('allows SALES_INVENTORY partial lots once and keeps traceability farm-scoped', async () => {
     const salesRepository = repository(salesId)
     const context = { actor: identity(salesId), farm: farm('SALES_INVENTORY', salesId) }

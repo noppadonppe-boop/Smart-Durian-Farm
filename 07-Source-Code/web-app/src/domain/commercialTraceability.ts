@@ -51,6 +51,7 @@ export interface CommercialMutationContext {
 export interface CropCycleRecord {
   organizationId: string
   farmId: string
+  annualCycleId: string
   cropCycleId: string
   cycleCode: string
   name: string
@@ -64,6 +65,7 @@ export interface CropCycleRecord {
 }
 
 export interface CropCycleDraft {
+  annualCycleId: string
   cycleCode: string
   name: string
   stage: CropStage
@@ -154,6 +156,7 @@ export interface HarvestAllocation {
 
 export interface SalesLotDraft {
   lotCode: string
+  soldOn?: string
   customerReference: string
   allocations: readonly HarvestAllocation[]
   quantityFruit: number | null
@@ -209,6 +212,7 @@ export interface InventoryItemRecord {
 export interface InventoryMovementInput {
   itemId: string
   lotId: string
+  effectiveOn?: string
   movementType: InventoryMovementType
   quantity: number
   unit: string
@@ -380,6 +384,7 @@ export function validateCropCycle(draft: CropCycleDraft): CropCycleDraft {
   if (draft.expectedHarvestDate !== null) assertIsoDate(draft.expectedHarvestDate, 'วันที่คาดว่าจะเก็บเกี่ยว')
   return {
     ...draft,
+    annualCycleId: requiredText(draft.annualCycleId, 'Annual Farm Management Cycle'),
     cycleCode: requiredText(draft.cycleCode, 'รหัส Crop Cycle'),
     name: requiredText(draft.name, 'ชื่อ Crop Cycle'),
     zoneCodes: draft.zoneCodes.map((value) => requiredText(value, 'Zone')),
@@ -446,6 +451,7 @@ export function validateHarvestLot(draft: HarvestLotDraft): HarvestLotDraft {
 }
 
 export function validateSalesLot(draft: SalesLotDraft): SalesLotDraft {
+  if (draft.soldOn !== undefined) assertIsoDate(draft.soldOn, 'วันที่ขาย')
   assertUnique(draft.allocations.map((item) => item.harvestLotId), 'Harvest allocation')
   if (draft.allocations.length === 0) throw new Error('Sales Lot ต้องอ้างอิง Harvest Lot')
   for (const allocation of draft.allocations) {
@@ -492,6 +498,7 @@ export function validateInventoryMovement(
   item: InventoryItemRecord,
   input: InventoryMovementInput,
 ): InventoryMovementInput & { quantityDelta: number; directCostBaht: number | null } {
+  if (input.effectiveOn !== undefined) assertIsoDate(input.effectiveOn, 'วันที่เคลื่อนไหวสต็อก')
   if (input.itemId !== item.itemId) throw new Error('Inventory Item ไม่ตรงกับรายการเคลื่อนไหว')
   if (!item.lots.some((lot) => lot.lotId === input.lotId)) throw new Error('ไม่พบ Inventory Lot ใน Item นี้')
   if (input.unit !== item.baseUnit) throw new Error(`หน่วยต้องเป็น ${item.baseUnit}; ห้ามคาดเดาการแปลงหน่วย`)

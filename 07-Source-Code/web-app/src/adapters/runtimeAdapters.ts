@@ -13,6 +13,8 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       { FirebaseDiseaseAnalysisRepository },
       { FirebaseLivePhoneOtpGateway },
       { FirebaseProductionMockSeeder },
+      { MockAnnualCycleRepository },
+      { MockManagementReportingRepository },
     ] = await Promise.all([
       import('../infrastructure/firebase/firebaseClient'),
       import('../infrastructure/firebase/firebasePhase2Repository'),
@@ -23,6 +25,8 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       import('../infrastructure/firebase/firebaseDiseaseAnalysisRepository'),
       import('../infrastructure/firebase/phoneOtpAuth'),
       import('../infrastructure/firebase/firebaseProductionMockSeeder'),
+      import('./mock/mockAnnualCycleRepository'),
+      import('./mock/mockManagementReportingRepository'),
     ])
     const clients = createFirebaseLiveClients()
     const treeRepository = new FirebaseTreeRegisterRepository(clients.firestore, false)
@@ -37,13 +41,17 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       repository: new FirebasePhase2Repository(clients.firestore),
       treeRepository,
       workRepository,
-      commercialRepository: new FirebaseCommercialTraceabilityRepository(clients.firestore),
+      commercialRepository: new FirebaseCommercialTraceabilityRepository(clients.firestore, false),
       operationalRepository: new FirebaseOperationalHardeningRepository(clients.firestore),
       diseaseAnalysisRepository: new FirebaseDiseaseAnalysisRepository(
         clients.firestore,
         workRepository,
         treeRepository,
       ),
+      // DEC-048 does not authorize Firebase Production Annual Cycle writes.
+      annualCycleRepository: new MockAnnualCycleRepository(),
+      // DEC-049 does not authorize Firebase Production management-cost writes.
+      managementReportingRepository: new MockManagementReportingRepository(),
       productionMockSeeder: new FirebaseProductionMockSeeder(
         clients.firestore,
         clients.storage,
@@ -85,6 +93,8 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
     { FirebaseOperationalHardeningRepository },
     { FirebaseDiseaseAnalysisRepository },
     { FirebaseEmulatorPhoneOtpGateway },
+    { FirebaseAnnualCycleRepository },
+    { MockManagementReportingRepository },
   ] = await Promise.all([
     import('../infrastructure/firebase/firebaseClient'),
     import('../infrastructure/firebase/firebasePhase2Repository'),
@@ -94,6 +104,8 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
     import('../infrastructure/firebase/firebaseOperationalHardeningRepository'),
     import('../infrastructure/firebase/firebaseDiseaseAnalysisRepository'),
     import('../infrastructure/firebase/phoneOtpAuth'),
+    import('../infrastructure/firebase/firebaseAnnualCycleRepository'),
+    import('./mock/mockManagementReportingRepository'),
   ])
   const clients = createFirebaseEmulatorClients()
   const treeRepository = new FirebaseTreeRegisterRepository(clients.firestore)
@@ -110,6 +122,8 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       workRepository,
       treeRepository,
     ),
+    annualCycleRepository: new FirebaseAnnualCycleRepository(clients.firestore),
+    managementReportingRepository: new MockManagementReportingRepository(),
     mode: 'firebase-emulator',
     authMode: 'firebase-emulator',
   }

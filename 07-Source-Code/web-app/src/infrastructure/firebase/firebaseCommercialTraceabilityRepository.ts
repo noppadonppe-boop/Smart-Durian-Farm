@@ -102,7 +102,10 @@ function auditEvent(
 }
 
 export class FirebaseCommercialTraceabilityRepository implements CommercialTraceabilityRepository {
-  constructor(private readonly firestore: Firestore) {}
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly enforceAnnualCycleReference = true,
+  ) {}
 
   private farmReference(context: CommercialMutationContext) {
     return rootDoc(
@@ -220,6 +223,11 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
   ): Promise<CropCycleRecord> {
     if (!canRecordFruitObservation(context.farm.role)) throw new Error('บทบาทนี้ไม่มีสิทธิ์สร้าง Crop Cycle')
     const validated = validateCropCycle(draft)
+    if (!this.enforceAnnualCycleReference) {
+      throw new Error(
+        'ANNUAL_CYCLE_LINKAGE_UNAVAILABLE: ยังไม่เปิดการบันทึก Crop Cycle ไปยัง Firebase Production จนกว่าจะมี Annual Cycle repository ที่เชื่อถือได้',
+      )
+    }
     const duplicate = await getDocs(query(
       collection(this.farmReference(context), 'cropCycles'),
       where('cycleCode', '==', validated.cycleCode),
@@ -233,6 +241,12 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       if (operation.exists()) {
         const existing = await transaction.get(this.recordReference(context, 'cropCycles', String(operation.data().resultId)))
         return parseRecord<CropCycleRecord>(existing.data() ?? {}, context)
+      }
+      const annualCycle = await transaction.get(
+        this.recordReference(context, 'annualCycles', validated.annualCycleId),
+      )
+      if (!annualCycle.exists() || annualCycle.data().status === 'CLOSED') {
+        throw new Error('ไม่พบ Annual Cycle ที่เปิดรับ Crop Cycle ในสวนนี้')
       }
       transaction.set(this.recordReference(context, 'cropCycles', record.cropCycleId), {
         ...record, actorUserId: context.actor.userId, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
