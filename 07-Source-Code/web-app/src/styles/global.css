@@ -252,7 +252,7 @@ code {
 .farm-switcher {
   position: relative;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 10rem;
 }
 
 .farm-context--button {
@@ -412,10 +412,24 @@ code {
 
 .farm-context {
   flex: 1;
+  overflow: hidden;
   padding: var(--space-3);
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+}
+
+.farm-context > span:first-child,
+.farm-context__meta,
+.farm-context__meta > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.farm-context__meta > span {
+  flex: 1;
 }
 
 .farm-context strong {
@@ -443,6 +457,7 @@ code {
   border-radius: var(--radius-md);
   font-size: 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -1456,9 +1471,10 @@ code {
 .annual-cycle-switcher {
   min-width: min(17rem, 34vw);
   max-width: 100%;
-  width: 100%;
+  width: auto;
   padding: var(--space-2) var(--space-3);
   display: grid;
+  flex: 1 1 17rem;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.2rem;
   background: var(--color-surface-soft);
