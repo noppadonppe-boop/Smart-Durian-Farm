@@ -191,6 +191,26 @@ describe('Smart Durian local mock app', () => {
     expect(screen.getByRole('button', { name: 'ลงทะเบียน' })).toBeDisabled()
   })
 
+  it('resolves a farm-local manual tag using the current farm context', async () => {
+    renderApp('/trees/new')
+    const user = await signIn()
+
+    await screen.findByDisplayValue('Z01')
+    await user.clear(screen.getByLabelText(/^ลำดับตำแหน่ง/u))
+    await user.type(screen.getByLabelText(/^ลำดับตำแหน่ง/u), '5')
+    await user.click(screen.getByRole('checkbox', { name: /ตรวจแล้วว่าโซน แถว ลำดับตำแหน่ง และรหัสป้ายถูกต้อง/u }))
+    await user.click(screen.getByRole('button', { name: 'ลงทะเบียน' }))
+
+    await screen.findByRole('heading', { name: 'Z01-R01-T05' })
+    await user.click(screen.getByRole('link', { name: 'สแกนยืนยันตำแหน่งนี้' }))
+    const manualInput = await screen.findByRole('textbox', { name: 'รหัส Tag, QR URL หรือ Position ID' })
+    await user.type(manualInput, 'Z01-R01-T05')
+    await user.click(screen.getByRole('button', { name: 'ตรวจรหัส' }))
+
+    expect(await screen.findByRole('heading', { name: 'ยืนยันตำแหน่งตรงกัน' })).toBeInTheDocument()
+    expect(screen.getAllByText('Z01-R01-T05').length).toBeGreaterThan(0)
+  })
+
   it('separates tree presence from health status in the detail editor', async () => {
     renderApp('/trees/pos_demo_a01f783bc219')
     const user = await signIn()

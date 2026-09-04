@@ -18,6 +18,8 @@ outputs/
 
 # Firebase CLI state and logs
 .firebase/
+07-Source-Code/web-app/.firebase-local/
+07-Source-Code/web-app/package-lock.json
 firebase-debug.log
 firestore-debug.log
 ui-debug.log

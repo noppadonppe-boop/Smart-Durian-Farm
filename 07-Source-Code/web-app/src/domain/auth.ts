@@ -27,6 +27,29 @@ export interface UserProfile {
   isFirstUser: boolean
 }
 
+export const accessRequestStatuses = ['PENDING', 'APPROVED', 'REJECTED'] as const
+
+export type AccessRequestStatus = typeof accessRequestStatuses[number]
+
+export interface AccessRequestRecord {
+  requestId: string
+  uid: string
+  email: string
+  displayName: string
+  maskedPhone: string
+  providerIds: string[]
+  status: AccessRequestStatus
+  requestedAt: Timestamp
+  updatedAt: Timestamp
+  photoURL?: string
+  resolvedAt?: Timestamp
+  resolvedBy?: string
+  organizationId?: string
+  farmId?: string
+  assignedRole?: Exclude<UserRole, 'MasterAdmin'>
+  rejectionReason?: string
+}
+
 export interface AppMetaConfig {
   firstUserRegistered: boolean
   totalUsers: number

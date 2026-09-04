@@ -33,6 +33,7 @@ import {
 import demoSeed from '../../../scripts/seed-data/phase2-demo-seed.json'
 import type { TreePositionDetail } from '../../domain/treeRegister'
 import { MockTreeRegisterRepository } from './mockTreeRegisterRepository'
+import { MockTreeQrAssetRepository } from './mockTreeQrAssetRepository'
 import { MockWorkCareDiseaseRepository } from './mockWorkCareDiseaseRepository'
 import { MockCommercialTraceabilityRepository } from './mockCommercialTraceabilityRepository'
 import { MockOperationalHardeningRepository } from './mockOperationalHardeningRepository'
@@ -612,6 +613,7 @@ export function createMockPhase2Adapters(
   const treeRepository = new MockTreeRegisterRepository(
     structuredClone(demoSeed.treePositions) as unknown as TreePositionDetail[],
   )
+  const treeQrAssetRepository = new MockTreeQrAssetRepository()
   const workRepository = new MockWorkCareDiseaseRepository()
   const operationalRepository = new MockOperationalHardeningRepository()
   const annualCycleRepository = new MockAnnualCycleRepository()
@@ -624,6 +626,7 @@ export function createMockPhase2Adapters(
       operationalRepository,
     ),
     treeRepository,
+    treeQrAssetRepository,
     workRepository,
     commercialRepository: new MockCommercialTraceabilityRepository(annualCycleRepository),
     operationalRepository,

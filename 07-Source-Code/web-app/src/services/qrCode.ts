@@ -379,6 +379,26 @@ export function generateQrMatrix(text: string): QrMatrixResult {
 export interface QrSvgOptions {
   margin?: number
   size?: number
+  /** Human-readable text rendered below the QR code, e.g. a TAG code. */
+  label?: string
+  labelFontSize?: number
+}
+
+function escapeXml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case '&':
+        return '&amp;'
+      case '<':
+        return '&lt;'
+      case '>':
+        return '&gt;'
+      case '"':
+        return '&quot;'
+      default:
+        return '&apos;'
+    }
+  })
 }
 
 /**
@@ -388,6 +408,12 @@ export function generateQrSvg(text: string, options: QrSvgOptions = {}): string 
   const { matrix, size } = generateQrMatrix(text)
   const margin = options.margin ?? 4
   const viewBoxSize = size + margin * 2
+  const label = options.label?.trim()
+  const labelFontSize = label
+    ? Math.min(options.labelFontSize ?? 3.2, Math.max(1.5, (viewBoxSize - 1) / (label.length * 0.62)))
+    : 0
+  const labelHeight = label ? Math.max(5.5, labelFontSize + 2) : 0
+  const viewBoxHeight = viewBoxSize + labelHeight
 
   let pathData = ''
   for (let r = 0; r < size; r++) {
@@ -405,7 +431,11 @@ export function generateQrSvg(text: string, options: QrSvgOptions = {}): string 
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#ffffff"/><path d="${pathData.trim()}" fill="#000000"/></svg>`
+  const labelMarkup = label
+    ? `<text x="${viewBoxSize / 2}" y="${viewBoxSize + labelFontSize + 0.35}" text-anchor="middle" font-family="monospace" font-size="${labelFontSize}" font-weight="700" fill="#000000">${escapeXml(label)}</text>`
+    : ''
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewBoxSize} ${viewBoxHeight}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#ffffff"/><path d="${pathData.trim()}" fill="#000000"/>${labelMarkup}</svg>`
 }
 
 /**

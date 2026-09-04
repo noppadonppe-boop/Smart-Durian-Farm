@@ -33,6 +33,20 @@ describe('qrCode service', () => {
     expect(dataUrl.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true)
   })
 
+  it('renders a human-readable label below the QR code when requested', () => {
+    const svg = generateQrSvg('TEST-TAG', { label: 'Z01-R01-T02' })
+
+    expect(svg).toContain('<text')
+    expect(svg).toContain('>Z01-R01-T02</text>')
+    expect(svg).toMatch(/viewBox="0 0 \d+ \d+\.\d+"/)
+  })
+
+  it('escapes a label before embedding it in SVG markup', () => {
+    const svg = generateQrSvg('TEST-TAG', { label: 'A&B <TAG>' })
+
+    expect(svg).toContain('A&amp;B &lt;TAG&gt;')
+  })
+
   it('throws for text exceeding version 10 capacity', () => {
     const longText = 'A'.repeat(300)
     expect(() => generateQrMatrix(longText)).toThrow(/ข้อความยาวเกินความจุ/)

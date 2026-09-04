@@ -1,7 +1,9 @@
 import {
+  browserLocalPersistence,
   GoogleAuthProvider,
   onAuthStateChanged,
   RecaptchaVerifier,
+  setPersistence,
   signInWithPopup,
   signInWithPhoneNumber,
   signOut,
@@ -284,7 +286,10 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
 
   async signInWithGoogle(): Promise<AuthenticatedIdentity> {
     try {
-      const result = await signInWithPopup(this.auth, new GoogleAuthProvider())
+      await setPersistence(this.auth, browserLocalPersistence)
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+      const result = await signInWithPopup(this.auth, provider)
       return identityFromUser(result.user, 'firebase-live', this.options.mappedUserId)
     } catch (error) {
       throw new Error(googleAuthErrorMessage(error), { cause: error })

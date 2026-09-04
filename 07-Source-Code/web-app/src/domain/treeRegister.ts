@@ -13,6 +13,7 @@ export const positionStatuses = ['ACTIVE', 'ARCHIVED'] as const
 export const identityConfidences = ['confirmed', 'estimated', 'unknown'] as const
 export const measurementConfidences = ['measured', 'estimated', 'unknown'] as const
 export const rowCountingDirections = ['ASCENDING', 'DESCENDING', 'TBD'] as const
+export const treeQrFormats = ['TAG', 'URL'] as const
 
 export type TreeStatus = (typeof treeStatuses)[number]
 export type TreeHealthStatus = (typeof treeHealthStatuses)[number]
@@ -21,6 +22,8 @@ export type PositionStatus = (typeof positionStatuses)[number]
 export type IdentityConfidence = (typeof identityConfidences)[number]
 export type MeasurementConfidence = (typeof measurementConfidences)[number]
 export type RowCountingDirection = (typeof rowCountingDirections)[number]
+export type TreeQrFormat = (typeof treeQrFormats)[number]
+export type TreeQrAssetStatus = 'READY'
 
 export const treeStatusLabels: Record<TreeStatus, string> = {
   normal: 'ปกติ',
@@ -172,6 +175,29 @@ export interface TreePositionSummary extends TagParts {
 export interface TreePositionDetail extends TreePositionSummary {
   plantingCycles: PlantingCycleRecord[]
   timeline: TreeTimelineEvent[]
+}
+
+export interface TreeQrAsset {
+  qrAssetId: string
+  organizationId: string
+  farmId: string
+  positionId: string
+  tagCode: string
+  format: TreeQrFormat
+  payload: string
+  storagePath: string
+  storageUrl: string
+  status: TreeQrAssetStatus
+  createdAtLabel: string
+  exampleData: boolean
+}
+
+export interface TreeQrAssetDraft {
+  positionId: string
+  tagCode: string
+  format: TreeQrFormat
+  payload: string
+  svg: string
 }
 
 export interface TreePositionDraft extends TagParts {

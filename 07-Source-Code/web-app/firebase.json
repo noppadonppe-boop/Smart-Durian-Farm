@@ -6,6 +6,13 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Smart Durian Farm"
+      }
+    }
+  },
   "hosting": {
     "site": "durian-smartfarm",
     "public": "dist",

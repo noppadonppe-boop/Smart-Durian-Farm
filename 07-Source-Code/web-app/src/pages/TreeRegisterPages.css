@@ -1068,7 +1068,7 @@
 .tree-qr-modal__image {
   display: block;
   width: 180px;
-  height: 180px;
+  height: auto;
 }
 
 .tree-qr-modal__meta {

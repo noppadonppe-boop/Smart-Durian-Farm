@@ -59,8 +59,16 @@ service firebase.storage {
       return canReadFarm(organizationId, farmId)
         && firestore.get(farmPath(organizationId, farmId)).data.status == 'ACTIVE'
         && firestore.get(farmMemberPath(organizationId, farmId)).data.role in [
-          'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY'
-        ];
+        'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER', 'SALES_INVENTORY'
+      ];
+    }
+
+    function canManageTreeRegister(organizationId, farmId) {
+      return canReadFarm(organizationId, farmId)
+        && firestore.get(farmMemberPath(organizationId, farmId)).data.role in [
+          'ORG_OWNER', 'FARM_MANAGER'
+        ]
+        && firestore.get(farmPath(organizationId, farmId)).data.status == 'ACTIVE';
     }
 
     function validUpload(organizationId, farmId) {
@@ -70,6 +78,24 @@ service firebase.storage {
         && request.resource.metadata.organizationId == organizationId
         && request.resource.metadata.farmId == farmId
         && request.resource.metadata.uploadedBy == request.auth.uid;
+    }
+
+    function validTreeQrUpload(organizationId, farmId, positionId, fileName) {
+      return request.resource != null
+        && request.resource.size <= 1 * 1024 * 1024
+        && request.resource.contentType == 'image/svg+xml'
+        && request.resource.metadata.organizationId == organizationId
+        && request.resource.metadata.farmId == farmId
+        && request.resource.metadata.uploadedBy == request.auth.uid
+        && request.resource.metadata.positionId == positionId
+        && request.resource.metadata.qrFormat in ['TAG', 'URL']
+        && request.resource.metadata.storageFileName == fileName
+        && request.resource.metadata.tagCode is string
+        && request.resource.metadata.exampleData in ['true', 'false']
+        && request.resource.metadata.classification in ['SIMULATED/TEST ONLY', 'OPERATIONAL']
+        && fileName in ['TAG.svg', 'URL.svg']
+        && firestore.exists(/databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/treePositions/$(positionId))
+        && firestore.get(/databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/treePositions/$(positionId)).data.tagCode == request.resource.metadata.tagCode;
     }
 
     function workOrderPath(organizationId, farmId, workOrderId) {
@@ -137,6 +163,13 @@ service firebase.storage {
       allow read: if canReadWorkEvidence(organizationId, farmId, workOrderId);
       allow create: if canWriteFarm(organizationId, farmId)
         && validWorkEvidenceUpload(organizationId, farmId, workOrderId, fileName);
+      allow update, delete: if false;
+    }
+
+    match /organizations/{organizationId}/farms/{farmId}/treeQr/{positionId}/{fileName} {
+      allow read: if canReadFarm(organizationId, farmId);
+      allow create: if canManageTreeRegister(organizationId, farmId)
+        && validTreeQrUpload(organizationId, farmId, positionId, fileName);
       allow update, delete: if false;
     }
 

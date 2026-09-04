@@ -472,31 +472,42 @@ service cloud.firestore {
         && data.actorDisplayName is string
         && data.targetUserId is string
         && data.targetDisplayName is string
-        && data.eventType in ['ROLE_CHANGED', 'MEMBERSHIP_REVOKED', 'MEMBERSHIP_RESTORED']
-        && isCanonicalRole(data.beforeRole)
+        && data.eventType in [
+          'MEMBERSHIP_ASSIGNED', 'ROLE_CHANGED',
+          'MEMBERSHIP_REVOKED', 'MEMBERSHIP_RESTORED'
+        ]
         && isCanonicalRole(data.afterRole)
-        && isMembershipStatus(data.beforeStatus)
         && isMembershipStatus(data.afterStatus)
         && data.membershipVersion is int
         && data.createdAt == request.time
-        && exists(farmMemberPath(organizationId, farmId, data.targetUserId))
         && existsAfter(farmMemberPath(organizationId, farmId, data.targetUserId))
-        && data.beforeRole == get(farmMemberPath(organizationId, farmId, data.targetUserId)).data.role
-        && data.beforeStatus == get(farmMemberPath(organizationId, farmId, data.targetUserId)).data.status
         && data.afterRole == getAfter(farmMemberPath(organizationId, farmId, data.targetUserId)).data.role
         && data.afterStatus == getAfter(farmMemberPath(organizationId, farmId, data.targetUserId)).data.status
         && data.membershipVersion == getAfter(farmMemberPath(organizationId, farmId, data.targetUserId)).data.version
         && (
-          (data.eventType == 'ROLE_CHANGED'
-            && data.beforeStatus == 'ACTIVE'
+          (data.eventType == 'MEMBERSHIP_ASSIGNED'
+            && !exists(farmMemberPath(organizationId, farmId, data.targetUserId))
+            && data.beforeRole == null
+            && data.beforeStatus == null
             && data.afterStatus == 'ACTIVE'
-            && data.beforeRole != data.afterRole)
-          || (data.eventType == 'MEMBERSHIP_REVOKED'
-            && data.beforeStatus == 'ACTIVE'
-            && data.afterStatus == 'REVOKED')
-          || (data.eventType == 'MEMBERSHIP_RESTORED'
-            && data.beforeStatus == 'REVOKED'
-            && data.afterStatus == 'ACTIVE')
+            && data.membershipVersion == 1)
+          || (exists(farmMemberPath(organizationId, farmId, data.targetUserId))
+            && isCanonicalRole(data.beforeRole)
+            && isMembershipStatus(data.beforeStatus)
+            && data.beforeRole == get(farmMemberPath(organizationId, farmId, data.targetUserId)).data.role
+            && data.beforeStatus == get(farmMemberPath(organizationId, farmId, data.targetUserId)).data.status
+            && (
+              (data.eventType == 'ROLE_CHANGED'
+                && data.beforeStatus == 'ACTIVE'
+                && data.afterStatus == 'ACTIVE'
+                && data.beforeRole != data.afterRole)
+              || (data.eventType == 'MEMBERSHIP_REVOKED'
+                && data.beforeStatus == 'ACTIVE'
+                && data.afterStatus == 'REVOKED')
+              || (data.eventType == 'MEMBERSHIP_RESTORED'
+                && data.beforeStatus == 'REVOKED'
+                && data.afterStatus == 'ACTIVE')
+            ))
         );
     }
 
@@ -1042,6 +1053,120 @@ service cloud.firestore {
         && data.farmId == farmId
         && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
         && data.tagCode == tagCode
+        && data.exampleData is bool
+        && data.createdBy == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
+    function validAccessRequest(data, userKey) {
+      return data.keys().hasAll([
+          'requestId', 'uid', 'email', 'displayName', 'maskedPhone',
+          'providerIds', 'status', 'requestedAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'requestId', 'uid', 'email', 'displayName', 'maskedPhone',
+          'providerIds', 'status', 'requestedAt', 'updatedAt', 'photoURL',
+          'resolvedAt', 'resolvedBy', 'organizationId', 'farmId',
+          'assignedRole', 'rejectionReason'
+        ])
+        && data.requestId == userKey
+        && data.uid == userKey
+        && data.email is string
+        && data.displayName is string
+        && data.maskedPhone is string
+        && data.providerIds is list
+        && data.providerIds.hasOnly(['google.com', 'phone', 'password'])
+        && data.status in ['PENDING', 'APPROVED', 'REJECTED']
+        && data.requestedAt is timestamp
+        && data.updatedAt is timestamp
+        && (!('photoURL' in data) || data.photoURL is string);
+    }
+
+    function validSelfPendingAccessRequest(data, userKey) {
+      return userKey == request.auth.uid
+        && validAccessRequest(data, userKey)
+        && data.status == 'PENDING'
+        && data.requestedAt == request.time
+        && data.updatedAt == request.time
+        && !('resolvedAt' in data)
+        && !('resolvedBy' in data)
+        && !('organizationId' in data)
+        && !('farmId' in data)
+        && !('assignedRole' in data)
+        && !('rejectionReason' in data);
+    }
+
+    function validAccessRequestResolution(before, after, userKey) {
+      return validAccessRequest(after, userKey)
+        && before.status == 'PENDING'
+        && after.status in ['APPROVED', 'REJECTED']
+        && after.requestId == before.requestId
+        && after.uid == before.uid
+        && after.email == before.email
+        && after.displayName == before.displayName
+        && after.maskedPhone == before.maskedPhone
+        && after.providerIds == before.providerIds
+        && after.requestedAt == before.requestedAt
+        && after.updatedAt == request.time
+        && after.resolvedAt == request.time
+        && after.resolvedBy == request.auth.uid
+        && (
+          (after.status == 'APPROVED'
+            && after.organizationId is string
+            && after.farmId is string
+            && isCanonicalRole(after.assignedRole)
+            && !('rejectionReason' in after))
+          || (after.status == 'REJECTED'
+            && after.rejectionReason is string
+            && after.rejectionReason.size() > 0
+            && after.rejectionReason.size() <= 500
+            && !('organizationId' in after)
+            && !('farmId' in after)
+            && !('assignedRole' in after))
+        );
+    }
+
+    function validOrganizationMembership(data, organizationId, userId) {
+      return data.keys().hasAll([
+          'organizationId', 'userId', 'status', 'isOwner', 'classification',
+          'exampleData', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'organizationId', 'userId', 'status', 'isOwner', 'classification',
+          'exampleData', 'createdAt', 'updatedAt', 'seedBatchId'
+        ])
+        && data.organizationId == organizationId
+        && data.userId == userId
+        && data.status in ['ACTIVE', 'REVOKED']
+        && data.isOwner is bool
+        && validFarmDataClassification(data)
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function validTreeQrAsset(data, organizationId, farmId, assetId) {
+      return data.keys().hasOnly([
+          'recordType', 'qrAssetId', 'organizationId', 'farmId', 'positionId',
+          'tagCode', 'format', 'payload', 'storagePath', 'status',
+          'exampleData', 'createdBy', 'createdAt'
+        ])
+        && data.recordType == 'TREE_QR_ASSET'
+        && data.qrAssetId == assetId
+        && data.qrAssetId.matches('^qr_pos_[A-Za-z0-9_-]{12,}_(tag|url)$')
+        && data.organizationId == organizationId
+        && data.farmId == farmId
+        && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
+        && data.tagCode is string
+        && data.tagCode.size() >= 6
+        && data.tagCode.size() <= 80
+        && data.format in ['TAG', 'URL']
+        && data.payload is string
+        && data.payload.size() > 0
+        && data.payload.size() <= 2048
+        && data.storagePath == 'organizations/' + organizationId
+          + '/farms/' + farmId + '/treeQr/' + data.positionId
+          + '/' + data.format + '.svg'
+        && data.status == 'READY'
         && data.exampleData is bool
         && data.createdBy == request.auth.uid
         && data.createdAt == request.time;
@@ -1622,6 +1747,16 @@ service cloud.firestore {
         && validUserProfile(request.resource.data, userKey)
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isSystemAdmin();
+    }
+
+    match /durian-smartfarm/root/accessRequests/{userKey} {
+      allow get: if signedIn()
+        && (request.auth.uid == userKey || isSystemAdmin());
+      allow list: if isSystemAdmin();
+      allow create: if validSelfPendingAccessRequest(request.resource.data, userKey);
+      allow update: if isSystemAdmin()
+        && validAccessRequestResolution(resource.data, request.resource.data, userKey);
       allow delete: if false;
     }
 
@@ -1659,23 +1794,24 @@ service cloud.firestore {
         allow get, list: if signedIn()
           && resource.data.organizationId == organizationId
           && resource.data.userId == userId
-          && (request.auth.uid == userId || isOrganizationOwner(organizationId));
+          && (request.auth.uid == userId || isOrganizationOwner(organizationId) || isSystemAdmin());
         allow create: if isSystemAdmin()
-          && userId == request.auth.uid
-          && validOperationalOrganizationOwner(
-            request.resource.data,
-            organizationId,
-            userId
+          && (
+            (userId == request.auth.uid
+              && validOperationalOrganizationOwner(
+                request.resource.data, organizationId, userId
+              ))
+            || validOrganizationMembership(
+              request.resource.data, organizationId, userId
+            )
           );
         allow update: if isSystemAdmin()
+          && validOrganizationMembership(
+            request.resource.data, organizationId, userId
+          )
           && request.resource.data.organizationId == resource.data.organizationId
           && request.resource.data.userId == resource.data.userId
-          && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.status == 'ACTIVE'
-          && request.resource.data.isOwner == true
-          && request.resource.data.classification == 'OPERATIONAL'
-          && request.resource.data.exampleData == false
-          && request.resource.data.updatedAt == request.time;
+          && request.resource.data.createdAt == resource.data.createdAt;
         allow delete: if false;
       }
 
@@ -1707,8 +1843,8 @@ service cloud.firestore {
 
       match /farms/{farmId} {
         allow get: if canReadFarm(organizationId, farmId)
-          || isOrganizationOwner(organizationId);
-        allow list: if isOrganizationOwner(organizationId);
+          || isOrganizationOwner(organizationId) || isSystemAdmin();
+        allow list: if isOrganizationOwner(organizationId) || isSystemAdmin();
         allow create: if isOrganizationOwner(organizationId)
           && validFarmCreate(request.resource.data, organizationId, farmId)
           && existsAfter(farmSequenceGuardPath(
@@ -1777,13 +1913,20 @@ service cloud.firestore {
           allow get: if signedIn()
             && (request.auth.uid == userId || isOrganizationOwner(organizationId));
           allow list: if isOrganizationOwner(organizationId);
-          allow create: if isOrganizationOwner(organizationId)
-            && validOwnerMembershipCreate(
-              request.resource.data,
-              organizationId,
-              farmId,
-              userId
-            );
+          allow create: if (isOrganizationOwner(organizationId)
+              && validOwnerMembershipCreate(
+                request.resource.data, organizationId, farmId, userId
+              ))
+            || (isSystemAdmin()
+              && validFarmMembership(
+                request.resource.data, organizationId, farmId, userId
+              )
+              && request.resource.data.status == 'ACTIVE'
+              && request.resource.data.version == 1
+              && request.resource.data.createdAt == request.time
+              && matchingMembershipAuditExists(
+                organizationId, farmId, userId, request.resource.data
+              ));
           allow delete: if false;
           allow update: if isOrganizationOwner(organizationId)
             && farmStatus(organizationId, farmId) == 'ACTIVE'
@@ -1984,6 +2127,21 @@ service cloud.firestore {
               organizationId, farmId, request.resource.data.positionId
             )).data.tagCode == tagCode
             && getAfter(treePositionPath(
+              organizationId, farmId, request.resource.data.positionId
+            )).data.exampleData == request.resource.data.exampleData;
+          allow update, delete: if false;
+        }
+
+        match /treeQrAssets/{assetId} {
+          allow read: if canReadFarm(organizationId, farmId);
+          allow create: if canManageTreeRegister(organizationId, farmId)
+            && !exists(/databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/treeQrAssets/$(assetId))
+            && validTreeQrAsset(request.resource.data, organizationId, farmId, assetId)
+            && exists(treePositionPath(organizationId, farmId, request.resource.data.positionId))
+            && get(treePositionPath(
+              organizationId, farmId, request.resource.data.positionId
+            )).data.tagCode == request.resource.data.tagCode
+            && get(treePositionPath(
               organizationId, farmId, request.resource.data.positionId
             )).data.exampleData == request.resource.data.exampleData;
           allow update, delete: if false;
@@ -3336,12 +3494,12 @@ service cloud.firestore {
         }
 
         match /auditEvents/{auditEventId} {
-          allow read: if canReadFarm(organizationId, farmId)
+          allow read: if isSystemAdmin() || (canReadFarm(organizationId, farmId)
             && (
               isOrganizationOwner(organizationId)
               || hasFarmRole(organizationId, farmId, ['FARM_MANAGER', 'AUDITOR'])
-            );
-          allow create: if isOrganizationOwner(organizationId)
+            ));
+          allow create: if (isOrganizationOwner(organizationId)
             && (
               (
                 exists(farmPath(organizationId, farmId))
@@ -3358,7 +3516,15 @@ service cloud.firestore {
                 farmId,
                 auditEventId
               )
-            );
+            )) || (isSystemAdmin()
+              && exists(farmPath(organizationId, farmId))
+              && farmStatus(organizationId, farmId) == 'ACTIVE'
+              && validAuditEvent(
+                request.resource.data,
+                organizationId,
+                farmId,
+                auditEventId
+              ));
           allow update, delete: if false;
         }
 

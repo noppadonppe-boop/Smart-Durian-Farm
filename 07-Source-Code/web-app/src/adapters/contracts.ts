@@ -17,6 +17,8 @@ import type {
   ReplacePlantingCycleInput,
   TreeImportCandidate,
   TreeImportResult,
+  TreeQrAsset,
+  TreeQrAssetDraft,
   TreeMutationContext,
   TreePositionDetail,
   TreePositionDraft,
@@ -233,6 +235,15 @@ export interface TreeRegisterRepository {
 
 export interface Phase3Adapters extends Phase2Adapters {
   treeRepository: TreeRegisterRepository
+  treeQrAssetRepository: TreeQrAssetRepository
+}
+
+export interface TreeQrAssetRepository {
+  listQrAssets(context: TreeMutationContext): Promise<readonly TreeQrAsset[]>
+  createQrAsset(
+    context: TreeMutationContext,
+    draft: TreeQrAssetDraft,
+  ): Promise<TreeQrAsset>
 }
 
 export interface WorkCareDiseaseRepository {

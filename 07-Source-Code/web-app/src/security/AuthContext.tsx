@@ -10,6 +10,7 @@ import type { User as FirebaseUser } from 'firebase/auth'
 
 import { appEnvironment } from '../config/environment'
 import type { UserProfile } from '../domain/auth'
+import { ensureFirebaseAccessRequest } from '../services/accessRequestService'
 
 interface AuthContextValue {
   firebaseUser: FirebaseUser | null
@@ -118,7 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = runtime.onAuthStateChanged(runtime.auth, (user) => {
       setFirebaseUser(user)
       if (user) {
-        void fetchProfile(user).finally(() => setLoading(false))
+        void ensureFirebaseAccessRequest(user)
+          .then(() => fetchProfile(user))
+          .catch((error: unknown) => {
+            console.error('สร้างคำขอเข้าใช้งาน Firebase ไม่สำเร็จ', error)
+            setUserProfile(null)
+          })
+          .finally(() => setLoading(false))
       } else {
         setUserProfile(null)
         setIsSystemAdmin(false)

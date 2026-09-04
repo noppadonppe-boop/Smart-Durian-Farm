@@ -118,7 +118,10 @@ export function ScanPage() {
           }
           position = resolution.position
         } else {
-          const tag = parseTagCode(input)
+          const tag = parseTagCode(input, {
+            organizationCode: currentFarm.organizationCode,
+            farmSequence: currentFarm.farmSequence,
+          })
           if (
             tag.organizationCode !== currentFarm.organizationCode ||
             tag.farmSequence !== currentFarm.farmSequence
@@ -310,7 +313,7 @@ export function ScanPage() {
         <h2 id="manual-scan-title">กรอกรหัสด้วยมือ</h2>
         <p>รับ Human Tag, QR URL หรือ Opaque Position ID</p>
         <label className="scan-context" htmlFor="manual-scan-input">รหัส Tag, QR URL หรือ Position ID</label>
-        <div><input autoCapitalize="characters" id="manual-scan-input" onChange={(event) => setManualInput(event.target.value)} placeholder={mode === 'mock' ? 'DEMO-F01-Z01-R01-T001' : 'ORG-F01-Z01-R01-T001'} value={manualInput} /><button onClick={() => void resolveInput(manualInput)} type="button">ตรวจรหัส</button></div>
+        <div><input autoCapitalize="characters" id="manual-scan-input" onChange={(event) => setManualInput(event.target.value)} placeholder="Z01-R01-T01" value={manualInput} /><button onClick={() => void resolveInput(manualInput)} type="button">ตรวจรหัส</button></div>
         {mode === 'mock' ? <div className="simulation-actions"><button onClick={() => void simulate('MATCH')} type="button">จำลองสแกนตรงต้น</button><button onClick={() => void simulate('MISMATCH')} type="button">จำลองสแกนผิดต้น</button></div> : null}
       </section>
 

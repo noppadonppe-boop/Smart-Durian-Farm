@@ -7,6 +7,7 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       { createFirebaseLiveClients },
       { FirebasePhase2Repository },
       { FirebaseTreeRegisterRepository },
+      { FirebaseTreeQrAssetRepository },
       { FirebaseWorkCareDiseaseRepository },
       { FirebaseCommercialTraceabilityRepository },
       { FirebaseOperationalHardeningRepository },
@@ -18,6 +19,7 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       import('../infrastructure/firebase/firebaseClient'),
       import('../infrastructure/firebase/firebasePhase2Repository'),
       import('../infrastructure/firebase/firebaseTreeRegisterRepository'),
+      import('../infrastructure/firebase/firebaseTreeQrAssetRepository'),
       import('../infrastructure/firebase/firebaseWorkCareDiseaseRepository'),
       import('../infrastructure/firebase/firebaseCommercialTraceabilityRepository'),
       import('../infrastructure/firebase/firebaseOperationalHardeningRepository'),
@@ -28,6 +30,7 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
     ])
     const clients = createFirebaseLiveClients()
     const treeRepository = new FirebaseTreeRegisterRepository(clients.firestore, false)
+    const treeQrAssetRepository = new FirebaseTreeQrAssetRepository(clients.firestore, clients.storage, false)
     const workRepository = new FirebaseWorkCareDiseaseRepository(clients.firestore, clients.storage, false, 'Firebase')
     return {
       auth: new FirebaseLivePhoneOtpGateway(
@@ -38,6 +41,7 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       ),
       repository: new FirebasePhase2Repository(clients.firestore, false),
       treeRepository,
+      treeQrAssetRepository,
       workRepository,
       commercialRepository: new FirebaseCommercialTraceabilityRepository(clients.firestore, true, false),
       operationalRepository: new FirebaseOperationalHardeningRepository(clients.firestore, false),

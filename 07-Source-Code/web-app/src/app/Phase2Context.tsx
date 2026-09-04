@@ -33,6 +33,8 @@ import type {
   ReplacePlantingCycleInput,
   TreeImportCandidate,
   TreeImportResult,
+  TreeQrAsset,
+  TreeQrAssetDraft,
   TreePositionDetail,
   TreePositionDraft,
   TreePositionSummary,
@@ -239,6 +241,8 @@ export interface Phase2ContextValue {
     idempotencyKey: string,
     candidates: readonly TreeImportCandidate[],
   ) => Promise<TreeImportResult>
+  listTreeQrAssets: () => Promise<readonly TreeQrAsset[]>
+  createTreeQrAsset: (draft: TreeQrAssetDraft) => Promise<TreeQrAsset>
   listWorkOrders: () => Promise<readonly WorkOrderRecord[]>
   getWorkOrder: (workOrderId: string) => Promise<WorkOrderRecord | undefined>
   createWorkOrder: (
@@ -974,6 +978,22 @@ function ResolvedPhase2Provider({
     )
   }, [adapters.treeRepository, requireFarmAndIdentity])
 
+  const listTreeQrAssets = useCallback(async () => {
+    const context = requireFarmAndIdentity()
+    return adapters.treeQrAssetRepository.listQrAssets({
+      actor: context.identity,
+      farm: context.currentFarm,
+    })
+  }, [adapters.treeQrAssetRepository, requireFarmAndIdentity])
+
+  const createTreeQrAsset = useCallback(async (draft: TreeQrAssetDraft) => {
+    const context = requireFarmAndIdentity()
+    return adapters.treeQrAssetRepository.createQrAsset(
+      { actor: context.identity, farm: context.currentFarm },
+      draft,
+    )
+  }, [adapters.treeQrAssetRepository, requireFarmAndIdentity])
+
   const workContext = useCallback(() => {
     const context = requireFarmAndIdentity()
     return { actor: context.identity, farm: context.currentFarm }
@@ -1575,6 +1595,8 @@ function ResolvedPhase2Provider({
       archiveTreePosition,
       reportDamagedTag,
       importTreePositions,
+      listTreeQrAssets,
+      createTreeQrAsset,
       listWorkOrders,
       getWorkOrder,
       createWorkOrder,
@@ -1661,6 +1683,8 @@ function ResolvedPhase2Provider({
       archiveTreePosition,
       reportDamagedTag,
       importTreePositions,
+      listTreeQrAssets,
+      createTreeQrAsset,
       listWorkOrders,
       getWorkOrder,
       createWorkOrder,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
@@ -9,6 +9,8 @@ import {
   treePresenceFromStatus,
   treePresenceLabels,
   treeStatusLabels,
+  type TreeQrAsset,
+  type TreeQrFormat,
   type PositionStatus,
   type TreePositionSummary,
   type TreeStatus,
@@ -20,8 +22,21 @@ import './TreeRegisterPages.css'
 
 type TreeListFilterStatus = 'ALL' | 'present' | TreeStatus | PositionStatus
 
+function qrAssetKey(positionId: string, format: TreeQrFormat): string {
+  return `${positionId}:${format}`
+}
+
+function qrPayload(position: TreePositionSummary, format: TreeQrFormat): string {
+  if (format === 'TAG') return position.tagCode
+  try {
+    return buildQrPayload(appEnvironment.qrBaseUrl, position.positionId)
+  } catch {
+    return position.tagCode
+  }
+}
+
 export function TreesPage() {
-  const { currentFarm, listTreePositions } = usePhase2()
+  const { currentFarm, listTreePositions, listTreeQrAssets, createTreeQrAsset } = usePhase2()
   const [positions, setPositions] = useState<readonly TreePositionSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
@@ -31,9 +46,12 @@ export function TreesPage() {
   const [zone, setZone] = useState('ALL')
   const [status, setStatus] = useState<TreeListFilterStatus>('ALL')
   const [qrGeneratedMap, setQrGeneratedMap] = useState<Record<string, boolean>>({})
+  const [qrAssets, setQrAssets] = useState<readonly TreeQrAsset[]>([])
+  const [qrBusy, setQrBusy] = useState(false)
   const [selectedQrPosition, setSelectedQrPosition] = useState<TreePositionSummary>()
   const [qrFormat, setQrFormat] = useState<'TAG' | 'URL'>('TAG')
   const [copySuccess, setCopySuccess] = useState(false)
+  const pendingQrAssets = useRef(new Map<string, Promise<TreeQrAsset>>())
 
   useEffect(() => {
     let active = true
@@ -43,28 +61,17 @@ export function TreesPage() {
           setLoading(true)
           setError(undefined)
         }
-        return listTreePositions()
+        return Promise.all([listTreePositions(), listTreeQrAssets()])
       })
-      .then((result) => {
+      .then(([result, assets]) => {
         if (active) {
           setPositions(result)
-          if (currentFarm) {
-            const storageKey = `kdoms_tree_qr_${currentFarm.farmId}`
-            try {
-              const saved = localStorage.getItem(storageKey)
-              if (saved) {
-                setQrGeneratedMap(JSON.parse(saved) as Record<string, boolean>)
-                return
-              }
-            } catch {
-              // fallback
-            }
-            const initialMap: Record<string, boolean> = {}
-            result.forEach((pos) => {
-              initialMap[pos.positionId] = Boolean(pos.qrPath && pos.treeSequence % 2 !== 0)
-            })
-            setQrGeneratedMap(initialMap)
-          }
+          setQrAssets(assets)
+          setQrGeneratedMap(Object.fromEntries(
+            assets
+              .filter((asset) => asset.format === 'TAG' && asset.status === 'READY')
+              .map((asset) => [asset.positionId, true]),
+          ))
         }
       })
       .catch((reason: unknown) => {
@@ -76,7 +83,7 @@ export function TreesPage() {
     return () => {
       active = false
     }
-  }, [currentFarm, listTreePositions])
+  }, [currentFarm, listTreePositions, listTreeQrAssets])
 
   const zones = useMemo(
     () => [...new Set(positions.map((position) => position.zoneCode))].sort(),
@@ -103,10 +110,15 @@ export function TreesPage() {
   const qrDataUrls = useMemo(() => {
     const cache = new Map<string, string>()
     for (const pos of positions) {
-      cache.set(pos.positionId, generateQrDataUrl(pos.tagCode, { margin: 1 }))
+      cache.set(pos.positionId, generateQrDataUrl(pos.tagCode, { label: pos.tagCode, margin: 1 }))
     }
     return cache
   }, [positions])
+
+  const qrAssetMap = useMemo(
+    () => new Map(qrAssets.map((asset) => [qrAssetKey(asset.positionId, asset.format), asset])),
+    [qrAssets],
+  )
 
   if (!currentFarm) return null
   const canManage = canManageTreeRegister(currentFarm)
@@ -120,52 +132,71 @@ export function TreesPage() {
     }
   }
 
-  const handleCreateQr = (position: TreePositionSummary) => {
-    if (!currentFarm) return
-    const storageKey = `kdoms_tree_qr_${currentFarm.farmId}`
-    setQrGeneratedMap((prev) => {
-      const next = { ...prev, [position.positionId]: true }
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(next))
-      } catch {
-        // ignore
-      }
-      return next
-    })
-    setSelectedQrPosition(position)
-    setQrNotification(`สร้าง QR Code สำหรับ ${position.tagCode} สำเร็จแล้ว`)
-    setTimeout(() => setQrNotification(undefined), 3500)
-  }
+  const ensureQrAsset = async (position: TreePositionSummary, format: TreeQrFormat): Promise<TreeQrAsset> => {
+    const key = qrAssetKey(position.positionId, format)
+    const existing = qrAssetMap.get(key)
+    if (existing) return existing
+    const pending = pendingQrAssets.current.get(key)
+    if (pending) return pending
 
-  const handleCreateAllQrs = () => {
-    if (!currentFarm) return
-    const storageKey = `kdoms_tree_qr_${currentFarm.farmId}`
-    setQrGeneratedMap((prev) => {
-      const next = { ...prev }
-      positions.forEach((pos) => {
-        next[pos.positionId] = true
+    const payload = qrPayload(position, format)
+    const promise = createTreeQrAsset({
+      positionId: position.positionId,
+      tagCode: position.tagCode,
+      format,
+      payload,
+      svg: generateQrSvg(payload, { label: position.tagCode, margin: 2 }),
+    })
+      .then((asset) => {
+        setQrAssets((current) => current.some((candidate) => qrAssetKey(candidate.positionId, candidate.format) === key)
+          ? current.map((candidate) => qrAssetKey(candidate.positionId, candidate.format) === key ? asset : candidate)
+          : [...current, asset])
+        if (format === 'TAG') setQrGeneratedMap((current) => ({ ...current, [position.positionId]: true }))
+        return asset
       })
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(next))
-      } catch {
-        // ignore
-      }
-      return next
-    })
-    setQrNotification(`สร้าง QR Code ให้ครบทุก ${positions.length} รายการแล้ว`)
-    setTimeout(() => setQrNotification(undefined), 3500)
+      .finally(() => pendingQrAssets.current.delete(key))
+    pendingQrAssets.current.set(key, promise)
+    return promise
   }
 
-  const handleDownloadQrSvg = (position: TreePositionSummary, format: 'TAG' | 'URL' = qrFormat) => {
-    let payload = position.tagCode
-    if (format === 'URL') {
-      try {
-        payload = buildQrPayload(appEnvironment.qrBaseUrl, position.positionId)
-      } catch {
-        // fallback
-      }
+  const handleCreateQr = async (position: TreePositionSummary) => {
+    setQrBusy(true)
+    setError(undefined)
+    try {
+      await ensureQrAsset(position, 'TAG')
+      setSelectedQrPosition(position)
+      setQrNotification(`สร้าง QR Code และบันทึกรูปของ ${position.tagCode} แล้ว`)
+      setTimeout(() => setQrNotification(undefined), 3500)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'บันทึก QR Code ไม่สำเร็จ')
+    } finally {
+      setQrBusy(false)
     }
-    const svg = generateQrSvg(payload, { margin: 4 })
+  }
+
+  const handleCreateAllQrs = async () => {
+    setQrBusy(true)
+    setError(undefined)
+    try {
+      for (const position of positions) await ensureQrAsset(position, 'TAG')
+      setQrNotification(`สร้างและบันทึก QR Code ให้ครบทุก ${positions.length} รายการแล้ว`)
+      setTimeout(() => setQrNotification(undefined), 3500)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'บันทึก QR Code ทั้งหมดไม่สำเร็จ')
+    } finally {
+      setQrBusy(false)
+    }
+  }
+
+  const handleDownloadQrSvg = async (position: TreePositionSummary, format: TreeQrFormat = qrFormat) => {
+    setError(undefined)
+    try {
+      await ensureQrAsset(position, format)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'บันทึก QR Code ไม่สำเร็จ')
+      return
+    }
+    const svg = generateQrSvg(qrPayload(position, format), { label: position.tagCode, margin: 4 })
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -293,7 +324,8 @@ export function TreesPage() {
                 <div className="tree-table-card__heading-actions">
                   <button
                     className="secondary-action tree-table__create-all-btn"
-                    onClick={handleCreateAllQrs}
+                    disabled={qrBusy}
+                    onClick={() => void handleCreateAllQrs()}
                     title="สร้าง QR Code ให้ครบทุกตำแหน่ง"
                     type="button"
                   >
@@ -326,7 +358,8 @@ export function TreesPage() {
                         ? `${position.currentCycle.plantingYear} ${position.currentCycle.plantingYearCalendar === 'BE' ? 'พ.ศ.' : 'ค.ศ.'}`
                         : 'ไม่ทราบ'
                       const hasQr = Boolean(qrGeneratedMap[position.positionId])
-                      const qrThumb = qrDataUrls.get(position.positionId)
+                      const qrThumb = qrAssetMap.get(qrAssetKey(position.positionId, 'TAG'))?.storageUrl
+                        || qrDataUrls.get(position.positionId)
                       return (
                         <tr key={position.positionId}>
                           <th scope="row">
@@ -359,7 +392,8 @@ export function TreesPage() {
                             ) : (
                               <button
                                 className="tree-table__create-qr-btn"
-                                onClick={() => handleCreateQr(position)}
+                                disabled={qrBusy}
+                                onClick={() => void handleCreateQr(position)}
                                 title={`คลิกเพื่อสร้าง QR Code ให้ตำแหน่ง ${position.tagCode}`}
                                 type="button"
                               >
@@ -426,28 +460,31 @@ export function TreesPage() {
             </div>
 
             {(() => {
-              const activePayload = qrFormat === 'TAG'
-                ? selectedQrPosition.tagCode
-                : (() => {
-                    try {
-                      return buildQrPayload(appEnvironment.qrBaseUrl, selectedQrPosition.positionId)
-                    } catch {
-                      return selectedQrPosition.tagCode
-                    }
-                  })()
+              const activePayload = qrPayload(selectedQrPosition, qrFormat)
+              const activeQrAsset = qrAssetMap.get(qrAssetKey(selectedQrPosition.positionId, qrFormat))
               return (
                 <>
                   <div className="tree-qr-modal__format-toggle" role="group" aria-label="รูปแบบ QR Code">
                     <button
                       className={`tree-qr-modal__format-btn ${qrFormat === 'TAG' ? 'is-active' : ''}`}
-                      onClick={() => setQrFormat('TAG')}
+                      onClick={() => {
+                        setQrFormat('TAG')
+                        void ensureQrAsset(selectedQrPosition, 'TAG').catch((cause: unknown) => {
+                          setError(cause instanceof Error ? cause.message : 'บันทึก QR Code ไม่สำเร็จ')
+                        })
+                      }}
                       type="button"
                     >
                       🏷️ รหัสป้าย TAG (สแกนง่าย แนะนำ)
                     </button>
                     <button
                       className={`tree-qr-modal__format-btn ${qrFormat === 'URL' ? 'is-active' : ''}`}
-                      onClick={() => setQrFormat('URL')}
+                      onClick={() => {
+                        setQrFormat('URL')
+                        void ensureQrAsset(selectedQrPosition, 'URL').catch((cause: unknown) => {
+                          setError(cause instanceof Error ? cause.message : 'บันทึก QR Code ไม่สำเร็จ')
+                        })
+                      }}
                       type="button"
                     >
                       🔗 URL ถาวร (/t/pos_...)
@@ -459,8 +496,7 @@ export function TreesPage() {
                       <img
                         alt={`QR Code ${selectedQrPosition.tagCode}`}
                         className="tree-qr-modal__image"
-                        height={180}
-                        src={generateQrDataUrl(activePayload, { margin: 2 })}
+                        src={activeQrAsset?.storageUrl || generateQrDataUrl(activePayload, { label: selectedQrPosition.tagCode, margin: 2 })}
                         width={180}
                       />
                     </div>
@@ -497,7 +533,7 @@ export function TreesPage() {
                     <div className="tree-qr-modal__btn-row">
                       <button
                         className="secondary-action"
-                        onClick={() => handleDownloadQrSvg(selectedQrPosition, qrFormat)}
+                        onClick={() => void handleDownloadQrSvg(selectedQrPosition, qrFormat)}
                         type="button"
                       >
                         📥 ดาวน์โหลด SVG ({qrFormat})
