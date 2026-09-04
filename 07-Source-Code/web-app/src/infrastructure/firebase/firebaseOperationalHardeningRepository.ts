@@ -40,7 +40,7 @@ import {
 } from '../../domain/operationalHardening'
 import { rootDoc } from './firebaseDataRoot'
 
-const fixedTimeLabel = '31 ส.ค. 2569 · Firebase Emulator time'
+const defaultTimeLabel = 'Firebase'
 
 function copy<T>(value: T): T {
   return structuredClone(value)
@@ -61,7 +61,11 @@ function withoutUndefined<T extends object>(value: T): Record<string, unknown> {
 }
 
 export class FirebaseOperationalHardeningRepository implements OperationalHardeningRepository {
-  constructor(private readonly firestore: Firestore) {}
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly exampleData = true,
+    private readonly timeLabel = defaultTimeLabel,
+  ) {}
 
   private farmReference(context: OperationalContext) {
     return rootDoc(
@@ -96,8 +100,8 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
       reason,
       beforeSummary,
       afterSummary,
-      createdAtLabel: fixedTimeLabel,
-      exampleData: true,
+      createdAtLabel: this.timeLabel,
+      exampleData: this.exampleData,
     }
   }
 
@@ -176,9 +180,9 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
         capturedRole: context.farm.role,
         status: 'PENDING',
         attemptCount: 0,
-        createdAtLabel: fixedTimeLabel,
-        updatedAtLabel: fixedTimeLabel,
-        exampleData: true,
+        createdAtLabel: this.timeLabel,
+        updatedAtLabel: this.timeLabel,
+        exampleData: this.exampleData,
       }
       transaction.set(reference, { ...record, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
       return record
@@ -201,7 +205,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
         attemptCount: operation.attemptCount + 1,
         resultEventId: authorized ? safeId('audit_sync', operationId) : undefined,
         conflictReason: authorized ? undefined : 'สิทธิ์เปลี่ยนหรือถูกยกเลิกก่อน reconnect',
-        updatedAtLabel: fixedTimeLabel,
+        updatedAtLabel: this.timeLabel,
       }
       const event = this.auditRecord(
         context,
@@ -254,7 +258,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
         resolution,
         resolutionReason: reason.trim(),
         resolvedByUserId: context.actor.userId,
-        resolvedAtLabel: fixedTimeLabel,
+        resolvedAtLabel: this.timeLabel,
         version: conflict.version + 1,
       }
       const event = this.auditRecord(context, eventId,
@@ -297,8 +301,8 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
         farmId: context.farm.farmId,
         actorUserId: context.actor.userId,
         retryCount: 0,
-        updatedAtLabel: fixedTimeLabel,
-        exampleData: true,
+        updatedAtLabel: this.timeLabel,
+        exampleData: this.exampleData,
       }
       const event = this.auditRecord(context, eventId, 'PHOTO_RECOVERY_REGISTERED', 'PHOTO',
         recovery.photoId, valid.lastError, 'UNTRACKED', valid.status)
@@ -331,7 +335,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
         status: 'UPLOADED',
         retryCount: recovery.retryCount + 1,
         lastError: undefined,
-        updatedAtLabel: fixedTimeLabel,
+        updatedAtLabel: this.timeLabel,
       }
       const event = this.auditRecord(context, eventId, 'PHOTO_RETRIED', 'PHOTO', recovery.photoId,
         'ยืนยันว่า binary ถูกอัปโหลดและผูกกับ Work ด้วย idempotency key เดิมแล้ว',
@@ -365,7 +369,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
         ...recovery,
         status: 'CLEANED',
         lastError: undefined,
-        updatedAtLabel: fixedTimeLabel,
+        updatedAtLabel: this.timeLabel,
       }
       const event = this.auditRecord(context, eventId, 'ORPHAN_CLEANED', 'PHOTO', recovery.photoId,
         reason.trim(), 'ORPHANED', 'CLEANED')
@@ -403,8 +407,8 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
       ],
       rowCount: events.length,
       csvText: buildFarmAuditCsv(events),
-      createdAtLabel: fixedTimeLabel,
-      exampleData: true,
+      createdAtLabel: this.timeLabel,
+      exampleData: this.exampleData,
     }
     const eventId = safeId('audit_export', idempotencyKey)
     const event = this.auditRecord(context, eventId, 'EXPORT_CREATED', 'EXPORT', exportId,

@@ -15,9 +15,14 @@ export function AnnualCycleSwitcher() {
   const selected = annualCycleSnapshot.selectedCycle
 
   return (
-    <div className="annual-cycle-switcher">
-      <label htmlFor="annual-cycle-context">รอบปีของสวน</label>
-      <div>
+    <div
+      className="annual-cycle-switcher"
+      title={selected
+        ? `รอบปี: ${selected.cycleCode} (${selected.periodStart} – ${inclusivePeriodEnd(selected.periodEndExclusive)})`
+        : 'รอบปีของสวน'}
+    >
+      <label className="annual-cycle-switcher__label" htmlFor="annual-cycle-context">รอบปี:</label>
+      <div className="annual-cycle-switcher__control">
         <select
           aria-label="เลือกรอบบริหารสวนรายปี"
           disabled={annualCyclesLoading || annualCycleSnapshot.cycles.length === 0}
@@ -35,13 +40,6 @@ export function AnnualCycleSwitcher() {
         </select>
         <Link aria-label="เปิดหน้าจัดการรอบปี" to="/annual-cycles">จัดการ</Link>
       </div>
-      <small>
-        {annualCyclesLoading
-          ? 'กำลังโหลดรอบปี…'
-          : selected
-            ? `${selected.periodStart} – ${inclusivePeriodEnd(selected.periodEndExclusive)}`
-            : 'Owner สามารถสร้างรอบ มิ.ย.–พ.ค. หรือกำหนดวันเริ่มเฉพาะสวน'}
-      </small>
     </div>
   )
 }

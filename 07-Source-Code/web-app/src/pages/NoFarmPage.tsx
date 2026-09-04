@@ -1,5 +1,4 @@
 import { usePhase2 } from '../app/usePhase2'
-import { ProductionSeedPanel } from '../components/ProductionSeedPanel'
 
 export function NoFarmPage() {
   const { authError, identity, signOut } = usePhase2()
@@ -18,7 +17,6 @@ export function NoFarmPage() {
         <button className="secondary-action" onClick={() => void signOut()} type="button">
           ออกจากระบบ
         </button>
-        <ProductionSeedPanel bootstrap />
       </section>
     </main>
   )

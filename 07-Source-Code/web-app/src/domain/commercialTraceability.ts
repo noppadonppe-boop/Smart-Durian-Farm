@@ -63,7 +63,7 @@ export interface CropCycleRecord {
   expectedHarvestDate: string | null
   status: 'ACTIVE' | 'ARCHIVED'
   version: number
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface CropCycleDraft {
@@ -101,7 +101,7 @@ export interface FruitObservationRecord extends FruitObservationDraft {
   createdAtLabel: string
   archivedAtLabel: string | null
   version: number
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface HarvestGrade {
@@ -147,7 +147,7 @@ export interface HarvestLotRecord extends HarvestLotDraft {
   actorUserId: string
   createdAtLabel: string
   version: number
-  exampleData: true
+  exampleData: boolean
   audit: readonly CommercialAuditEvent[]
 }
 
@@ -181,7 +181,7 @@ export interface SalesLotRecord extends Omit<SalesLotDraft, 'financial'> {
   actorUserId: string
   createdAtLabel: string
   version: number
-  exampleData: true
+  exampleData: boolean
   audit: readonly CommercialAuditEvent[]
 }
 
@@ -195,7 +195,7 @@ export interface SalesLotFinancialRecord extends SalesLotFinancialDraft {
   actorUserId: string
   createdAtLabel: string
   version: number
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface SalesCorrectionInput {
@@ -223,7 +223,7 @@ export interface InventoryItemRecord {
   lots: readonly InventoryLotRecord[]
   status: 'ACTIVE' | 'ARCHIVED'
   version: number
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface InventoryMovementInput {
@@ -247,7 +247,7 @@ export interface InventoryMovementRecord extends Omit<InventoryMovementInput, 'f
   actorUserId: string
   createdAtLabel: string
   version: 1
-  exampleData: true
+  exampleData: boolean
   audit: readonly CommercialAuditEvent[]
 }
 
@@ -263,14 +263,14 @@ export interface InventoryMovementFinancialRecord extends InventoryMovementFinan
   actorUserId: string
   createdAtLabel: string
   version: 1
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface CommercialFinancialAuditEvent extends CommercialAuditEvent {
   organizationId: string
   farmId: string
   amountBaht: number | null
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface InventoryBalance {

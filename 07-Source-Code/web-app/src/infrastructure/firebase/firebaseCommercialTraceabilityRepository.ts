@@ -56,7 +56,7 @@ import {
 } from '../../domain/commercialTraceability'
 import { rootDoc } from './firebaseDataRoot'
 
-const fixedTimeLabel = '31 ส.ค. 2569 · Local Emulator'
+const defaultTimeLabel = 'Firebase'
 
 function copy<T>(value: T): T {
   return structuredClone(value)
@@ -68,12 +68,12 @@ function operationId(context: CommercialMutationContext, key: string): string {
   return normalized
 }
 
-function parseRecord<T extends { organizationId: string; farmId: string; exampleData: true }>(
+function parseRecord<T extends { organizationId: string; farmId: string; exampleData: boolean }>(
   data: DocumentData,
   context: CommercialMutationContext,
 ): T {
-  if (data.exampleData !== true || typeof data.organizationId !== 'string' || typeof data.farmId !== 'string') {
-    throw new Error('เอกสาร Emulator ไม่ใช่ SIMULATED/TEST ONLY record ที่ถูกต้อง')
+  if (typeof data.exampleData !== 'boolean' || typeof data.organizationId !== 'string' || typeof data.farmId !== 'string') {
+    throw new Error('เอกสาร Firebase มี data mode ไม่ถูกต้อง')
   }
   const record = data as T
   assertCommercialScope(context, record)
@@ -89,6 +89,7 @@ function auditEvent(
   beforeSummary: string,
   afterSummary: string,
   recordVersion: number,
+  timeLabel = defaultTimeLabel,
 ): CommercialAuditEvent {
   return {
     eventId: createCommercialRecordId('commercial_event'),
@@ -101,7 +102,7 @@ function auditEvent(
     beforeSummary,
     afterSummary,
     recordVersion,
-    createdAtLabel: fixedTimeLabel,
+    createdAtLabel: timeLabel,
   }
 }
 
@@ -115,13 +116,15 @@ function financialAuditEvent(
   afterSummary: string,
   recordVersion: number,
   amountBaht: number | null,
+  exampleData: boolean,
+  timeLabel: string,
 ): CommercialFinancialAuditEvent {
   return {
-    ...auditEvent(context, recordKind, recordId, eventType, reason, beforeSummary, afterSummary, recordVersion),
+    ...auditEvent(context, recordKind, recordId, eventType, reason, beforeSummary, afterSummary, recordVersion, timeLabel),
     organizationId: context.farm.organizationId,
     farmId: context.farm.farmId,
     amountBaht,
-    exampleData: true,
+    exampleData,
   }
 }
 
@@ -129,6 +132,8 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
   constructor(
     private readonly firestore: Firestore,
     private readonly enforceAnnualCycleReference = true,
+    private readonly exampleData = true,
+    private readonly timeLabel = defaultTimeLabel,
   ) {}
 
   private farmReference(context: CommercialMutationContext) {
@@ -151,7 +156,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     return this.recordReference(context, 'commercialOperations', operationId(context, key))
   }
 
-  private async listCollection<T extends { organizationId: string; farmId: string; exampleData: true }>(
+  private async listCollection<T extends { organizationId: string; farmId: string; exampleData: boolean }>(
     context: CommercialMutationContext,
     collectionName: string,
     operationalOnly = false,
@@ -177,7 +182,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       actorUserId: context.actor.userId,
       resultCollection,
       resultId,
-      exampleData: true,
+      exampleData: this.exampleData,
       createdAt: serverTimestamp(),
     })
   }
@@ -192,7 +197,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       organizationId: context.farm.organizationId,
       farmId: context.farm.farmId,
       dataClass: 'OPERATIONAL',
-      exampleData: true,
+      exampleData: this.exampleData,
       createdAt: serverTimestamp(),
     })
   }
@@ -256,7 +261,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       ])
       const audit = auditSnapshots.docs.map((snapshot) => {
         const data = snapshot.data()
-        if (data.organizationId !== context.farm.organizationId || data.farmId !== context.farm.farmId || data.exampleData !== true) {
+        if (data.organizationId !== context.farm.organizationId || data.farmId !== context.farm.farmId || typeof data.exampleData !== 'boolean') {
           throw new Error('Commercial financial audit scope ไม่ถูกต้อง')
         }
         return copy(data as CommercialFinancialAuditEvent)
@@ -296,7 +301,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     if (!duplicate.empty) throw new Error('รหัส Crop Cycle ซ้ำในสวนนี้')
     const record: CropCycleRecord = { ...validated, organizationId: context.farm.organizationId,
       farmId: context.farm.farmId, cropCycleId: createCommercialRecordId('crop'), status: 'ACTIVE',
-      version: 1, exampleData: true }
+      version: 1, exampleData: this.exampleData }
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
       if (operation.exists()) {
@@ -348,7 +353,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     const observationId = createCommercialRecordId('fruit_obs')
     const record: FruitObservationRecord = { ...validated, organizationId: context.farm.organizationId,
       farmId: context.farm.farmId, observationId, unit: 'fruit', actorUserId: context.actor.userId,
-      createdAtLabel: fixedTimeLabel, archivedAtLabel: null, version: 1, exampleData: true }
+      createdAtLabel: this.timeLabel, archivedAtLabel: null, version: 1, exampleData: this.exampleData }
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
       if (operation.exists()) return parseRecord<FruitObservationRecord>((await transaction.get(
@@ -382,9 +387,9 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       const reference = this.recordReference(context, 'fruitObservations', observationId)
       if (operation.exists()) return parseRecord<FruitObservationRecord>((await transaction.get(reference)).data() ?? {}, context)
       const current = parseRecord<FruitObservationRecord>((await transaction.get(reference)).data() ?? {}, context)
-      const updated = { ...current, archivedAtLabel: fixedTimeLabel, version: current.version + 1 }
+      const updated = { ...current, archivedAtLabel: this.timeLabel, version: current.version + 1 }
       const event = auditEvent(context, 'FRUIT_OBSERVATION', observationId, 'ARCHIVED', reason.trim(), 'ACTIVE', 'ARCHIVED', updated.version)
-      transaction.update(reference, { archivedAtLabel: fixedTimeLabel, version: updated.version,
+      transaction.update(reference, { archivedAtLabel: this.timeLabel, version: updated.version,
         actorUserId: context.actor.userId, updatedAt: serverTimestamp() })
       this.writeAudit(transaction, context, event)
       this.setOperation(transaction, context, idempotencyKey, 'fruitObservations', observationId)
@@ -402,8 +407,8 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     const harvestLotId = createCommercialRecordId('harvest')
     const record: HarvestLotRecord = { ...validated, organizationId: context.farm.organizationId,
       farmId: context.farm.farmId, harvestLotId, status: validated.grades.length ? 'GRADED' : 'HARVESTING',
-      soldWeightKg: 0, actorUserId: context.actor.userId, createdAtLabel: fixedTimeLabel,
-      version: 1, exampleData: true, audit: [] }
+      soldWeightKg: 0, actorUserId: context.actor.userId, createdAtLabel: this.timeLabel,
+      version: 1, exampleData: this.exampleData, audit: [] }
     const event = auditEvent(context, 'HARVEST_LOT', harvestLotId, 'CREATED', record.note, '', `${record.totalWeightKg ?? 'UNKNOWN'} kg`, 1)
     record.audit = [event]
     return runTransaction(this.firestore, async (transaction) => {
@@ -436,7 +441,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
     const { financial: financialDraft, ...operationalDraft } = validated
     const record: SalesLotRecord = { ...operationalDraft, organizationId: context.farm.organizationId,
       farmId: context.farm.farmId, salesLotId, status: 'CONFIRMED', actorUserId: context.actor.userId,
-      createdAtLabel: fixedTimeLabel, version: 1, exampleData: true, audit: [] }
+      createdAtLabel: this.timeLabel, version: 1, exampleData: this.exampleData, audit: [] }
     const event = auditEvent(context, 'SALES_LOT', salesLotId, 'CREATED', record.note, '', `${record.weightKg} kg`, 1)
     record.audit = [event]
     const financialRecord: SalesLotFinancialRecord | undefined = financialDraft
@@ -452,9 +457,9 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
           farmId: context.farm.farmId,
           salesLotId,
           actorUserId: context.actor.userId,
-          createdAtLabel: fixedTimeLabel,
+          createdAtLabel: this.timeLabel,
           version: 1,
-          exampleData: true,
+          exampleData: this.exampleData,
         }
       : undefined
     return runTransaction(this.firestore, async (transaction) => {
@@ -496,6 +501,8 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
           `${financialRecord.grossAmountBaht} THB`,
           1,
           financialRecord.grossAmountBaht,
+          this.exampleData,
+          this.timeLabel,
         ))
       }
       this.writeAudit(transaction, context, event)
@@ -528,6 +535,8 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
         `${updated.unitPriceBahtPerKg}/${updated.depositBaht}/${updated.receivedBaht}`,
         updated.version,
         updated.grossAmountBaht,
+        this.exampleData,
+        this.timeLabel,
       )
       transaction.update(reference, { unitPriceBahtPerKg: updated.unitPriceBahtPerKg,
         depositBaht: updated.depositBaht, receivedBaht: updated.receivedBaht,
@@ -601,7 +610,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       if (nextBalance < 0) throw new Error('นโยบาย Phase 5 ปฏิเสธสต็อกติดลบ')
       const record: InventoryMovementRecord = { ...operationalInput, organizationId: context.farm.organizationId,
         farmId: context.farm.farmId, movementId, actorUserId: context.actor.userId,
-        createdAtLabel: fixedTimeLabel, version: 1, exampleData: true, audit: [] }
+        createdAtLabel: this.timeLabel, version: 1, exampleData: this.exampleData, audit: [] }
       const event = auditEvent(context, 'INVENTORY_MOVEMENT', movementId, 'STOCK_RECORDED',
         record.reason, `${currentBalance} ${record.unit}`, `${nextBalance} ${record.unit}`, 1)
       record.audit = [event]
@@ -618,9 +627,9 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
             ? null
             : Math.round((Math.abs(record.quantityDelta) * financialDraft.directUnitCostBaht + Number.EPSILON) * 100) / 100,
           actorUserId: context.actor.userId,
-          createdAtLabel: fixedTimeLabel,
+          createdAtLabel: this.timeLabel,
           version: 1,
-          exampleData: true,
+          exampleData: this.exampleData,
         }
         transaction.set(this.recordReference(context, 'inventoryMovementFinancials', movementId), {
           ...financialRecord,
@@ -637,11 +646,13 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
           `${financialRecord.directCostBaht ?? 'UNKNOWN'} THB`,
           1,
           financialRecord.directCostBaht,
+          this.exampleData,
+          this.timeLabel,
         ))
       }
       transaction.set(balanceReference, { organizationId: context.farm.organizationId,
         farmId: context.farm.farmId, lotId: input.lotId, itemId: input.itemId,
-        unit: input.unit, balance: nextBalance, exampleData: true,
+        unit: input.unit, balance: nextBalance, exampleData: this.exampleData,
         version: balanceSnapshot.exists() ? Number(balanceSnapshot.data().version) + 1 : 1,
         actorUserId: context.actor.userId, updatedAt: serverTimestamp() })
       this.writeAudit(transaction, context, event)

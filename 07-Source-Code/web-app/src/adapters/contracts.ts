@@ -447,7 +447,6 @@ export interface Phase6Adapters extends Phase5Adapters {
   diseaseAnalysisRepository: DiseaseAnalysisRepository
   annualCycleRepository: AnnualCycleRepository
   managementReportingRepository: ManagementReportingRepository
-  productionMockSeeder?: ProductionMockSeeder
 }
 
 export interface ManagementReportingRepository {
@@ -508,19 +507,6 @@ export interface AnnualCycleRepository {
     draft: AnnualPlanItemDraft,
   ): Promise<AnnualPlanItemRecord>
   resetMockPack?(): Promise<void>
-}
-
-export interface ProductionMockSeedResult {
-  projectId: 'durian-smartfarm'
-  rootPath: 'durian-smartfarm/root'
-  classification: 'SIMULATED/TEST ONLY'
-  modules: readonly string[]
-  recordCount: number
-  storageUploadsSkipped: number
-}
-
-export interface ProductionMockSeeder {
-  seed(actor: AuthenticatedIdentity): Promise<ProductionMockSeedResult>
 }
 
 export interface DiseaseAnalysisRepository {

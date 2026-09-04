@@ -28,15 +28,16 @@ export function WorkDetailPage() {
     checkpointQueuedWorkPhoto,
     removeQueuedWorkPhotoBatch,
   } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [order, setOrder] = useState<WorkOrderRecord>()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string>()
-  const [reason, setReason] = useState('ต้องแก้หลักฐานจำลองให้ครบ')
-  const [notes, setNotes] = useState('บันทึกผลการทำงานด้วยข้อมูลจำลอง')
-  const [materialName, setMaterialName] = useState('วัสดุจำลอง')
+  const [reason, setReason] = useState(isProduction ? 'โปรดแก้หลักฐานให้ครบ' : 'ต้องแก้หลักฐานจำลองให้ครบ')
+  const [notes, setNotes] = useState(isProduction ? 'บันทึกผลการทำงาน' : 'บันทึกผลการทำงานด้วยข้อมูลจำลอง')
+  const [materialName, setMaterialName] = useState(isProduction ? '' : 'วัสดุจำลอง')
   const [quantity, setQuantity] = useState('1')
-  const [unit, setUnit] = useState('หน่วยทดสอบ')
+  const [unit, setUnit] = useState(isProduction ? '' : 'หน่วยทดสอบ')
   const [beforeFile, setBeforeFile] = useState<File>()
   const [afterFile, setAfterFile] = useState<File>()
   const [completions, setCompletions] = useState<readonly PerTreeCompletion[]>([])
@@ -96,11 +97,11 @@ export function WorkDetailPage() {
 
   const saveReport = async () => {
     if (!beforeFile || !afterFile) {
-      setMessage('ต้องเลือกภาพก่อนและหลังอย่างละ 1 ภาพ (ข้อมูลทดสอบเท่านั้น)')
+      setMessage(isProduction ? 'ต้องเลือกภาพก่อนและหลังอย่างละ 1 ภาพ' : 'ต้องเลือกภาพก่อนและหลังอย่างละ 1 ภาพ (ข้อมูลทดสอบเท่านั้น)')
       return
     }
     setBusy(true)
-    setMessage('กำลังเก็บภาพใน Local Adapter/Storage Emulator…')
+    setMessage(isProduction ? 'กำลังเตรียมภาพเพื่ออัปโหลดไป Firebase Storage…' : 'กำลังเก็บภาพใน Local Adapter/Storage Emulator…')
     try {
       if (!currentFarm) throw new Error('ไม่พบสวนปัจจุบัน')
       const beforeId = `photo_before_${crypto.randomUUID().replaceAll('-', '')}`
@@ -155,7 +156,7 @@ export function WorkDetailPage() {
 
   return (
     <section className="page-stack">
-      <PageHeader eyebrow="Phase 4 · Work execution" title={order.title} description={`${order.workOrderId} · ข้อมูลจำลองเท่านั้น`} />
+      <PageHeader eyebrow={isProduction ? 'Phase 4 · Work execution · Firebase Production' : 'Phase 4 · Work execution'} title={order.title} description={`${order.workOrderId} · ${isProduction ? 'ข้อมูลจาก Firebase' : 'ข้อมูลจำลองเท่านั้น'}`} />
       <article className="work-detail-card">
         <div className="work-card__heading"><span className={`work-priority work-priority--${order.priority.toLowerCase()}`}>{order.priority === 'URGENT' ? 'เร่งด่วน' : 'ปกติ'}</span><span className={`work-status work-status--${order.status.toLowerCase()}`}>{workStatusLabels[order.status]}{order.isPaused ? ' · พักอยู่' : ''}</span></div>
         <p>{order.description}</p>
@@ -166,7 +167,7 @@ export function WorkDetailPage() {
 
       {canAssign && order.status === 'DRAFT' && order.assignedUserId ? <section className="workflow-panel" aria-labelledby="treatment-assign-title">
         <h2 id="treatment-assign-title">มอบหมายงานตาม Assignee suggestion</h2>
-        <p><code>{order.assignedUserId}</code> · ข้อมูลบัญชีจำลองในสวนปัจจุบัน</p>
+        <p><code>{order.assignedUserId}</code> · {isProduction ? 'บัญชีผู้ปฏิบัติงานในสวนปัจจุบัน' : 'ข้อมูลบัญชีจำลองในสวนปัจจุบัน'}</p>
         <button className="primary-action" disabled={busy} onClick={() => void act({ type: 'ASSIGN', assignedUserId: order.assignedUserId! })} type="button">มอบหมายงานรักษา</button>
       </section> : null}
 

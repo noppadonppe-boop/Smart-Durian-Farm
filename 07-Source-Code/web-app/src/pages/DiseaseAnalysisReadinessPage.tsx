@@ -20,9 +20,9 @@ import { PageHeader } from './PageHeader'
 const analysisRoles = ['ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST'] as const
 
 const workflowStages = [
-  ['1', 'อ้างอิง Disease Incident', 'ใช้ observed symptom, Farm, Position และ Planting Cycle จากข้อมูลจำลองที่ตรวจสิทธิ์แล้ว'],
-  ['2', 'เลือก Scenario จำลอง', 'ใช้ deterministic scenario เท่านั้น ไม่มีไฟล์ภาพ กล้อง หรือ External Storage'],
-  ['3', 'Candidate หรือ Abstain', 'สร้างผลเดิมซ้ำได้ พร้อม Mock Confidence, Quality และ uncertainty'],
+  ['1', 'อ้างอิง Disease Incident', 'ใช้ observed symptom, Farm, Position และ Planting Cycle ที่ตรวจสิทธิ์แล้ว'],
+  ['2', 'เลือก Scenario', 'ใช้ deterministic scenario และไม่ผูกกับไฟล์ภาพหรือ External Storage'],
+  ['3', 'Candidate หรือ Abstain', 'สร้างผลเดิมซ้ำได้ พร้อม Confidence, Quality และ uncertainty'],
   ['4', 'Agronomist Human Review', 'รับ แก้ หรือปฏิเสธผลเบื้องต้น โดยเก็บ Audit แบบ append-oriented'],
   ['5', 'กลับสู่ Workflow ปัจจุบัน', 'Human Review ไม่เขียน confirmed diagnosis และไม่สร้าง Treatment Work Order อัตโนมัติ'],
 ] as const
@@ -32,11 +32,12 @@ interface SessionCardProps {
   incident: DiseaseIncidentRecord | undefined
   tree: TreePositionSummary | undefined
   canReview: boolean
+  isProduction: boolean
   busy: boolean
   onReview: (session: DiseaseAnalysisSessionRecord, input: DiseaseAnalysisReviewInput) => Promise<void>
 }
 
-function SessionCard({ session, incident, tree, canReview, busy, onReview }: SessionCardProps) {
+function SessionCard({ session, incident, tree, canReview, isProduction, busy, onReview }: SessionCardProps) {
   const candidate = session.candidateFindings[0]
   const [disposition, setDisposition] = useState<DiseaseAnalysisReviewDisposition>(
     session.abstainReason ? 'REJECTED' : 'ACCEPTED',
@@ -63,10 +64,10 @@ function SessionCard({ session, incident, tree, canReview, busy, onReview }: Ses
     <p>{session.observedSymptom}</p>
     <dl className="work-card__meta">
       <div><dt>Scenario</dt><dd>{diseaseAnalysisScenarioLabels[session.evidenceScenario]}</dd></div>
-      <div><dt>Quality</dt><dd>{session.qualityScorePercent}% · Mock score</dd></div>
-      <div><dt>Confidence</dt><dd>{candidate ? `${candidate.confidencePercent}% · Mock confidence` : 'ไม่มี — Abstain'}</dd></div>
+      <div><dt>Quality</dt><dd>{session.qualityScorePercent}%{isProduction ? '' : ' · Mock score'}</dd></div>
+      <div><dt>Confidence</dt><dd>{candidate ? `${candidate.confidencePercent}%${isProduction ? '' : ' · Mock confidence'}` : 'ไม่มี — Abstain'}</dd></div>
       <div><dt>Source</dt><dd>{session.analysisSource}</dd></div>
-      <div><dt>Sync</dt><dd>{session.syncState === 'LOCAL_ONLY' ? 'Local only' : 'Firebase Emulator'}</dd></div>
+      <div><dt>Sync</dt><dd>{session.syncState === 'LOCAL_ONLY' ? 'Local only' : isProduction ? 'Firebase Production' : 'Firebase Emulator'}</dd></div>
       <div><dt>Diagnosis writeback</dt><dd>NOT_WRITTEN</dd></div>
     </dl>
 
@@ -77,7 +78,7 @@ function SessionCard({ session, incident, tree, canReview, busy, onReview }: Ses
     </div> : <div className="form-warning">
       <strong>Abstain</strong>
       <p>{session.abstainReason ? diseaseAnalysisAbstainLabels[session.abstainReason] : 'ไม่มีผลเบื้องต้น'}</p>
-      <small>ระบบไม่บังคับเลือกกลุ่มอาการเมื่อหลักฐานจำลองไม่เพียงพอ</small>
+      <small>ระบบไม่บังคับเลือกกลุ่มอาการเมื่อหลักฐานไม่เพียงพอ</small>
     </div>}
 
     <div className="page-actions">
@@ -135,6 +136,7 @@ function SessionCard({ session, incident, tree, canReview, busy, onReview }: Ses
 
 export function DiseaseAnalysisReadinessPage() {
   const {
+    mode,
     currentFarm,
     listDiseaseIncidents,
     listTreePositions,
@@ -142,6 +144,7 @@ export function DiseaseAnalysisReadinessPage() {
     createDiseaseAnalysisSession,
     reviewDiseaseAnalysisSession,
   } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [incidents, setIncidents] = useState<readonly DiseaseIncidentRecord[]>([])
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [sessions, setSessions] = useState<readonly DiseaseAnalysisSessionRecord[]>([])
@@ -201,7 +204,7 @@ export function DiseaseAnalysisReadinessPage() {
 
   if (!canOpen) {
     return <section className="empty-state">
-      <h1>ศูนย์วิเคราะห์โรคจำลอง</h1>
+      <h1>{isProduction ? 'ศูนย์วิเคราะห์โรค' : 'ศูนย์วิเคราะห์โรคจำลอง'}</h1>
       <p>เปิดให้ Owner, Farm Manager และ Agronomist เท่านั้น ไม่มีข้อมูลจากสวนอื่นถูกแสดง</p>
       <Link className="secondary-action" to="/disease">กลับไปติดตามโรค</Link>
     </section>
@@ -224,7 +227,7 @@ export function DiseaseAnalysisReadinessPage() {
       await reload()
       setMessage(created.abstainReason
         ? 'สร้าง Analysis Session แล้ว · ผลเป็น Abstain และรอ Agronomist Review'
-        : 'สร้าง candidate finding จำลองแล้ว · รอ Agronomist Review')
+        : isProduction ? 'สร้าง candidate finding ใน Firebase แล้ว · รอ Agronomist Review' : 'สร้าง candidate finding จำลองแล้ว · รอ Agronomist Review')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'สร้าง Analysis Session ไม่สำเร็จ')
     } finally {
@@ -252,21 +255,20 @@ export function DiseaseAnalysisReadinessPage() {
 
   return <section className="page-stack">
     <PageHeader
-      eyebrow="P1 Approved · Deterministic Mock Analysis"
-      title="ศูนย์วิเคราะห์โรคจำลอง"
-      description="ทดสอบ Analysis Session, Mock Confidence, Abstain และ Human Review โดยไม่ใช้ภาพจริงหรือ AI ภายนอก"
+      eyebrow={isProduction ? 'Disease Analysis · Firebase Production' : 'P1 Approved · Deterministic Mock Analysis'}
+      title={isProduction ? 'ศูนย์วิเคราะห์โรค' : 'ศูนย์วิเคราะห์โรคจำลอง'}
+      description="Analysis Session, Confidence, Abstain และ Human Review โดยไม่เขียน confirmed diagnosis อัตโนมัติ"
     />
 
-    <aside className="field-validation-banner">
-      <strong>SIMULATED/TEST ONLY · LOCAL/EMULATOR</strong>
-      <span>ไม่มี Upload, Camera, External AI/API/model, External Storage, diagnosis writeback หรือคำแนะนำสารเคมีอัตโนมัติ</span>
-    </aside>
+    {isProduction
+      ? <aside className="operational-data-banner"><strong>Firebase Production</strong><span>Analysis Session และ Human Review บันทึกใน Farm ปัจจุบัน; ผลไม่เขียน confirmed diagnosis อัตโนมัติ</span></aside>
+      : <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY · LOCAL/EMULATOR</strong><span>ไม่มี Upload, Camera, External AI/API/model, External Storage, diagnosis writeback หรือคำแนะนำสารเคมีอัตโนมัติ</span></aside>}
 
     <article className="hero-card">
       <div>
         <span className="status-pill">P1 — Approved</span>
         <h2>{currentFarm.farmCode} · {roleLabels[currentFarm.role]}</h2>
-        <p>Analysis เป็นเครื่องมือช่วยจัดลำดับข้อมูลจำลอง ส่วน Disease Incident และการยืนยัน diagnosis ยังคงเป็น Workflow หลักของ Agronomist</p>
+        <p>Analysis เป็นเครื่องมือช่วยจัดลำดับข้อมูล ส่วน Disease Incident และการยืนยัน diagnosis ยังคงเป็น Workflow หลักของ Agronomist</p>
       </div>
       <div className="hero-actions">
         <Link className="primary-action" to="/disease">เปิดติดตามโรคปัจจุบัน</Link>
@@ -276,7 +278,7 @@ export function DiseaseAnalysisReadinessPage() {
 
     <section className="workflow-panel" aria-labelledby="analysis-create-title">
       <div className="section-heading">
-        <div><span className="status-pill">Deterministic harness</span><h2 id="analysis-create-title">สร้าง Analysis Session จำลอง</h2></div>
+        <div><span className="status-pill">Deterministic rules</span><h2 id="analysis-create-title">{isProduction ? 'สร้าง Analysis Session' : 'สร้าง Analysis Session จำลอง'}</h2></div>
       </div>
       <form onSubmit={(event) => void createSession(event)}>
         <label>Disease Incident
@@ -295,21 +297,22 @@ export function DiseaseAnalysisReadinessPage() {
           ล็อก scope: {currentFarm.farmCode} · {selectedTree.tagCode} · {selectedTree.currentCycle.cycleId}
         </p> : null}
         <button className="primary-action" disabled={busyId === 'CREATE' || !selectedIncident || !selectedTree} type="submit">
-          {busyId === 'CREATE' ? 'กำลังสร้าง…' : 'สร้างผลวิเคราะห์จำลอง'}
+          {busyId === 'CREATE' ? 'กำลังสร้าง…' : isProduction ? 'สร้างผลวิเคราะห์' : 'สร้างผลวิเคราะห์จำลอง'}
         </button>
-        <small>ผลถูกคำนวณจาก Scenario คงที่ ไม่อ่านไฟล์ภาพ ไม่เรียก Model และใช้ idempotency key ต่อ operation</small>
+        <small>ผลถูกคำนวณจาก Scenario คงที่ ไม่อ่านไฟล์ภาพ ไม่เรียก External Model และใช้ idempotency key ต่อ operation</small>
       </form>
     </section>
 
     {loading ? <div className="loading-inline" role="status">กำลังอ่าน Analysis Session…</div> : null}
     {error ? <p className="form-error" role="alert">{error}</p> : null}
     {message ? <p className="success-notice" role="status">{message}</p> : null}
-    {!loading && !error ? <p className="result-count">{sessions.length} Analysis Session · {currentFarm.farmCode} · SIMULATED/TEST ONLY</p> : null}
+    {!loading && !error ? <p className="result-count">{sessions.length} Analysis Session · {currentFarm.farmCode} · {isProduction ? 'Firebase Production' : 'SIMULATED/TEST ONLY'}</p> : null}
 
     <div className="work-list">
       {sessions.map((session) => <SessionCard
         busy={busyId === session.analysisSessionId}
         canReview={canReview}
+        isProduction={isProduction}
         incident={incidentById.get(session.incidentId)}
         key={`${session.analysisSessionId}:${session.version}`}
         onReview={reviewSession}
@@ -318,7 +321,7 @@ export function DiseaseAnalysisReadinessPage() {
       />)}
       {!loading && !error && sessions.length === 0 ? <article className="empty-state">
         <h2>ยังไม่มี Analysis Session ในสวนนี้</h2>
-        <p>เลือก Disease Incident และ Scenario เพื่อสร้างผลจำลอง โดยข้อมูลจะไม่ออกจากเครื่อง/Emulator</p>
+        <p>{isProduction ? 'เลือก Disease Incident และ Scenario เพื่อสร้างผลใน Firebase ของ Farm ปัจจุบัน' : 'เลือก Disease Incident และ Scenario เพื่อสร้างผลจำลอง โดยข้อมูลจะไม่ออกจากเครื่อง/Emulator'}</p>
       </article> : null}
     </div>
 
@@ -336,12 +339,12 @@ export function DiseaseAnalysisReadinessPage() {
     </section>
 
     <section className="phase-boundary" aria-labelledby="p2-boundary-title">
-      <h2 id="p2-boundary-title">ยังไม่อนุมัติ P2 / Pilot / Production</h2>
+      <h2 id="p2-boundary-title">{isProduction ? 'ขอบเขตการใช้งานปัจจุบัน' : 'ยังไม่อนุมัติ P2 / Pilot / Production'}</h2>
       <ul>
         <li>ชื่อโรคและ taxonomy ทางวิชาการยังต้องให้ Owner/Agronomist อนุมัติ</li>
         <li>ภาพจริง Dataset จริง Model/Provider และ metric เชิงความแม่นยำยังไม่อนุมัติ</li>
         <li>DEC-026 เรื่อง Treatment/Chemical Policy ยังคง Open</li>
-        <li>External PA-1 ยัง Blocked; PA-2, Controlled Pilot, Deployment และ Production ยังไม่อนุมัติ</li>
+        {isProduction ? <li>การเชื่อม External AI, การใช้ภาพจริง และการให้คำแนะนำสารเคมีอัตโนมัติยังไม่เปิดใช้</li> : <li>External PA-1 ยัง Blocked; PA-2, Controlled Pilot, Deployment และ Production ยังไม่อนุมัติ</li>}
       </ul>
     </section>
   </section>

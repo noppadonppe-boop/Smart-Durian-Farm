@@ -22,11 +22,18 @@ const emptyFarmProfileDraft: FarmProfileDraft = {
   notes: 'SIMULATED/TEST ONLY',
 }
 
+const operationalFarmProfileDraft: FarmProfileDraft = {
+  ...emptyFarmProfileDraft,
+  locationNote: '',
+  notes: '',
+}
+
 interface FarmProfileFormProps {
   organizationCode: string
   initialValue?: FarmProfileDraft
   mode: 'CREATE' | 'EDIT' | 'READ_ONLY'
   submitting?: boolean
+  production?: boolean
   onSubmit?: (draft: FarmProfileDraft) => Promise<void>
 }
 
@@ -40,12 +47,13 @@ function parsedMonth(value: string): number | null {
 
 export function FarmProfileForm({
   organizationCode,
-  initialValue = emptyFarmProfileDraft,
+  initialValue,
   mode,
   submitting = false,
+  production = false,
   onSubmit,
 }: FarmProfileFormProps) {
-  const [draft, setDraft] = useState<FarmProfileDraft>(initialValue)
+  const [draft, setDraft] = useState<FarmProfileDraft>(initialValue ?? (production ? operationalFarmProfileDraft : emptyFarmProfileDraft))
   const [error, setError] = useState<string>()
 
   const farmCodePreview = useMemo(() => {
@@ -181,7 +189,7 @@ export function FarmProfileForm({
         <p className="read-only-note">อ่านได้ตาม Farm membership · บทบาทนี้แก้ไขไม่ได้</p>
       ) : (
         <button className="primary-action" disabled={submitting} type="submit">
-          {submitting ? 'กำลังบันทึก…' : mode === 'CREATE' ? 'สร้างสวนจำลอง' : 'บันทึก Farm Profile'}
+          {submitting ? 'กำลังบันทึก…' : mode === 'CREATE' ? production ? 'สร้างสวน' : 'สร้างสวนจำลอง' : 'บันทึก Farm Profile'}
         </button>
       )}
     </form>

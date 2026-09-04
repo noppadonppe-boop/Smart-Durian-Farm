@@ -184,7 +184,7 @@ export function UserManualPage() {
       <PageHeader
         eyebrow="KDOMS User Manual v1.1 · In-app guide"
         title="คู่มือผู้ใช้"
-        description={`วิธีใช้งานตามบทบาทใน ${currentFarm.farmCode} ตั้งแต่เข้าสู่ระบบจนตรวจรับ รายงาน และแก้ปัญหา`}
+        description={`วิธีใช้งานตามบทบาทใน ${currentFarm.farmCode} ตั้งแต่เข้าสู่ระบบจนตรวจรับ รายงาน และแก้ปัญหา`} backTo="/more"
       />
 
       <div className="field-validation-banner" role="note">

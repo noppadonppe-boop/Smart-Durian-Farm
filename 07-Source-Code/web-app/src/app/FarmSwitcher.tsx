@@ -24,16 +24,17 @@ export function FarmSwitcher() {
     <div className="farm-switcher">
       <button
         aria-expanded={open}
+        aria-label={`สวนปัจจุบัน: ${currentFarm.farmName} (${currentFarm.farmCode}) · ${roleLabels[currentFarm.role]} · กดเพื่อเปลี่ยน`}
         className="farm-context farm-context--button"
         onClick={() => setOpen((current) => !current)}
+        title="สวนปัจจุบัน · กดเพื่อเปลี่ยน"
         type="button"
       >
-        <span>สวนปัจจุบัน · กดเพื่อเปลี่ยน</span>
-        <strong>{currentFarm.farmName}</strong>
-        <span className="farm-context__meta">
-          <code>{currentFarm.farmCode}</code>
-          <span>{roleLabels[currentFarm.role]}</span>
-        </span>
+        <span className="farm-context__label">สวนปัจจุบัน:</span>
+        <strong className="farm-context__name">{currentFarm.farmName}</strong>
+        <code>{currentFarm.farmCode}</code>
+        <span className="farm-context__role">{roleLabels[currentFarm.role]}</span>
+        <span className="farm-context__chevron" aria-hidden="true">▾</span>
       </button>
 
       {open ? (

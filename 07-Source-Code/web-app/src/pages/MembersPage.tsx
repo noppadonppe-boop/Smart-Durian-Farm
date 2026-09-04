@@ -102,7 +102,6 @@ function MemberEditor({
     </article>
   )
 }
-
 export function MembersPage() {
   const {
     identity,
@@ -140,7 +139,7 @@ export function MembersPage() {
         <PageHeader
           eyebrow="Least privilege"
           title="ไม่มีสิทธิ์จัดการสมาชิก"
-          description="Phase 2 ให้เฉพาะเจ้าขององค์กรจัดการสมาชิกจนกว่านโยบาย FARM_MANAGER จะอนุมัติ"
+          description="Phase 2 ให้เฉพาะเจ้าขององค์กรจัดการสมาชิกจนกว่านโยบาย FARM_MANAGER จะอนุมัติ" backTo="/more"
         />
         <article className="empty-state access-denied-state">
           <span aria-hidden="true">!</span>
@@ -174,7 +173,7 @@ export function MembersPage() {
       <PageHeader
         eyebrow="Organization owner only"
         title="สมาชิกและสิทธิ์"
-        description={`จัดการบทบาทเฉพาะ ${currentFarm.farmCode} ทุกการเปลี่ยนสร้าง Audit Event`}
+        description={`จัดการบทบาทเฉพาะ ${currentFarm.farmCode} ทุกการเปลี่ยนสร้าง Audit Event`} backTo="/more"
       />
       <div className="scope-lock" role="status">
         ขอบเขตถูกล็อกที่ {currentFarm.farmName} · ไม่สามารถย้ายสมาชิกหรือข้อมูลข้ามสวน

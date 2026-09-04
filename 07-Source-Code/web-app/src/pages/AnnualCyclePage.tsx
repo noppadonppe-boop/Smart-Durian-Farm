@@ -156,6 +156,7 @@ export function AnnualCyclePage() {
         eyebrow="Annual Farm Management Cycle · SIMULATED/TEST ONLY"
         title="รอบบริหารสวนรายปี"
         description="หนึ่งรอบต่อหนึ่งสวน ค่าเริ่มต้นมิถุนายน–พฤษภาคม และ Owner กำหนดวันเริ่มเฉพาะสวนได้"
+        backTo="/more"
       />
 
       {message ? <p className="annual-feedback" role="status">{message}</p> : null}

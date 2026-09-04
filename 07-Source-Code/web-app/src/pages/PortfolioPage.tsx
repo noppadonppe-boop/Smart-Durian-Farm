@@ -22,12 +22,12 @@ export function PortfolioPage() {
   }, [currentFarm?.isOrganizationOwner, getPortfolioDashboard])
 
   if (!currentFarm?.isOrganizationOwner) return <section className="page-stack">
-    <PageHeader eyebrow="Least privilege" title="ไม่มีสิทธิ์เปิดภาพรวมหลายสวน" description="Portfolio Dashboard ใช้ได้เฉพาะ ORG_OWNER และไม่อนุมานสิทธิ์จากการ Sign-in" />
+    <PageHeader eyebrow="Least privilege" title="ไม่มีสิทธิ์เปิดภาพรวมหลายสวน" description="Portfolio Dashboard ใช้ได้เฉพาะ ORG_OWNER และไม่อนุมานสิทธิ์จากการ Sign-in" backTo="/more" />
     <Link to="/">กลับหน้าหลัก</Link>
   </section>
 
   return <section className="page-stack dashboard-page">
-    <PageHeader eyebrow="Organization-scoped · Owner only" title="ภาพรวมหลายสวน" description="รวมเฉพาะสวนที่บัญชีนี้มี membership; fixture สวนซ่อนต้องไม่ปรากฏ" />
+    <PageHeader eyebrow="Organization-scoped · Owner only" title="ภาพรวมหลายสวน" description="รวมเฉพาะสวนที่บัญชีนี้มี membership; fixture สวนซ่อนต้องไม่ปรากฏ" backTo="/more" />
     <div className="field-validation-banner" role="note"><strong>SIMULATED/TEST ONLY</strong><span>ไม่มี Cross-Farm transfer และไม่มีข้อมูลจริง</span></div>
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {!portfolio && !error ? <div className="loading-inline" role="status">กำลังรวมข้อมูลเฉพาะสวนที่ได้รับสิทธิ์…</div> : null}

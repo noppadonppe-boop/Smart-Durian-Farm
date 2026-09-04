@@ -17,7 +17,6 @@ interface StatusRequest {
   nextStatus: FarmStatus
   idempotencyKey: string
 }
-
 const farmAuditLabels: Record<FarmAuditEvent['eventType'], string> = {
   FARM_CREATED: 'เพิ่มสวน',
   FARM_PROFILE_UPDATED: 'แก้ไขข้อมูลสวน',
@@ -25,11 +24,11 @@ const farmAuditLabels: Record<FarmAuditEvent['eventType'], string> = {
   FARM_REACTIVATED: 'เปิดใช้งานสวนใหม่',
   FARM_ARCHIVED: 'เก็บถาวรสวน',
 }
-
 export function FarmProfilePage() {
   const { farmId } = useParams()
   const location = useLocation()
   const {
+    mode,
     currentFarm,
     farms,
     getFarmProfile,
@@ -38,6 +37,7 @@ export function FarmProfilePage() {
     changeFarmStatus,
     listFarmAudit,
   } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [profile, setProfile] = useState<FarmProfile>()
   const [audit, setAudit] = useState<readonly FarmAuditEvent[]>([])
   const [readiness, setReadiness] = useState<FarmArchiveReadiness>()
@@ -81,7 +81,7 @@ export function FarmProfilePage() {
         <PageHeader
           eyebrow="Cross-Farm denied"
           title="ไม่มีสิทธิ์เปิด Farm Profile นี้"
-          description="ไม่มีข้อมูลจากสวนเป้าหมายถูกโหลด เพราะบัญชีนี้ไม่มี membership"
+          description="ไม่มีข้อมูลจากสวนเป้าหมายถูกโหลด เพราะบัญชีนี้ไม่มี membership" backTo="/more"
         />
         <Link className="primary-action action-link" to="/more">กลับเมนูเพิ่มเติม</Link>
       </section>
@@ -90,7 +90,7 @@ export function FarmProfilePage() {
   if (!profile) {
     return (
       <section className="page-stack">
-        <PageHeader eyebrow="Farm Profile" title="กำลังอ่านข้อมูลสวน" description="ตรวจ membership และ Farm scope ก่อนแสดงข้อมูล" />
+        <PageHeader eyebrow="Farm Profile" title="กำลังอ่านข้อมูลสวน" description="ตรวจ membership และ Farm scope ก่อนแสดงข้อมูล" backTo="/more" />
         {error ? <p className="form-error" role="alert">{error}</p> : null}
       </section>
     )
@@ -172,7 +172,7 @@ export function FarmProfilePage() {
         description={`${profile.farmCode} · เวอร์ชัน ${profile.version} · ${farmStatusLabels[profile.status]}`}
         action={isOwner ? <Link className="secondary-action action-link" to="/farm-management">รายการสวน</Link> : undefined}
       />
-      <div className="mock-scope-note" role="status">{profile.classification} · exampleData=true</div>
+      <div className={isProduction ? 'operational-data-banner' : 'mock-scope-note'} role="status">{isProduction ? 'Firebase Production · Operational Farm Profile' : `${profile.classification} · exampleData=true`}</div>
       {notice ? <p className="success-message" role="status">{notice}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <FarmProfileForm
@@ -181,6 +181,7 @@ export function FarmProfilePage() {
         mode={isOwner ? 'EDIT' : 'READ_ONLY'}
         onSubmit={isOwner ? saveProfile : undefined}
         organizationCode={currentFarm.organizationCode}
+        production={isProduction}
         submitting={submitting}
       />
 

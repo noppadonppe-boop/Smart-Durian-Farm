@@ -29,9 +29,9 @@ export type DiseaseAnalysisStatus = (typeof diseaseAnalysisStatuses)[number]
 export type DiseaseAnalysisAbstainReason = (typeof diseaseAnalysisAbstainReasons)[number]
 
 export const diseaseAnalysisScenarioLabels: Record<DiseaseAnalysisEvidenceScenario, string> = {
-  CLEAR_SYMPTOM_PATTERN: 'กลุ่มอาการจำลองชัดเจน',
-  LOW_QUALITY_PLACEHOLDER: 'หลักฐานจำลองคุณภาพต่ำ',
-  CONFLICTING_OBSERVATIONS: 'ข้อสังเกตจำลองขัดแย้งกัน',
+  CLEAR_SYMPTOM_PATTERN: 'กลุ่มอาการชัดเจน',
+  LOW_QUALITY_PLACEHOLDER: 'หลักฐานคุณภาพต่ำ',
+  CONFLICTING_OBSERVATIONS: 'ข้อสังเกตขัดแย้งกัน',
 }
 
 export const diseaseAnalysisDispositionLabels: Record<DiseaseAnalysisReviewDisposition, string> = {
@@ -41,8 +41,8 @@ export const diseaseAnalysisDispositionLabels: Record<DiseaseAnalysisReviewDispo
 }
 
 export const diseaseAnalysisAbstainLabels: Record<DiseaseAnalysisAbstainReason, string> = {
-  LOW_EVIDENCE_QUALITY: 'หลักฐานจำลองไม่เพียงพอ',
-  CONFLICTING_OBSERVATIONS: 'ข้อมูลอาการจำลองขัดแย้งกัน',
+  LOW_EVIDENCE_QUALITY: 'หลักฐานไม่เพียงพอ',
+  CONFLICTING_OBSERVATIONS: 'ข้อมูลอาการขัดแย้งกัน',
 }
 
 export interface DiseaseAnalysisDraft {
@@ -54,7 +54,7 @@ export interface DiseaseAnalysisDraft {
 }
 
 export interface DiseaseCandidateFinding {
-  findingCode: 'MOCK_SYMPTOM_PATTERN_A'
+  findingCode: 'MOCK_SYMPTOM_PATTERN_A' | 'SYMPTOM_PATTERN_A'
   label: string
   confidencePercent: number
   uncertaintyNote: string
@@ -69,6 +69,8 @@ export interface DiseaseAnalysisReviewInput {
 export type DiseaseAnalysisAuditEventType =
   | 'MOCK_ANALYSIS_COMPLETED'
   | 'MOCK_ANALYSIS_ABSTAINED'
+  | 'ANALYSIS_COMPLETED'
+  | 'ANALYSIS_ABSTAINED'
   | 'HUMAN_REVIEW_ACCEPTED'
   | 'HUMAN_REVIEW_CORRECTED'
   | 'HUMAN_REVIEW_REJECTED'
@@ -87,8 +89,8 @@ export interface DiseaseAnalysisSessionRecord extends DiseaseAnalysisDraft {
   organizationId: string
   farmId: string
   analysisSessionId: string
-  analysisSource: 'MOCK_DETERMINISTIC_V1'
-  classification: 'SIMULATED/TEST ONLY'
+  analysisSource: 'MOCK_DETERMINISTIC_V1' | 'DETERMINISTIC_RULES_V1'
+  classification: 'SIMULATED/TEST ONLY' | 'OPERATIONAL'
   status: DiseaseAnalysisStatus
   qualityScorePercent: number
   candidateFindings: readonly DiseaseCandidateFinding[]
@@ -98,9 +100,9 @@ export interface DiseaseAnalysisSessionRecord extends DiseaseAnalysisDraft {
   reviewedFindingLabel: string
   reviewNote: string
   diagnosisWritebackStatus: 'NOT_WRITTEN'
-  syncState: 'LOCAL_ONLY' | 'EMULATOR_SYNCED'
+  syncState: 'LOCAL_ONLY' | 'EMULATOR_SYNCED' | 'FIREBASE_SYNCED'
   version: number
-  exampleData: true
+  exampleData: boolean
   createdBy: string
   createdAtLabel: string
   audit: readonly DiseaseAnalysisAuditEvent[]
@@ -155,7 +157,7 @@ export function validateDiseaseAnalysisDraft(
 ): DiseaseAnalysisDraft {
   requireActiveFarm(context)
   if (!canRunDiseaseAnalysis(context.farm.role)) {
-    throw new Error('บทบาทนี้ไม่มีสิทธิ์เริ่ม Deterministic Mock Analysis')
+    throw new Error('บทบาทนี้ไม่มีสิทธิ์เริ่ม Deterministic Analysis')
   }
   if (!/^disease_[A-Za-z0-9_-]{8,}$/u.test(draft.incidentId)) {
     throw new Error('Disease Incident ID ไม่ถูกต้อง')
@@ -196,9 +198,9 @@ export function runDeterministicDiseaseAnalysis(
     qualityScorePercent: 92,
     candidateFindings: [{
       findingCode: 'MOCK_SYMPTOM_PATTERN_A',
-      label: 'กลุ่มรูปแบบอาการทางใบจำลอง A — ต้องให้ Agronomist ตรวจ',
+      label: 'กลุ่มรูปแบบอาการทางใบ A — ต้องให้ Agronomist ตรวจ',
       confidencePercent: 82,
-      uncertaintyNote: 'คะแนนจำลองเพื่อทดสอบ Workflow เท่านั้น ไม่ใช่ความแม่นยำทางวิชาการ',
+      uncertaintyNote: 'คะแนนเพื่อช่วยจัดลำดับเท่านั้น ไม่ใช่ความแม่นยำทางวิชาการ',
     }],
     abstainReason: null,
   }
@@ -208,18 +210,18 @@ export function validateDiseaseAnalysisResult(
   result: DeterministicDiseaseAnalysisResult,
 ): DeterministicDiseaseAnalysisResult {
   if (!Number.isInteger(result.qualityScorePercent) || result.qualityScorePercent < 0 || result.qualityScorePercent > 100) {
-    throw new Error('Quality score ของ Mock Analysis ไม่ถูกต้อง')
+    throw new Error('Quality score ของ Deterministic Analysis ไม่ถูกต้อง')
   }
   if (result.abstainReason) {
     if (result.candidateFindings.length !== 0) {
       throw new Error('ผล Abstain ห้ามมี candidate finding')
     }
   } else if (result.candidateFindings.length !== 1) {
-    throw new Error('Deterministic Mock Analysis ต้องมี candidate finding เดียวหรือ Abstain')
+    throw new Error('Deterministic Analysis ต้องมี candidate finding เดียวหรือ Abstain')
   }
   result.candidateFindings.forEach((finding) => {
     if (!Number.isInteger(finding.confidencePercent) || finding.confidencePercent < 0 || finding.confidencePercent > 100) {
-      throw new Error('Mock confidence ไม่ถูกต้อง')
+      throw new Error('Confidence ไม่ถูกต้อง')
     }
     requiredText(finding.label, 'candidate finding')
     requiredText(finding.uncertaintyNote, 'uncertainty note')

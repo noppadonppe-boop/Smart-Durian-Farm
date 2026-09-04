@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router-dom'
 import { router } from './app/router'
 import './styles/tokens.css'
 import './styles/global.css'
+import './styles/admin-pages.css'
 
 const rootElement = document.getElementById('root')
 

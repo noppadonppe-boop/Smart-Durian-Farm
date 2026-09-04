@@ -107,7 +107,7 @@ export interface LaborCostRecord extends LaborCostDraft {
   actorDisplayName: string
   version: 1
   createdAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface OperatingExpenseDraft {
@@ -130,7 +130,7 @@ export interface OperatingExpenseRecord extends OperatingExpenseDraft {
   actorDisplayName: string
   version: 1
   createdAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface ManagementCostAuditEvent {
@@ -146,7 +146,7 @@ export interface ManagementCostAuditEvent {
   reason: string
   idempotencyKey: string
   createdAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface AnnualPlanFinancialRecord {
@@ -158,7 +158,7 @@ export interface AnnualPlanFinancialRecord {
   actorUserId: string
   createdAtLabel: string
   version: 1
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface ManagementCostSnapshot {
@@ -241,7 +241,7 @@ export interface FarmManagementReport {
   period: ReportPeriod
   generatedAtLabel: string
   generatedBy: string
-  dataMode: 'SIMULATED_TEST_ONLY'
+  dataMode: 'PRODUCTION' | 'SIMULATED_TEST_ONLY'
   sourceWatermark: string
   qualityFlags: readonly ReportQualityFlag[]
   metrics: FarmManagementReportMetrics
@@ -569,7 +569,11 @@ export function buildFarmManagementReport(
   const managementMarginBaht = roundMoney(grossSalesRecordedBaht - totalManagementCostBaht)
   const harvestFruitCount = harvests.reduce((sum, record) => sum + (record.quantityFruit ?? 0), 0)
   const harvestWeightKg = roundQuantity(harvests.reduce((sum, record) => sum + (record.totalWeightKg ?? 0), 0))
-  const flags = new Set<ReportQualityFlag>(['SIMULATED_TEST_ONLY', 'WORK_COMPLETION_TIME_NOT_AVAILABLE'])
+  const isProduction = !input.context.farm.isMock
+  const flags = new Set<ReportQualityFlag>([
+    ...(isProduction ? [] : ['SIMULATED_TEST_ONLY' as const]),
+    'WORK_COMPLETION_TIME_NOT_AVAILABLE',
+  ])
   if (period.clippedToAnnualCycle) flags.add('PARTIAL_PERIOD_AT_ANNUAL_BOUNDARY')
   if (input.commercial.salesLots.some(
     (record) => !['CANCELLED', 'ARCHIVED'].includes(record.status) && !record.soldOn,
@@ -696,10 +700,10 @@ export function buildFarmManagementReport(
     annualCycleId: input.annualCycle.annualCycleId,
     annualCycleCode: input.annualCycle.cycleCode,
     period,
-    generatedAtLabel: input.generatedAtLabel ?? '1 ก.ย. 2569 · เวลาจำลองคงที่',
+    generatedAtLabel: input.generatedAtLabel ?? (isProduction ? 'Firebase' : '1 ก.ย. 2569 · เวลาจำลองคงที่'),
     generatedBy: input.context.actor.userId,
-    dataMode: 'SIMULATED_TEST_ONLY',
-    sourceWatermark: 'KDOMS-MGMT-REPORT-MOCK-V1',
+    dataMode: isProduction ? 'PRODUCTION' : 'SIMULATED_TEST_ONLY',
+    sourceWatermark: isProduction ? 'KDOMS-MGMT-REPORT-FIREBASE' : 'KDOMS-MGMT-REPORT-MOCK-V1',
     qualityFlags: [...flags],
     metrics,
     details,

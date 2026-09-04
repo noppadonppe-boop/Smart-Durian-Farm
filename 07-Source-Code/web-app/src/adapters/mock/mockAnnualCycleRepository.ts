@@ -1,5 +1,5 @@
 import type { AnnualCycleRepository } from '../contracts'
-import annualCyclePack from '../../demo/annual-cycle-mock-data-pack-v1.0.json'
+import annualCyclePack from '../../../scripts/seed-data/annual-cycle-mock-data-pack-v1.0.json'
 import {
   annualCycleRevisionSnapshot,
   annualCycleSummary,

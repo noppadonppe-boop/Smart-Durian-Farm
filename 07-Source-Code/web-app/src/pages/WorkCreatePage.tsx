@@ -34,16 +34,18 @@ export function WorkCreatePage() {
     checkpointQueuedWorkPhoto,
     removeQueuedWorkPhotoBatch,
   } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const navigate = useNavigate()
   const location = useLocation()
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
-  const [title, setTitle] = useState('ตรวจดูแลต้นจำลอง')
-  const [description, setDescription] = useState('SIMULATED/TEST ONLY — งาน Phase 4 จำลอง')
+  const [title, setTitle] = useState(isProduction ? 'ตรวจดูแลต้น' : 'ตรวจดูแลต้นจำลอง')
+  const [description, setDescription] = useState(isProduction ? 'บันทึกงานดูแลตามแผน' : 'SIMULATED/TEST ONLY — งาน Phase 4 จำลอง')
   const [category, setCategory] = useState<WorkCategory>('CARE')
   const [careType, setCareType] = useState<CareEventType>('INSPECTION')
   const [targetKind, setTargetKind] = useState<WorkTargetKind>('TREE')
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([])
-  const [assignedUserId, setAssignedUserId] = useState('user_demo_worker_02')
+  const [assignedUserId, setAssignedUserId] = useState(isProduction ? '' : 'user_demo_worker_02')
+  const [dueDate, setDueDate] = useState(isProduction ? new Date().toISOString().slice(0, 10) : '2026-09-05')
   const [priority, setPriority] = useState<'NORMAL' | 'URGENT'>('NORMAL')
   const [instructionFiles, setInstructionFiles] = useState<readonly File[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -129,6 +131,9 @@ export function WorkCreatePage() {
       if (selectedTrees.some((tree) => disabledTargetReason(tree))) {
         throw new Error('มีตำแหน่งที่ไม่รองรับงานประเภทนี้ กรุณาเลือกเป้าหมายใหม่')
       }
+      if (isProduction && !assignedUserId.trim()) {
+        throw new Error('ต้องระบุผู้ปฏิบัติงานก่อนมอบหมาย')
+      }
       const positionIds = targetKind === 'TREE' ? [baseTree.positionId] : selectedIds
       const zoneCodes = selectionZoneCodes(trees, positionIds)
       const created = await createWorkOrder(crypto.randomUUID(), {
@@ -144,7 +149,7 @@ export function WorkCreatePage() {
           rowCode: targetKind === 'ZONE' || targetKind === 'TREE_SET' ? null : baseTree.rowCode,
           positionIds,
         },
-        dueDate: '2026-09-05',
+        dueDate,
         assignedUserId: null,
       })
       createdWorkOrderId = created.workOrderId
@@ -196,7 +201,7 @@ export function WorkCreatePage() {
     <section className="page-stack">
       <PageHeader
         eyebrow="Phase 4 · Create Work"
-        title="สร้าง Work Order จำลอง"
+        title={isProduction ? 'สร้าง Work Order' : 'สร้าง Work Order จำลอง'}
         description="Target ถูก snapshot ด้วย opaque Position IDs และผูกกับสวนปัจจุบัน"
       />
       <form className="work-form" onSubmit={(event) => void submit(event)}>
@@ -252,8 +257,11 @@ export function WorkCreatePage() {
               <option value="NORMAL">ปกติ</option><option value="URGENT">เร่งด่วน</option>
             </select>
           </label>
+          <label>กำหนดส่ง
+            <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} required />
+          </label>
           <label>Assigned user ID
-            <input value={assignedUserId} onChange={(event) => setAssignedUserId(event.target.value)} />
+            <input required={isProduction} value={assignedUserId} onChange={(event) => setAssignedUserId(event.target.value)} />
           </label>
         </div>
 
@@ -274,7 +282,7 @@ export function WorkCreatePage() {
         {error ? <p className="form-error" role="alert">{error}</p> : null}
         <div className="form-actions">
           <button className="primary-action" disabled={submitting} type="submit">
-            {submitting ? 'กำลังสร้าง…' : 'สร้างและมอบหมายงานจำลอง'}
+            {submitting ? 'กำลังสร้าง…' : isProduction ? 'สร้างและมอบหมายงาน' : 'สร้างและมอบหมายงานจำลอง'}
           </button>
         </div>
       </form>

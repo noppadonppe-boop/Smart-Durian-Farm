@@ -12,9 +12,8 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       { FirebaseOperationalHardeningRepository },
       { FirebaseDiseaseAnalysisRepository },
       { FirebaseLivePhoneOtpGateway },
-      { FirebaseProductionMockSeeder },
-      { MockAnnualCycleRepository },
-      { MockManagementReportingRepository },
+      { FirebaseAnnualCycleRepository },
+      { FirebaseManagementReportingRepository },
     ] = await Promise.all([
       import('../infrastructure/firebase/firebaseClient'),
       import('../infrastructure/firebase/firebasePhase2Repository'),
@@ -24,13 +23,12 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
       import('../infrastructure/firebase/firebaseOperationalHardeningRepository'),
       import('../infrastructure/firebase/firebaseDiseaseAnalysisRepository'),
       import('../infrastructure/firebase/phoneOtpAuth'),
-      import('../infrastructure/firebase/firebaseProductionMockSeeder'),
-      import('./mock/mockAnnualCycleRepository'),
-      import('./mock/mockManagementReportingRepository'),
+      import('../infrastructure/firebase/firebaseAnnualCycleRepository'),
+      import('../infrastructure/firebase/firebaseManagementReportingRepository'),
     ])
     const clients = createFirebaseLiveClients()
     const treeRepository = new FirebaseTreeRegisterRepository(clients.firestore, false)
-    const workRepository = new FirebaseWorkCareDiseaseRepository(clients.firestore, clients.storage)
+    const workRepository = new FirebaseWorkCareDiseaseRepository(clients.firestore, clients.storage, false, 'Firebase')
     return {
       auth: new FirebaseLivePhoneOtpGateway(
         clients.auth,
@@ -38,24 +36,19 @@ export async function createRuntimeAdapters(): Promise<Phase6Adapters> {
         appEnvironment.firebase.liveAuthAllowlistSalt,
         appEnvironment.firebase.liveAuthAllowlistIterations,
       ),
-      repository: new FirebasePhase2Repository(clients.firestore),
+      repository: new FirebasePhase2Repository(clients.firestore, false),
       treeRepository,
       workRepository,
-      commercialRepository: new FirebaseCommercialTraceabilityRepository(clients.firestore, false),
-      operationalRepository: new FirebaseOperationalHardeningRepository(clients.firestore),
+      commercialRepository: new FirebaseCommercialTraceabilityRepository(clients.firestore, true, false),
+      operationalRepository: new FirebaseOperationalHardeningRepository(clients.firestore, false),
       diseaseAnalysisRepository: new FirebaseDiseaseAnalysisRepository(
         clients.firestore,
         workRepository,
         treeRepository,
+        false,
       ),
-      // DEC-048 does not authorize Firebase Production Annual Cycle writes.
-      annualCycleRepository: new MockAnnualCycleRepository(),
-      // DEC-049 does not authorize Firebase Production management-cost writes.
-      managementReportingRepository: new MockManagementReportingRepository(),
-      productionMockSeeder: new FirebaseProductionMockSeeder(
-        clients.firestore,
-        clients.storage,
-      ),
+      annualCycleRepository: new FirebaseAnnualCycleRepository(clients.firestore, false),
+      managementReportingRepository: new FirebaseManagementReportingRepository(clients.firestore, false),
       mode: 'firebase-live',
       authMode: 'firebase-live',
     }

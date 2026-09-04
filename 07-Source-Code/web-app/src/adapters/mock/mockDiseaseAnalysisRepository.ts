@@ -18,7 +18,7 @@ import {
 } from '../../domain/diseaseAnalysis'
 import type { WorkMutationContext } from '../../domain/workCareDisease'
 
-import diseaseAnalysisPack from '../../demo/disease-analysis-p1-mock-data-pack-v1.0.json'
+import diseaseAnalysisPack from '../../../scripts/seed-data/disease-analysis-p1-mock-data-pack-v1.0.json'
 
 interface DiseaseAnalysisMockDataPack {
   metadata: {

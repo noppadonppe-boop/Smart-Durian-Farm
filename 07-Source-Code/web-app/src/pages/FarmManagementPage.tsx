@@ -8,7 +8,8 @@ import { PageHeader } from './PageHeader'
 import '../components/FarmManagement.css'
 
 export function FarmManagementPage() {
-  const { currentFarm, listFarmProfiles } = usePhase2()
+  const { currentFarm, listFarmProfiles, mode } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [profiles, setProfiles] = useState<readonly FarmProfile[]>([])
   const [error, setError] = useState<string>()
   const isOwner = currentFarm?.isOrganizationOwner === true
@@ -35,7 +36,7 @@ export function FarmManagementPage() {
         <PageHeader
           eyebrow="ORG_OWNER only"
           title="ไม่มีสิทธิ์จัดการสวน"
-          description="บทบาทนี้เปิด Farm Profile ของสวนที่มี membership ได้แบบอ่านอย่างเดียว"
+          description="บทบาทนี้เปิด Farm Profile ของสวนที่มี membership ได้แบบอ่านอย่างเดียว" backTo="/more"
         />
         <Link className="primary-action action-link" to={`/farm-management/${currentFarm.farmId}`}>
           เปิดข้อมูลสวนปัจจุบัน
@@ -52,9 +53,9 @@ export function FarmManagementPage() {
         description="เพิ่ม แก้ไข ระงับ เปิดใช้งานใหม่ และเก็บถาวร โดยรักษาประวัติทุกครั้ง"
         action={<Link className="primary-action action-link" to="/farm-management/new">เพิ่มสวน</Link>}
       />
-      <div className="mock-scope-note" role="status">
-        SIMULATED/TEST ONLY · Farm Profile Mockup 4 สวน · Local/Emulator เท่านั้น
-      </div>
+      {isProduction
+        ? <div className="operational-data-banner" role="status">Firebase Production · จัดการ Farm Profile ในองค์กรปัจจุบัน</div>
+        : <div className="mock-scope-note" role="status">SIMULATED/TEST ONLY · Farm Profile Mockup 4 สวน · Local/Emulator เท่านั้น</div>}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <div className="farm-management-list" aria-label="รายการสวนในองค์กร">
         {profiles.map((profile) => (

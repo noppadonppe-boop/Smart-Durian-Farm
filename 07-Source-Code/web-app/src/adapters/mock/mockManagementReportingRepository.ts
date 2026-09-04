@@ -15,7 +15,7 @@ import {
   type OperatingExpenseDraft,
   type OperatingExpenseRecord,
 } from '../../domain/managementReporting'
-import seed from '../../demo/management-reporting-mock-data-pack-v1.0.json'
+import seed from '../../../scripts/seed-data/management-reporting-mock-data-pack-v1.0.json'
 
 interface ReportingSeed {
   laborCosts: LaborCostRecord[]

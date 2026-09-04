@@ -92,7 +92,7 @@ export interface AnnualCycleRecord extends AnnualCycleDraft {
   updatedBy: string
   createdAtLabel: string
   updatedAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface AnnualPlanTarget {
@@ -129,7 +129,7 @@ export interface AnnualPlanItemRecord extends AnnualPlanItemDraft {
   updatedBy: string
   createdAtLabel: string
   updatedAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface AnnualCycleRevisionSnapshot {
@@ -160,7 +160,7 @@ export interface AnnualCycleCorrection {
   actorDisplayName: string
   createdAtLabel: string
   idempotencyKey: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export type AnnualCycleAuditEventType =
@@ -185,7 +185,7 @@ export interface AnnualCycleAuditEvent {
   afterSummary: string
   recordVersion: number
   createdAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface AnnualCycleSnapshot {

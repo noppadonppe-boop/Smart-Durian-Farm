@@ -30,7 +30,7 @@ import {
   isValidFarmStatusTransition,
   normalizeFarmProfileDraft,
 } from '../../domain/farm'
-import demoSeed from '../../demo/phase2-demo-seed.json'
+import demoSeed from '../../../scripts/seed-data/phase2-demo-seed.json'
 import type { TreePositionDetail } from '../../domain/treeRegister'
 import { MockTreeRegisterRepository } from './mockTreeRegisterRepository'
 import { MockWorkCareDiseaseRepository } from './mockWorkCareDiseaseRepository'

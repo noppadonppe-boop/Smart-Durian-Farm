@@ -10,7 +10,6 @@ const membershipLabels: Record<MembershipAuditEvent['eventType'], string> = {
   MEMBERSHIP_REVOKED: 'ยกเลิกสิทธิ์',
   MEMBERSHIP_RESTORED: 'คืนสิทธิ์',
 }
-
 const operationalLabels: Record<OperationalAuditEvent['eventType'], string> = {
   OFFLINE_SYNCED: 'ซิงก์รายการ Offline',
   OFFLINE_CONFLICT: 'หยุดรายการเพราะ Conflict',
@@ -21,9 +20,9 @@ const operationalLabels: Record<OperationalAuditEvent['eventType'], string> = {
   ORPHAN_CLEANED: 'จัดการ Orphan',
   EXPORT_CREATED: 'สร้าง Export',
 }
-
 export function AuditPage() {
-  const { currentFarm, listMembershipAudit, listOperationalAudit, requestFarmExport } = usePhase2()
+  const { currentFarm, listMembershipAudit, listOperationalAudit, requestFarmExport, mode } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [membershipEvents, setMembershipEvents] = useState<readonly MembershipAuditEvent[]>([])
   const [operationalEvents, setOperationalEvents] = useState<readonly OperationalAuditEvent[]>([])
   const [exportRecord, setExportRecord] = useState<FarmExportRecord>()
@@ -54,7 +53,7 @@ export function AuditPage() {
   }, [canRead, currentFarm?.farmId, listMembershipAudit, listOperationalAudit])
 
   if (!currentFarm || !canRead) return <section className="page-stack">
-    <PageHeader eyebrow="Access denied" title="ไม่มีสิทธิ์ดู Audit" description="VIEWER และ WORKER ไม่มีสิทธิ์ Audit หรือ Export โดยอัตโนมัติ" />
+    <PageHeader eyebrow="Access denied" title="ไม่มีสิทธิ์ดู Audit" description="VIEWER และ WORKER ไม่มีสิทธิ์ Audit หรือ Export โดยอัตโนมัติ" backTo="/more" />
   </section>
 
   const createExport = () => {
@@ -62,21 +61,23 @@ export function AuditPage() {
     void requestFarmExport(`export-ui-${crypto.randomUUID()}`)
       .then(async (record) => {
         setExportRecord(record)
-        setMessage(`สร้าง Export จำลอง ${record.rowCount} แถว และบันทึก Audit แล้ว`)
+        setMessage(`${isProduction ? 'สร้าง Export' : 'สร้าง Export จำลอง'} ${record.rowCount} แถว และบันทึก Audit แล้ว`)
         await load()
       })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Export ไม่สำเร็จ'))
   }
 
   return <section className="page-stack audit-page">
-    <PageHeader eyebrow="Append-only evidence & export" title="Audit และ Export ตามสิทธิ์" description={`ใครทำอะไร เมื่อใด ใน ${currentFarm.farmCode} · ไม่รวมสวนอื่น`} />
-    <div className="field-validation-banner" role="note"><strong>SIMULATED/TEST ONLY</strong><span>Export มีเฉพาะรหัสและเหตุการณ์ขั้นต่ำ ไม่มีเบอร์โทรหรือข้อมูลลูกค้า</span></div>
+    <PageHeader eyebrow="Append-only evidence & export" title="Audit และ Export ตามสิทธิ์" description={`ใครทำอะไร เมื่อใด ใน ${currentFarm.farmCode} · ไม่รวมสวนอื่น`} backTo="/more" />
+    {isProduction
+      ? <div className="operational-data-banner" role="note"><strong>Firebase Production · Append-only</strong><span>Export มีเฉพาะรหัสและเหตุการณ์ขั้นต่ำ ไม่มีเบอร์โทรหรือข้อมูลลูกค้า</span></div>
+      : <div className="field-validation-banner" role="note"><strong>SIMULATED/TEST ONLY</strong><span>Export มีเฉพาะรหัสและเหตุการณ์ขั้นต่ำ ไม่มีเบอร์โทรหรือข้อมูลลูกค้า</span></div>}
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {message ? <div className="success-notice" role="status">{message}</div> : null}
 
     <section className="operational-panel"><div className="section-heading"><div><span className="status-pill">Farm-scoped CSV</span><h2>ส่งออก Audit ขั้นต่ำ</h2></div><button className="primary-action" type="button" onClick={createExport}>สร้าง Export พร้อม Audit</button></div>
       <p>CSV ป้องกัน Spreadsheet formula injection และไม่มี public link</p>
-      {exportRecord ? <a className="secondary-action" download={`${currentFarm.farmCode}-audit-test-only.csv`} href={`data:text/csv;charset=utf-8,${encodeURIComponent(exportRecord.csvText)}`}>ดาวน์โหลด CSV จำลอง {exportRecord.rowCount} แถว</a> : null}
+      {exportRecord ? <a className="secondary-action" download={`${currentFarm.farmCode}-audit.csv`} href={`data:text/csv;charset=utf-8,${encodeURIComponent(exportRecord.csvText)}`}>{isProduction ? 'ดาวน์โหลด CSV' : 'ดาวน์โหลด CSV จำลอง'} {exportRecord.rowCount} แถว</a> : null}
     </section>
 
     <section className="operational-panel"><div className="section-heading"><div><span className="status-pill">Operational</span><h2>Offline, Conflict, Photo และ Export</h2></div></div>

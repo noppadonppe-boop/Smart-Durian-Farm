@@ -19,7 +19,6 @@ const scenarioLabels: Record<DevelopmentScenario, string> = {
   CONFLICT: 'Conflict',
   PERMISSION_DENIED: 'Permission Denied',
 }
-
 const scenarioDescriptions: Record<DevelopmentScenario, string> = {
   DEFAULT: 'เปิด deterministic baseline และเข้า Workflow Disease จริงใน Local Mock',
   EMPTY: 'ตรวจ Empty state โดยไม่สร้างหรือแก้ข้อมูลใน Repository',
@@ -29,11 +28,9 @@ const scenarioDescriptions: Record<DevelopmentScenario, string> = {
   CONFLICT: 'เปรียบเทียบ Local/Server mock version ก่อนส่งให้คนตัดสินใจ',
   PERMISSION_DENIED: 'ปฏิเสธการอ่านข้อมูลต่างสวนโดยไม่แสดง payload',
 }
-
 function storageKey(farmId: string): string {
   return `kdoms:development-scenario:${farmId}`
 }
-
 export function DevelopmentMockScenarioPage() {
   const { currentFarm } = usePhase2()
   const [scenario, setScenario] = useState<DevelopmentScenario>(() => {
@@ -65,7 +62,7 @@ export function DevelopmentMockScenarioPage() {
   if (!currentFarm) return null
 
   return <section className="page-stack">
-    <PageHeader eyebrow="Development only" title="Mock Scenario Center" description="UI harness สำหรับ Mock-first development เท่านั้น · ไม่ใช่ Physical Device/Field evidence" />
+    <PageHeader eyebrow="Development only" title="Mock Scenario Center" description="UI harness สำหรับ Mock-first development เท่านั้น · ไม่ใช่ Physical Device/Field evidence" backTo="/more" />
     <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY</strong><span>Scenario นี้อยู่ในหน่วยความจำ/Session ของ {currentFarm.farmCode}; ไม่แตะ External Resource และไม่รวมใน Production route</span></aside>
 
     <section className="scenario-picker" aria-labelledby="scenario-picker-title">

@@ -1,6 +1,6 @@
 import type { AnnualCycleRepository, CommercialTraceabilityRepository } from '../contracts'
-import annualCyclePack from '../../demo/annual-cycle-mock-data-pack-v1.0.json'
-import phase5Pack from '../../demo/phase5-mock-data-pack-v1.0.json'
+import annualCyclePack from '../../../scripts/seed-data/annual-cycle-mock-data-pack-v1.0.json'
+import phase5Pack from '../../../scripts/seed-data/phase5-mock-data-pack-v1.0.json'
 import {
   assertCommercialScope,
   assertCropStageTransition,

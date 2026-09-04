@@ -19,7 +19,7 @@ export interface DeterministicFruitCountResult {
   proposedReviewedCount: number
   limitationNote: string
   engineKind: 'DETERMINISTIC_MOCK'
-  exampleData: true
+  exampleData: boolean
 }
 
 const mockResults: Record<AiCaptureMethod, Omit<

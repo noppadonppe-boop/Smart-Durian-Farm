@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import annualSeed from '../demo/annual-cycle-mock-data-pack-v1.0.json'
-import commercialSeed from '../demo/phase5-mock-data-pack-v1.0.json'
-import costSeed from '../demo/management-reporting-mock-data-pack-v1.0.json'
-import workSeed from '../demo/phase4-mock-data-pack-v1.0.json'
+import annualSeed from '../../scripts/seed-data/annual-cycle-mock-data-pack-v1.0.json'
+import commercialSeed from '../../scripts/seed-data/phase5-mock-data-pack-v1.0.json'
+import costSeed from '../../scripts/seed-data/management-reporting-mock-data-pack-v1.0.json'
+import workSeed from '../../scripts/seed-data/phase4-mock-data-pack-v1.0.json'
 import type { AnnualCycleRecord, AnnualPlanItemRecord } from './annualFarmCycle'
 import {
   calculateDirectCostSummary,

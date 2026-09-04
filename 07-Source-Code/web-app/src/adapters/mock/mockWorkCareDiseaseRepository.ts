@@ -38,8 +38,8 @@ import {
 } from '../../domain/workCareDisease'
 import type { TreePositionSummary } from '../../domain/treeRegister'
 
-import phase4MockDataPack from '../../demo/phase4-mock-data-pack-v1.0.json'
-import phase2DemoSeed from '../../demo/phase2-demo-seed.json'
+import phase4MockDataPack from '../../../scripts/seed-data/phase4-mock-data-pack-v1.0.json'
+import phase2DemoSeed from '../../../scripts/seed-data/phase2-demo-seed.json'
 
 interface Phase4MockDataPack {
   metadata: {

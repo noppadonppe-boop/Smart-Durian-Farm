@@ -185,6 +185,7 @@ export function ManagementReportsPage() {
       eyebrow="DEC-049 · Farm-scoped management reporting"
       title="รายงานการจัดการสวนและต้นทุน"
       description="รายสัปดาห์ รายเดือน ราย 3 เดือน และรายปี · แยกผลผลิต ยอดขาย ต้นทุนแรงงาน วัสดุ ค่าใช้จ่ายดำเนินงาน และสินทรัพย์ลงทุน"
+      backTo="/more"
     />
     <div className="field-validation-banner" role="note">
       <strong>SIMULATED/TEST ONLY · {currentFarm.farmCode}</strong>

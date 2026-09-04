@@ -64,7 +64,7 @@ export interface FarmDashboardSnapshot {
   harvestAvailableKg: number
   inventoryWarningCount: number
   lastCalculatedAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface FarmDashboardFinancialSnapshot {
@@ -73,7 +73,7 @@ export interface FarmDashboardFinancialSnapshot {
   salesGrossBaht: number
   salesOutstandingBaht: number
   lastCalculatedAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface DashboardVisibility {
@@ -133,7 +133,7 @@ export interface OfflineOperationRecord extends QueueOperationInput {
   conflictReason?: string
   createdAtLabel: string
   updatedAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface MasterDataConflict {
@@ -152,7 +152,7 @@ export interface MasterDataConflict {
   detectedAtLabel: string
   resolvedAtLabel?: string
   version: number
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface PhotoRecoveryRecord {
@@ -169,7 +169,7 @@ export interface PhotoRecoveryRecord {
   retryCount: number
   lastError?: string
   updatedAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface PhotoRecoveryDraft {
@@ -204,7 +204,7 @@ export interface OperationalAuditEvent {
   beforeSummary: string
   afterSummary: string
   createdAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export interface FarmExportRecord {
@@ -216,7 +216,7 @@ export interface FarmExportRecord {
   rowCount: number
   csvText: string
   createdAtLabel: string
-  exampleData: true
+  exampleData: boolean
 }
 
 export const phase6PerformanceBudget = Object.freeze(performanceBudget)

@@ -20,7 +20,6 @@ interface LayoutContext {
   syncState: SyncState
   toggleSyncState: () => void
 }
-
 export function SyncCenterPage() {
   const { syncState, toggleSyncState } = useOutletContext<LayoutContext>()
   const {
@@ -82,6 +81,7 @@ export function SyncCenterPage() {
   ])
 
   if (!currentFarm) return null
+  const isProduction = mode === 'firebase-live' && !currentFarm.isMock
   const run = (action: () => Promise<unknown>, success: string) => {
     setError(undefined); setMessage(undefined)
     void action().then(async () => { setMessage(success); await load() })
@@ -122,16 +122,16 @@ export function SyncCenterPage() {
   const orphanPhoto = photos.find((photo) => photo.status === 'ORPHANED')
 
   return <section className="page-stack sync-center">
-    <PageHeader eyebrow="Phase 6 · Offline hardening" title="ศูนย์ซิงก์ รูป และข้อมูลขัดแย้ง" description="รายการค้างส่งไม่ย้ายสวน, Retry ใช้ idempotency key เดิม และ Conflict ต้องมีผู้ตัดสิน" />
+    <PageHeader eyebrow="Phase 6 · Offline hardening" title="ศูนย์ซิงก์ รูป และข้อมูลขัดแย้ง" description="รายการค้างส่งไม่ย้ายสวน, Retry ใช้ idempotency key เดิม และ Conflict ต้องมีผู้ตัดสิน" backTo="/more" />
     <div className="sync-mode-card" role="status">
       <div><strong>{syncState === 'offline' ? 'ออฟไลน์' : 'ซิงก์แล้ว'}</strong><span>{syncState === 'offline' ? 'บันทึกลง Queue เท่านั้น' : 'พร้อม Retry รายการ Pending'}</span></div>
-      <button className="secondary-action" type="button" onClick={toggleSyncState}>{syncState === 'offline' ? 'จำลองกลับออนไลน์' : 'จำลองสัญญาณขาด'}</button>
+      <button className="secondary-action" type="button" onClick={toggleSyncState}>{syncState === 'offline' ? isProduction ? 'กลับมาออนไลน์' : 'จำลองกลับออนไลน์' : isProduction ? 'เปลี่ยนเป็นออฟไลน์' : 'จำลองสัญญาณขาด'}</button>
     </div>
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {message ? <div className="success-notice" role="status">{message}</div> : null}
 
     <section className="operational-panel"><div className="section-heading"><div><span className="status-pill">Queue</span><h2>Pending → Syncing → Synced/Conflict</h2></div></div>
-      <div className="dialog-actions"><button className="primary-action" type="button" onClick={queueReport}>บันทึกรายงาน Offline จำลอง</button><button className="secondary-action" type="button" onClick={syncPending}>Retry Pending ทั้งหมด</button></div>
+      <div className="dialog-actions">{!isProduction ? <button className="primary-action" type="button" onClick={queueReport}>บันทึกรายงาน Offline จำลอง</button> : <small>รายการจริงจะเข้าคิวจากการส่ง Work Report หรือ Photo ใน workflow ของงาน</small>}<button className="secondary-action" type="button" onClick={syncPending}>Retry Pending ทั้งหมด</button></div>
       <div className="queue-list">{operations.map((operation) => <article key={operation.operationId}>
         <span className={`sync-state sync-state--${operation.status.toLowerCase()}`}>{operationLabels[operation.status]}</span>
         <h3>{operation.label}</h3><p>{operation.kind} · target {operation.targetId}</p>
@@ -158,7 +158,7 @@ export function SyncCenterPage() {
       {unresolvedWithoutBinary ? <p className="form-warning">มี recovery metadata ที่ไม่มี binary queue บนอุปกรณ์นี้ จึงห้ามเปลี่ยนเป็น UPLOADED จาก metadata อย่างเดียว ต้องใช้ไฟล์ต้นฉบับใหม่หรือให้ Owner ตรวจ Orphan</p> : null}
       <div className="dialog-actions">
         <button className="secondary-action" disabled={!queuedPhotoBatch || syncState === 'offline'} type="button" onClick={() => queuedPhotoBatch && run(() => retryQueuedWorkPhotoBatch(queuedPhotoBatch.batchId), 'Retry binary, ผูกรูปกับ Work และปิด recovery สำเร็จแล้ว')}>Retry ชุดรูปจากเครื่อง</button>
-        <button className="secondary-action" disabled={!orphanPhoto || !canReviewMasterConflict(currentFarm)} type="button" onClick={() => orphanPhoto && run(() => cleanupOrphanPhoto(orphanPhoto.recoveryId, `cleanup-ui-${crypto.randomUUID()}`, 'ยืนยันว่าไม่มี Report อ้างถึงไฟล์จำลองนี้'), 'บันทึก cleanup จำลองแล้ว — ยังไม่ใช่การลบ Storage จริง')}>บันทึก cleanup จำลอง</button>
+        <button className="secondary-action" disabled={!orphanPhoto || !canReviewMasterConflict(currentFarm)} type="button" onClick={() => orphanPhoto && run(() => cleanupOrphanPhoto(orphanPhoto.recoveryId, `cleanup-ui-${crypto.randomUUID()}`, isProduction ? 'ยืนยันว่าไม่มี Report อ้างถึงไฟล์นี้' : 'ยืนยันว่าไม่มี Report อ้างถึงไฟล์จำลองนี้'), isProduction ? 'บันทึก cleanup แล้ว' : 'บันทึก cleanup จำลองแล้ว — ยังไม่ใช่การลบ Storage จริง')}>{isProduction ? 'บันทึก cleanup' : 'บันทึก cleanup จำลอง'}</button>
       </div>
       <small>การลบ Storage จริงต้องใช้ server lifecycle worker หลัง PA-1/PA-2 และ dual approval เท่านั้น</small>
     </section>

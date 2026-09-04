@@ -110,60 +110,62 @@ export function AppLayout() {
       </a>
 
       <header className="app-header">
-        <div className="brand-block">
-          <span className="brand-mark" aria-hidden="true">
-            ท
-          </span>
-          <div>
-            <strong>Smart Durian Farm</strong>
-            <span>
-              KDOMS · {mode === 'firebase-live'
-                ? 'Firebase Production · Shared Root Data'
-                : authMode === 'firebase-live'
-                ? 'Firebase Phone Auth · Mock Data'
-                : mode === 'firebase-emulator'
-                  ? 'Firebase Local Emulator'
-                  : 'Local Mock Development'}
+        <div className="app-header__bar">
+          <div className="brand-block">
+            <span className="brand-mark" aria-hidden="true">
+              ท
             </span>
+            <div className="brand-text">
+              <strong>Smart Durian Farm</strong>
+              <span className="brand-env">
+                KDOMS · {mode === 'firebase-live'
+                  ? 'Firebase Live'
+                  : authMode === 'firebase-live'
+                  ? 'Phone Auth'
+                  : mode === 'firebase-emulator'
+                    ? 'Emulator'
+                    : 'Mock'}
+              </span>
+            </div>
           </div>
-          <button
-            aria-label={`ธีมปัจจุบัน: ${colorScheme === 'system' ? 'อัตโนมัติ' : colorScheme === 'dark' ? 'มืด' : 'สว่าง'} · กดเพื่อเปลี่ยน`}
-            className="theme-control"
-            onClick={() => setColorScheme((current) => current === 'system'
-              ? 'dark'
-              : current === 'dark' ? 'light' : 'system')}
-            title="เปลี่ยนธีมสี"
-            type="button"
-          >
-            <span aria-hidden="true">◐</span>
-          </button>
-        </div>
 
-        <div className="context-row" aria-label="บริบทสวนปัจจุบัน">
-          <Suspense fallback={<div className="farm-switcher" aria-busy="true">กำลังโหลดสวน…</div>}>
-            <FarmSwitcher />
-          </Suspense>
-          <Suspense fallback={<div className="annual-cycle-switcher" aria-busy="true">กำลังโหลดรอบปี…</div>}>
-            <AnnualCycleSwitcher />
-          </Suspense>
-          <button
-            className={`sync-control sync-control--${syncState}`}
-            type="button"
-            aria-pressed={syncState === 'offline'}
-            onClick={toggleSyncState}
-          >
-            <span aria-hidden="true">●</span>
-            {syncState === 'synced'
-              ? currentPendingCount > 0
-                ? `ซิงก์แล้ว · ค้าง ${currentPendingCount}`
-                : 'ซิงก์แล้ว'
-              : `ออฟไลน์ · ค้าง ${currentPendingCount}`}
-          </button>
+          <div className="context-row" aria-label="บริบทสวนปัจจุบัน">
+            <Suspense fallback={<div className="farm-switcher" aria-busy="true">กำลังโหลดสวน…</div>}>
+              <FarmSwitcher />
+            </Suspense>
+            <Suspense fallback={<div className="annual-cycle-switcher" aria-busy="true">กำลังโหลดรอบปี…</div>}>
+              <AnnualCycleSwitcher />
+            </Suspense>
+            <button
+              className={`sync-control sync-control--${syncState}`}
+              type="button"
+              aria-pressed={syncState === 'offline'}
+              onClick={toggleSyncState}
+            >
+              <span aria-hidden="true">●</span>
+              {syncState === 'synced'
+                ? currentPendingCount > 0
+                  ? `ซิงก์ · ค้าง ${currentPendingCount}`
+                  : 'ซิงก์แล้ว'
+                : `ออฟไลน์ · ค้าง ${currentPendingCount}`}
+            </button>
+            <button
+              aria-label={`ธีมปัจจุบัน: ${colorScheme === 'system' ? 'อัตโนมัติ' : colorScheme === 'dark' ? 'มืด' : 'สว่าง'} · กดเพื่อเปลี่ยน`}
+              className="theme-control"
+              onClick={() => setColorScheme((current) => current === 'system'
+                ? 'dark'
+                : current === 'dark' ? 'light' : 'system')}
+              title="เปลี่ยนธีมสี"
+              type="button"
+            >
+              <span aria-hidden="true">◐</span>
+            </button>
+          </div>
         </div>
 
         <div className={mode === 'firebase-live' && !farm.isMock ? 'operational-banner' : 'mock-banner'} role="status">
           {mode === 'firebase-live' && !farm.isMock
-            ? 'TREE REGISTER · ข้อมูลภาคสนาม · Firebase durian-smartfarm/root · โมดูลอื่นที่ Seed ไว้ยังเป็น SIMULATED/TEST ONLY'
+            ? 'Firebase Production · ข้อมูลทุกโมดูลอยู่ที่ durian-smartfarm/root และแยกตาม Farm'
             : <>SIMULATED/TEST ONLY · ข้อมูลจำลองเท่านั้น ·{' '}{mode === 'firebase-live'
               ? 'Firebase Production · สวนปัจจุบันยังเป็นข้อมูล Seed/Mock'
               : authMode === 'firebase-live'

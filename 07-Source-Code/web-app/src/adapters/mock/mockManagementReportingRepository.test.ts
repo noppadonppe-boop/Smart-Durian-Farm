@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import annualSeed from '../../demo/annual-cycle-mock-data-pack-v1.0.json'
+import annualSeed from '../../../scripts/seed-data/annual-cycle-mock-data-pack-v1.0.json'
 import type { AnnualCycleRecord } from '../../domain/annualFarmCycle'
 import type { FarmAccess } from '../../domain/farm'
 import type { ManagementReportContext } from '../../domain/managementReporting'

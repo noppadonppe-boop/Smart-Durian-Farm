@@ -1,5 +1,5 @@
 import type { OperationalHardeningRepository } from '../contracts'
-import phase6Pack from '../../demo/phase6-mock-data-pack-v1.0.json'
+import phase6Pack from '../../../scripts/seed-data/phase6-mock-data-pack-v1.0.json'
 import {
   assertOperationalScope,
   buildFarmAuditCsv,

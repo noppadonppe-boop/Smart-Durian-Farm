@@ -13,11 +13,13 @@ import type {
   PhoneOtpGateway,
 } from '../../adapters/contracts'
 import type { AuthenticatedIdentity } from '../../domain/farm'
-import demoSeed from '../../demo/phase2-demo-seed.json'
+let allowedTestPhones: Promise<ReadonlySet<string>> | undefined
 
-const allowedTestPhones = new Set(
-  demoSeed.users.map((user) => user.phoneNumber),
-)
+function localTestPhones(): Promise<ReadonlySet<string>> {
+  allowedTestPhones ??= import('../../../scripts/seed-data/phase2-demo-seed.json').then(({ default: seed }) =>
+    new Set(seed.users.map((user) => user.phoneNumber)))
+  return allowedTestPhones
+}
 
 function errorCode(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null || !('code' in error)) {
@@ -222,7 +224,7 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
       if (!this.allowedPhoneHashes.has(digest)) {
         throw new Error('หมายเลขนี้ไม่ได้รับอนุญาตสำหรับการทดสอบ Firebase Auth จริง')
       }
-    } else if (!allowedTestPhones.has(normalized)) {
+    } else if (!(await localTestPhones()).has(normalized)) {
       throw new Error(
         'ระยะ Local/Emulator อนุญาตเฉพาะหมายเลขทดสอบจำลองที่กำหนดไว้',
       )

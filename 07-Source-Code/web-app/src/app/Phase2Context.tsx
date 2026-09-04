@@ -11,7 +11,6 @@ import type {
   MembershipChangeInput,
   Phase6Adapters,
   PhoneOtpChallenge,
-  ProductionMockSeedResult,
   TreeRouteResolution,
 } from '../adapters/contracts'
 import { createRuntimeAdapters } from '../adapters/runtimeAdapters'
@@ -188,7 +187,6 @@ export interface Phase2ContextValue {
   cancelOtp: () => void
   signInAsDevelopmentAdmin: () => Promise<void>
   signInWithMockAccount: (phoneNumber: string, otp: string) => Promise<void>
-  seedProductionMockData: () => Promise<ProductionMockSeedResult>
   signOut: () => Promise<void>
   requestFarmSwitch: (farmId: string) => void
   confirmFarmSwitch: () => void
@@ -612,15 +610,6 @@ function ResolvedPhase2Provider({
     }
     await adapters.auth.signOut()
   }, [adapters.auth, farms, identity])
-
-  const seedProductionMockData = useCallback(async () => {
-    if (!identity || !adapters.productionMockSeeder) {
-      throw new Error('ปุ่ม Seed ใช้ได้หลังยืนยัน Firebase Phone Auth ใน Production เท่านั้น')
-    }
-    const result = await adapters.productionMockSeeder.seed(identity)
-    await loadFarmAccess(identity)
-    return result
-  }, [adapters.productionMockSeeder, identity, loadFarmAccess])
 
   const applyFarmSwitch = useCallback((farm: FarmAccess) => {
     setCurrentFarmId(farm.farmId)
@@ -1411,7 +1400,7 @@ function ResolvedPhase2Provider({
       ...input,
       farm: context.currentFarm,
       actorUserId: context.identity.userId,
-      exampleData: true,
+      exampleData: context.currentFarm.isMock,
     })
     await workPhotoBinaryQueue.put(batch)
     return batch
@@ -1548,7 +1537,6 @@ function ResolvedPhase2Provider({
       cancelOtp,
       signInAsDevelopmentAdmin,
       signInWithMockAccount,
-      seedProductionMockData,
       signOut,
       requestFarmSwitch,
       confirmFarmSwitch,
@@ -1733,7 +1721,6 @@ function ResolvedPhase2Provider({
       resetManagementReportingMockData,
       requestFarmSwitch,
       requestOtp,
-      seedProductionMockData,
       signInAsDevelopmentAdmin,
       signInWithMockAccount,
       signOut,
@@ -1761,7 +1748,7 @@ export function Phase2Provider({ children }: { children?: ReactNode }) {
     const [{ createMockPhase2Adapters }, { developmentAdminAccount }] =
       await Promise.all([
         import('../adapters/mock/mockFoundationAdapters'),
-        import('../demo/demoAccounts'),
+        import('../../scripts/seed-data/demoAccounts'),
       ])
     if (!developmentAdminAccount) {
       throw new Error('ไม่พบบัญชีผู้ดูแลในชุดข้อมูลจำลอง')

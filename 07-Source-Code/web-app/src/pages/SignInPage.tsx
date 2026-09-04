@@ -1,7 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
 import { usePhase2 } from '../app/usePhase2'
-import { demoAccounts } from '../demo/demoAccounts'
+
+interface DemoAccount {
+  displayName: string
+  phoneNumber: string
+  otp: string
+  isOrganizationOwner: boolean
+}
 
 export function SignInPage() {
   const {
@@ -15,11 +21,24 @@ export function SignInPage() {
     cancelOtp,
     signInAsDevelopmentAdmin,
   } = usePhase2()
+  const [demoAccounts, setDemoAccounts] = useState<readonly DemoAccount[]>([])
   const [phoneNumber, setPhoneNumber] = useState(
-    authMode === 'firebase-live' ? '' : (demoAccounts[0]?.phoneNumber ?? ''),
+    authMode === 'firebase-live' ? '' : '+16505550101',
   )
   const [otp, setOtp] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (authMode === 'firebase-live') {
+      return undefined
+    }
+    let active = true
+    void import('../../scripts/seed-data/demoAccounts').then(({ demoAccounts: accounts }) => {
+      if (!active) return
+      setDemoAccounts(accounts)
+    })
+    return () => { active = false }
+  }, [authMode])
 
   const submitPhone = async (event: FormEvent) => {
     event.preventDefault()

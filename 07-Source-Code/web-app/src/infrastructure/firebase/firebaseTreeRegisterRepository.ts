@@ -705,7 +705,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       status: 'COMPLETED',
       importedCount: positionIds.length,
       positionIds,
-      exampleData: this.exampleData || context.farm.isMock,
+      exampleData: this.exampleData,
       createdAt: serverTimestamp(),
     })
     await batch.commit()
@@ -811,7 +811,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
   ): void {
     const positionReference = treePositionReference(this.firestore, context, positionId)
     const cycleId = `cycle_${String(cycleNumber).padStart(3, '0')}`
-    const exampleData = this.exampleData || context.farm.isMock
+    const exampleData = this.exampleData
     batch.set(positionReference, {
       recordType: 'TREE_POSITION',
       organizationId: context.farm.organizationId,

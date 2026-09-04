@@ -41,6 +41,8 @@ import { rootCollection, rootDoc } from './firebaseDataRoot'
 const analysisEventTypes = [
   'MOCK_ANALYSIS_COMPLETED',
   'MOCK_ANALYSIS_ABSTAINED',
+  'ANALYSIS_COMPLETED',
+  'ANALYSIS_ABSTAINED',
   'HUMAN_REVIEW_ACCEPTED',
   'HUMAN_REVIEW_CORRECTED',
   'HUMAN_REVIEW_REJECTED',
@@ -92,12 +94,13 @@ function nullableString(data: DocumentData, field: string): string | null {
   return value
 }
 
-function timestampLabel(value: unknown): string {
-  if (!(value instanceof Timestamp)) return 'รอเวลา Emulator · SIMULATED/TEST ONLY'
+function timestampLabel(value: unknown, exampleData: boolean): string {
+  const suffix = exampleData ? ' · SIMULATED/TEST ONLY' : ''
+  if (!(value instanceof Timestamp)) return `รอเวลา ${exampleData ? 'Emulator' : 'Firebase'}${suffix}`
   return `${new Intl.DateTimeFormat('th-TH', {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(value.toDate())} · SIMULATED/TEST ONLY`
+  }).format(value.toDate())}${suffix}`
 }
 
 function parseCandidateFindings(data: DocumentData): DiseaseCandidateFinding[] {
@@ -107,7 +110,7 @@ function parseCandidateFindings(data: DocumentData): DiseaseCandidateFinding[] {
     if (!item || typeof item !== 'object') throw new Error('Invalid candidate finding')
     const finding = item as Record<string, unknown>
     if (
-      finding.findingCode !== 'MOCK_SYMPTOM_PATTERN_A' ||
+      finding.findingCode !== 'MOCK_SYMPTOM_PATTERN_A' && finding.findingCode !== 'SYMPTOM_PATTERN_A' ||
       typeof finding.label !== 'string' ||
       typeof finding.confidencePercent !== 'number' ||
       !Number.isInteger(finding.confidencePercent) ||
@@ -116,7 +119,7 @@ function parseCandidateFindings(data: DocumentData): DiseaseCandidateFinding[] {
       throw new Error('Invalid deterministic candidate finding')
     }
     return {
-      findingCode: 'MOCK_SYMPTOM_PATTERN_A',
+      findingCode: finding.findingCode,
       label: finding.label,
       confidencePercent: finding.confidencePercent,
       uncertaintyNote: finding.uncertaintyNote,
@@ -125,7 +128,7 @@ function parseCandidateFindings(data: DocumentData): DiseaseCandidateFinding[] {
 }
 
 function parseSession(data: DocumentData): DiseaseAnalysisSessionRecord {
-  if (data.recordType !== 'DISEASE_ANALYSIS_SESSION' || data.exampleData !== true) {
+  if (data.recordType !== 'DISEASE_ANALYSIS_SESSION' || typeof data.exampleData !== 'boolean') {
     throw new Error('Invalid Disease Analysis Session record')
   }
   return {
@@ -137,8 +140,8 @@ function parseSession(data: DocumentData): DiseaseAnalysisSessionRecord {
     plantingCycleId: requiredString(data, 'plantingCycleId'),
     evidenceScenario: requiredLiteral(data, 'evidenceScenario', diseaseAnalysisEvidenceScenarios),
     observedSymptom: requiredString(data, 'observedSymptom'),
-    analysisSource: 'MOCK_DETERMINISTIC_V1',
-    classification: 'SIMULATED/TEST ONLY',
+    analysisSource: requiredLiteral(data, 'analysisSource', ['MOCK_DETERMINISTIC_V1', 'DETERMINISTIC_RULES_V1'] as const),
+    classification: requiredLiteral(data, 'classification', ['SIMULATED/TEST ONLY', 'OPERATIONAL'] as const),
     status: requiredLiteral(data, 'status', diseaseAnalysisStatuses),
     qualityScorePercent: requiredNumber(data, 'qualityScorePercent'),
     candidateFindings: parseCandidateFindings(data),
@@ -148,11 +151,11 @@ function parseSession(data: DocumentData): DiseaseAnalysisSessionRecord {
     reviewedFindingLabel: requiredString(data, 'reviewedFindingLabel'),
     reviewNote: requiredString(data, 'reviewNote'),
     diagnosisWritebackStatus: 'NOT_WRITTEN',
-    syncState: 'EMULATOR_SYNCED',
+    syncState: requiredLiteral(data, 'syncState', ['LOCAL_ONLY', 'EMULATOR_SYNCED', 'FIREBASE_SYNCED'] as const),
     version: requiredNumber(data, 'version'),
-    exampleData: true,
+    exampleData: data.exampleData,
     createdBy: requiredString(data, 'createdBy'),
-    createdAtLabel: timestampLabel(data.createdAt),
+    createdAtLabel: timestampLabel(data.createdAt, data.exampleData),
     audit: [],
   }
 }
@@ -164,7 +167,7 @@ function parseEvent(data: DocumentData): DiseaseAnalysisAuditEvent {
     actorUserId: requiredString(data, 'actorUserId'),
     actorDisplayName: requiredString(data, 'actorDisplayName'),
     description: requiredString(data, 'description'),
-    createdAtLabel: timestampLabel(data.createdAt),
+    createdAtLabel: timestampLabel(data.createdAt, data.exampleData === true),
     sessionVersion: requiredNumber(data, 'sessionVersion'),
   }
 }
@@ -214,6 +217,7 @@ function operationData(
   operationId: string,
   scope: 'CREATE_ANALYSIS' | 'REVIEW_ANALYSIS',
   targetId: string,
+  exampleData: boolean,
 ) {
   return {
     recordType: 'DISEASE_ANALYSIS_OPERATION',
@@ -223,7 +227,7 @@ function operationData(
     scope,
     targetId,
     actorUserId: context.actor.userId,
-    exampleData: true,
+    exampleData,
     createdAt: serverTimestamp(),
   }
 }
@@ -235,6 +239,7 @@ function eventData(
   eventType: DiseaseAnalysisAuditEventType,
   description: string,
   sessionVersion: number,
+  exampleData: boolean,
 ) {
   return {
     recordType: 'DISEASE_ANALYSIS_EVENT',
@@ -247,7 +252,7 @@ function eventData(
     actorDisplayName: context.actor.displayName,
     description,
     sessionVersion,
-    exampleData: true,
+    exampleData,
     createdAt: serverTimestamp(),
   }
 }
@@ -257,6 +262,7 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
     private readonly firestore: Firestore,
     private readonly workRepository: WorkCareDiseaseRepository,
     private readonly treeRepository: TreeRegisterRepository,
+    private readonly exampleData = true,
   ) {}
 
   private async priorTargetId(
@@ -337,8 +343,8 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
     const eventId = createOpaqueRecordId('analysisevt')
     const reference = sessionReference(this.firestore, context, analysisSessionId)
     const eventType: DiseaseAnalysisAuditEventType = result.abstainReason
-      ? 'MOCK_ANALYSIS_ABSTAINED'
-      : 'MOCK_ANALYSIS_COMPLETED'
+      ? this.exampleData ? 'MOCK_ANALYSIS_ABSTAINED' : 'ANALYSIS_ABSTAINED'
+      : this.exampleData ? 'MOCK_ANALYSIS_COMPLETED' : 'ANALYSIS_COMPLETED'
     const description = result.abstainReason
       ? `Abstain: ${result.abstainReason} · ไม่มี candidate finding`
       : 'สร้าง candidate finding แบบ deterministic · ไม่มี diagnosis writeback'
@@ -349,11 +355,13 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
       farmId: context.farm.farmId,
       analysisSessionId,
       ...valid,
-      analysisSource: 'MOCK_DETERMINISTIC_V1',
-      classification: 'SIMULATED/TEST ONLY',
+      analysisSource: this.exampleData ? 'MOCK_DETERMINISTIC_V1' : 'DETERMINISTIC_RULES_V1',
+      classification: this.exampleData ? 'SIMULATED/TEST ONLY' : 'OPERATIONAL',
       status: 'HUMAN_REVIEW_REQUIRED',
       qualityScorePercent: result.qualityScorePercent,
-      candidateFindings: structuredClone(result.candidateFindings),
+      candidateFindings: structuredClone(result.candidateFindings.map((finding) => this.exampleData
+        ? finding
+        : { ...finding, findingCode: 'SYMPTOM_PATTERN_A' as const })),
       abstainReason: result.abstainReason,
       reviewedBy: null,
       reviewDisposition: null,
@@ -364,7 +372,8 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
       lastEventId: eventId,
       createdBy: context.actor.userId,
       updatedBy: context.actor.userId,
-      exampleData: true,
+      syncState: this.exampleData ? 'EMULATOR_SYNCED' : 'FIREBASE_SYNCED',
+      exampleData: this.exampleData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -375,12 +384,14 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
       eventType,
       description,
       1,
+      this.exampleData,
     ))
     batch.set(operationReference(this.firestore, context, operationId), operationData(
       context,
       operationId,
       'CREATE_ANALYSIS',
       analysisSessionId,
+      this.exampleData,
     ))
     await batch.commit()
     return (await this.getSession(context, analysisSessionId))!
@@ -436,12 +447,14 @@ export class FirebaseDiseaseAnalysisRepository implements DiseaseAnalysisReposit
         eventTypes[valid.disposition],
         `${valid.disposition} · diagnosisWriteback=NOT_WRITTEN${valid.note ? ` · ${valid.note}` : ''}`,
         version,
+        this.exampleData,
       ))
       transaction.set(operationReference(this.firestore, context, operationId), operationData(
         context,
         operationId,
         'REVIEW_ANALYSIS',
         analysisSessionId,
+        this.exampleData,
       ))
     })
     return (await this.getSession(context, analysisSessionId))!

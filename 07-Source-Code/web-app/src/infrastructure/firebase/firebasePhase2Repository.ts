@@ -239,7 +239,15 @@ async function retryResultFromOperation(
 }
 
 export class FirebasePhase2Repository implements Phase2Repository {
-  constructor(private readonly firestore: Firestore) {}
+  private readonly classification: FarmDataClassification
+
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly exampleData = true,
+    private readonly timeLabel = 'Firebase',
+  ) {
+    this.classification = exampleData ? 'SIMULATED/TEST ONLY' : 'OPERATIONAL'
+  }
 
   async listFarmAccess(userId: string): Promise<readonly FarmAccess[]> {
     const membershipQuery = query(
@@ -421,7 +429,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
         throw new Error(`Farm Sequence หรือ Farm Code ${farmCode} ถูกใช้แล้วใน Organization นี้`)
       }
 
-      const timestampText = 'บันทึกใน Firebase Emulator แล้ว'
+      const timestampText = this.timeLabel
       const profile: FarmProfile = {
         organizationId: input.context.organizationId,
         farmId,
@@ -433,8 +441,8 @@ export class FirebasePhase2Repository implements Phase2Repository {
         updatedAtLabel: timestampText,
         createdBy: input.context.actor.userId,
         updatedBy: input.context.actor.userId,
-        classification: 'SIMULATED/TEST ONLY',
-        exampleData: true,
+        classification: this.classification,
+        exampleData: this.exampleData,
       }
       const auditEvent: FarmAuditEvent = {
         auditEventId,
@@ -448,8 +456,8 @@ export class FirebasePhase2Repository implements Phase2Repository {
         farmVersion: 1,
         idempotencyKey,
         createdAtLabel: timestampText,
-        classification: 'SIMULATED/TEST ONLY',
-        exampleData: true,
+        classification: this.classification,
+        exampleData: this.exampleData,
       }
 
       transaction.set(farmReference, {
@@ -462,8 +470,8 @@ export class FirebasePhase2Repository implements Phase2Repository {
         version: 1,
         createdBy: input.context.actor.userId,
         updatedBy: input.context.actor.userId,
-        classification: 'SIMULATED/TEST ONLY',
-        exampleData: true,
+        classification: this.classification,
+        exampleData: this.exampleData,
         lastAuditEventId: auditEventId,
         lastOperationId: idempotencyKey,
         createdAt: serverTimestamp(),
@@ -480,8 +488,8 @@ export class FirebasePhase2Repository implements Phase2Repository {
         status: 'ACTIVE',
         version: 1,
         auditEventId,
-        classification: 'SIMULATED/TEST ONLY',
-        exampleData: true,
+        classification: this.classification,
+        exampleData: this.exampleData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
@@ -490,8 +498,8 @@ export class FirebasePhase2Repository implements Phase2Repository {
         farmId,
         farmSequence: draft.farmSequence,
         farmCode,
-        classification: 'SIMULATED/TEST ONLY',
-        exampleData: true,
+        classification: this.classification,
+        exampleData: this.exampleData,
         createdAt: serverTimestamp(),
       })
       transaction.set(auditReference, {
@@ -517,8 +525,8 @@ export class FirebasePhase2Repository implements Phase2Repository {
         actorUserId: input.context.actor.userId,
         farmId,
         auditEventId,
-        classification: 'SIMULATED/TEST ONLY',
-        exampleData: true,
+        classification: this.classification,
+        exampleData: this.exampleData,
         createdAt: serverTimestamp(),
       })
       return { profile, auditEvent, wasRetry: false }
@@ -572,7 +580,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
       if (draft.farmSequence !== before.farmSequence) {
         throw new Error('Farm Sequence และ Farm Code เปลี่ยนไม่ได้หลังสร้าง')
       }
-      const timestampText = 'บันทึกใน Firebase Emulator แล้ว'
+      const timestampText = this.timeLabel
       const profile: FarmProfile = {
         ...before,
         ...draft,
@@ -754,7 +762,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
       if (!isValidFarmStatusTransition(before.status, input.nextStatus)) {
         throw new Error(`ไม่อนุญาตเปลี่ยนสถานะจาก ${before.status} เป็น ${input.nextStatus}`)
       }
-      const timestampText = 'บันทึกใน Firebase Emulator แล้ว'
+      const timestampText = this.timeLabel
       const profile: FarmProfile = {
         ...before,
         status: input.nextStatus,
@@ -931,7 +939,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
       beforeStatus: current.status,
       afterStatus: input.nextStatus,
       membershipVersion: nextVersion,
-      createdAtLabel: 'บันทึกใน Firebase Emulator แล้ว',
+      createdAtLabel: this.timeLabel,
     }
   }
 

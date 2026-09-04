@@ -96,7 +96,7 @@ const workPhotoPhases = ['INSTRUCTION', 'BEFORE', 'AFTER'] as const
 const photoUploadStates = ['UPLOADED', 'PENDING', 'FAILED'] as const
 
 function timestampLabel(value: unknown): string {
-  if (!(value instanceof Timestamp)) return 'รอเวลา Emulator'
+  if (!(value instanceof Timestamp)) return 'รอเวลาจาก Firebase'
   return new Intl.DateTimeFormat('th-TH', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -204,7 +204,7 @@ function parseDiseasePhoto(photo: DocumentData): DiseasePhotoMockEvidence {
     sizeBytes: requiredNumber(photo, 'sizeBytes'),
     note: requiredString(photo, 'note'),
     source: requiredLiteral(photo, 'source', ['SYNTHETIC_PLACEHOLDER'] as const),
-    classification: requiredLiteral(photo, 'classification', ['SIMULATED/TEST ONLY'] as const),
+    classification: requiredLiteral(photo, 'classification', ['SIMULATED/TEST ONLY', 'OPERATIONAL'] as const),
     uploadState: requiredLiteral(photo, 'uploadState', diseasePhotoUploadStates),
     retryCount: requiredNumber(photo, 'retryCount'),
     lastError: requiredString(photo, 'lastError'),
@@ -295,17 +295,17 @@ function operationData(
     scope,
     targetId,
     actorUserId: context.actor.userId,
-    exampleData: true,
+    exampleData: context.farm.isMock,
     createdAt: serverTimestamp(),
   }
 }
 
-function reportData(report: WorkReportInput, actorUserId: string, reportId: string, version: number) {
+function reportData(report: WorkReportInput, actorUserId: string, reportId: string, version: number, timeLabel: string) {
   return {
     ...structuredClone(report),
     reportId,
     submittedBy: actorUserId,
-    submittedAtLabel: 'Firebase Emulator',
+    submittedAtLabel: timeLabel,
     version,
   }
 }
@@ -341,7 +341,7 @@ function workData(
     sourceDiseaseIncidentId,
     version: 1,
     lastEventId,
-    exampleData: true,
+    exampleData: context.farm.isMock,
     createdBy,
     createdAt: serverTimestamp(),
     updatedBy: createdBy,
@@ -350,6 +350,7 @@ function workData(
 }
 
 function parseWork(data: DocumentData): WorkOrderRecord {
+  if (typeof data.exampleData !== 'boolean') throw new Error('Invalid Work Order data mode')
   const report = optionalWorkReport(data)
   return {
     organizationId: requiredString(data, 'organizationId'),
@@ -374,7 +375,7 @@ function parseWork(data: DocumentData): WorkOrderRecord {
     reworkReason: requiredString(data, 'reworkReason'),
     sourceDiseaseIncidentId: nullableString(data, 'sourceDiseaseIncidentId'),
     version: requiredNumber(data, 'version'),
-    exampleData: true,
+    exampleData: data.exampleData,
     createdBy: requiredString(data, 'createdBy'),
     createdAtLabel: timestampLabel(data.createdAt),
     audit: [],
@@ -418,12 +419,13 @@ function workEventData(
     afterStatus,
     reason,
     workVersion: version,
-    exampleData: true,
+    exampleData: context.farm.isMock,
     createdAt: serverTimestamp(),
   }
 }
 
 function parseCare(data: DocumentData): CareEventRecord {
+  if (typeof data.exampleData !== 'boolean') throw new Error('Invalid Care Event data mode')
   const materials: unknown = data.materials
   if (!Array.isArray(materials)) throw new Error('Invalid Phase 4 materials')
   return {
@@ -438,12 +440,13 @@ function parseCare(data: DocumentData): CareEventRecord {
     approvalStatus: requiredLiteral(data, 'approvalStatus', specialistApprovalStatuses),
     approvedBy: nullableString(data, 'approvedBy'),
     version: requiredNumber(data, 'version'),
-    exampleData: true,
+    exampleData: data.exampleData,
     createdAtLabel: timestampLabel(data.createdAt),
   }
 }
 
 function parseDisease(data: DocumentData): DiseaseIncidentRecord {
+  if (typeof data.exampleData !== 'boolean') throw new Error('Invalid Disease Incident data mode')
   return {
     organizationId: requiredString(data, 'organizationId'),
     farmId: requiredString(data, 'farmId'),
@@ -465,7 +468,7 @@ function parseDisease(data: DocumentData): DiseaseIncidentRecord {
     photos: [],
     treatmentWorkOrderId: nullableString(data, 'treatmentWorkOrderId'),
     version: requiredNumber(data, 'version'),
-    exampleData: true,
+    exampleData: data.exampleData,
     reportedBy: requiredString(data, 'reportedBy'),
     createdAtLabel: timestampLabel(data.createdAt),
     audit: [],
@@ -514,7 +517,7 @@ function diseaseEventData(
     actorDisplayName: context.actor.displayName,
     description,
     incidentVersion: version,
-    exampleData: true,
+    exampleData: context.farm.isMock,
     createdAt: serverTimestamp(),
   }
 }
@@ -532,6 +535,8 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
   constructor(
     private readonly firestore: Firestore,
     private readonly storage: FirebaseStorage,
+    private readonly exampleData = true,
+    private readonly timeLabel = 'Firebase Emulator',
   ) {}
 
   async listWorkOrders(context: WorkMutationContext): Promise<readonly WorkOrderRecord[]> {
@@ -585,7 +590,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     const batch = writeBatch(this.firestore)
     batch.set(reference, workData(context, workOrderId, valid, context.actor.userId, eventId))
     batch.set(doc(reference, 'events', eventId), workEventData(
-      context, workOrderId, eventId, 'WORK_CREATED', 'DRAFT', 'DRAFT', 'สร้างงานจำลอง', 1,
+      context, workOrderId, eventId, 'WORK_CREATED', 'DRAFT', 'DRAFT', this.exampleData ? 'สร้างงานจำลอง' : 'สร้างงาน', 1,
     ))
     batch.set(operationReference(this.firestore, context, operationId), operationData(
       context, operationId, 'CREATE_WORK', workOrderId,
@@ -665,7 +670,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         careType: order.careType, positionIds: [...order.target.positionIds],
         materials: structuredClone(order.report.materials), notes: order.report.notes,
         approvalStatus: specialistApprovalForCare(order.careType), approvedBy: null,
-        version: 1, lastEventId: careAuditEventId, exampleData: true, createdBy: context.actor.userId,
+        version: 1, lastEventId: careAuditEventId, exampleData: this.exampleData, createdBy: context.actor.userId,
         createdAt: serverTimestamp(), updatedBy: context.actor.userId,
         updatedAt: serverTimestamp(),
       })
@@ -673,7 +678,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         recordType: 'CARE_EVENT_AUDIT', organizationId: context.farm.organizationId,
         farmId: context.farm.farmId, careEventId, eventId: careAuditEventId,
         eventType: 'CARE_RECORDED', actorUserId: context.actor.userId,
-        careVersion: 1, exampleData: true, createdAt: serverTimestamp(),
+        careVersion: 1, exampleData: this.exampleData, createdAt: serverTimestamp(),
       })
     }
     await batch.commit()
@@ -757,7 +762,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         preparedSizeBytes: String(valid.preparedSizeBytes),
         preparedWidth: String(valid.preparedWidth),
         preparedHeight: String(valid.preparedHeight),
-        exampleData: 'true',
+        exampleData: String(this.exampleData),
       },
     })
     return {
@@ -765,7 +770,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
       phase,
       uploadState: 'UPLOADED',
       storagePath,
-      note: 'EXAMPLE DATA ONLY — WebP ≤1600px/≤5MB; EXIF/GPS removed',
+      note: 'WebP ≤1600px/≤5MB; EXIF/GPS removed',
     }
   }
 
@@ -837,13 +842,13 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     const reference = workReference(this.firestore, context, workOrderId)
     const batch = writeBatch(this.firestore)
     batch.update(reference, {
-      report: reportData(valid, context.actor.userId, reportId, (order.report?.version ?? 0) + 1),
+      report: reportData(valid, context.actor.userId, reportId, (order.report?.version ?? 0) + 1, this.timeLabel),
       targetConfirmedPositionId: valid.targetConfirmedPositionId,
       version, lastEventId: eventId, updatedBy: context.actor.userId, updatedAt: serverTimestamp(),
     })
     batch.set(doc(reference, 'events', eventId), workEventData(
       context, workOrderId, eventId, 'WORK_REPORT_SAVED', order.status, order.status,
-      'บันทึกรายงานจำลอง', version,
+      this.exampleData ? 'บันทึกรายงานจำลอง' : 'บันทึกรายงาน', version,
     ))
     batch.set(operationReference(this.firestore, context, operationId), operationData(
       context, operationId, 'SAVE_REPORT', workOrderId,
@@ -890,7 +895,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
       recordType: 'CARE_EVENT_AUDIT', organizationId: context.farm.organizationId,
       farmId: context.farm.farmId, careEventId, eventId,
       eventType: 'SPECIALIST_APPROVED', actorUserId: context.actor.userId,
-      careVersion: event.version + 1, exampleData: true, createdAt: serverTimestamp(),
+      careVersion: event.version + 1, exampleData: this.exampleData, createdAt: serverTimestamp(),
     })
     batch.set(operationReference(this.firestore, context, operationId), operationData(
       context, operationId, 'APPROVE_CARE', careEventId,
@@ -966,7 +971,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
       followUpDate: valid.followUpDate, status: valid.suspectedDiagnosis ? 'AWAITING_DIAGNOSIS' : 'OPEN',
       specialistApprovalStatus: 'PENDING_SPECIALIST', outcome: '',
       treatmentWorkOrderId: null, treatmentOperationId: null, version: 1,
-      lastEventId: eventId, exampleData: true, reportedBy: context.actor.userId, createdAt: serverTimestamp(),
+      lastEventId: eventId, exampleData: this.exampleData, reportedBy: context.actor.userId, createdAt: serverTimestamp(),
       updatedBy: context.actor.userId, updatedAt: serverTimestamp(),
     })
     batch.set(doc(reference, 'events', eventId), diseaseEventData(
@@ -988,7 +993,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     const valid = validateDiseaseAssessment(context, input)
     return this.updateDisease(context, incidentId, idempotencyKey, 'ASSESS_DISEASE', {
       ...valid, status: 'TREATING', specialistApprovalStatus: 'APPROVED',
-    }, 'ASSESSMENT_RECORDED', 'Agronomist ยืนยัน diagnosis/treatment จำลอง')
+    }, 'ASSESSMENT_RECORDED', this.exampleData ? 'Agronomist ยืนยัน diagnosis/treatment จำลอง' : 'Agronomist ยืนยัน diagnosis/treatment')
   }
 
   async followUpDiseaseIncident(
@@ -1083,7 +1088,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         incidentId,
         positionId: incident.positionId,
         source: 'SYNTHETIC_PLACEHOLDER',
-        classification: 'SIMULATED/TEST ONLY',
+        classification: this.exampleData ? 'SIMULATED/TEST ONLY' : 'OPERATIONAL',
         uploadState: 'PENDING',
         retryCount: 0,
         lastError: '',
@@ -1092,7 +1097,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         lifecycleMode: 'DRY_RUN',
         version: 1,
         createdBy: context.actor.userId,
-        createdAtLabel: 'Firebase Emulator · SIMULATED/TEST ONLY',
+        createdAtLabel: this.exampleData ? 'Firebase Emulator' : 'Firebase',
       }
       const version = incident.version + 1
       const eventId = createOpaqueRecordId('diseaseevt')
@@ -1248,7 +1253,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         workOrderId: deterministicWorkOrderId,
         operationId,
         actorUserId: context.actor.userId,
-        exampleData: true,
+        exampleData: this.exampleData,
         createdAt: serverTimestamp(),
       })
     })
@@ -1260,7 +1265,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
       const workEventId = createOpaqueRecordId('workevt')
       const draft = validateWorkDraft({
         title: `งานรักษาจากเคส ${incidentId}`,
-        description: `SIMULATED/TEST ONLY — ${incidentBefore.treatmentPlan} · อ้างอิงอาการ: ${incidentBefore.observedSymptom}`,
+        description: `${incidentBefore.treatmentPlan} · อ้างอิงอาการ: ${incidentBefore.observedSymptom}`,
         category: 'DISEASE_FOLLOW_UP',
         careType: null,
         priority: ['HIGH', 'CRITICAL'].includes(incidentBefore.severity) ? 'URGENT' : 'NORMAL',
@@ -1337,7 +1342,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
           description: order.status === 'REWORK' ? order.reworkReason : order.title,
           targetPath: `/work/${order.workOrderId}`,
           priority: 'URGENT',
-          exampleData: true,
+          exampleData: this.exampleData,
         })),
       ...incidents
         .filter((incident) => incident.status !== 'CLOSED' && ['HIGH', 'CRITICAL'].includes(incident.severity))
@@ -1350,7 +1355,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
           description: incident.observedSymptom,
           targetPath: `/disease/${incident.incidentId}`,
           priority: 'URGENT',
-          exampleData: true,
+          exampleData: this.exampleData,
         })),
     ]
   }

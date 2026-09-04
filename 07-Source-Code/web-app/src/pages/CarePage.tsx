@@ -20,7 +20,8 @@ const filterLabels: Record<CareFilter, string> = {
 }
 
 export function CarePage() {
-  const { currentFarm, listCareEvents, listTreePositions, approveCareEvent } = usePhase2()
+  const { currentFarm, listCareEvents, listTreePositions, approveCareEvent, mode } = usePhase2()
+  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [events, setEvents] = useState<readonly CareEventRecord[]>([])
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [filter, setFilter] = useState<CareFilter>('ALL')
@@ -65,7 +66,7 @@ export function CarePage() {
     try {
       await approveCareEvent(event.careEventId, crypto.randomUUID())
       await reload()
-      setMessage('Agronomist อนุมัติ treatment จำลองแล้ว')
+      setMessage(isProduction ? 'Agronomist อนุมัติ treatment แล้ว' : 'Agronomist อนุมัติ treatment จำลองแล้ว')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'อนุมัติไม่สำเร็จ')
     } finally {
@@ -93,7 +94,7 @@ export function CarePage() {
     {loading ? <div className="loading-inline" role="status">กำลังอ่าน Care Events…</div> : null}
     {error ? <p className="form-error" role="alert">{error}</p> : null}
     {message ? <p className="success-notice" role="status">{message}</p> : null}
-    {!loading && !error ? <p className="result-count">{visible.length} เหตุการณ์ · {currentFarm?.farmCode} · ข้อมูลจำลองเท่านั้น</p> : null}
+    {!loading && !error ? <p className="result-count">{visible.length} เหตุการณ์ · {currentFarm?.farmCode} · {isProduction ? 'Firebase Production' : 'ข้อมูลจำลองเท่านั้น'}</p> : null}
 
     <div className="work-list">
       {visible.map((event) => <article className="work-card" key={event.careEventId}>

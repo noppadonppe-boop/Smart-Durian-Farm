@@ -40,7 +40,7 @@ import {
 import { rootDoc } from './firebaseDataRoot'
 import { canAccessFinancialData } from '../../domain/farm'
 
-const emulatorTimeLabel = '1 ก.ย. 2569 · Local Emulator'
+const defaultTimeLabel = 'Firebase'
 
 function copy<T>(value: T): T {
   return structuredClone(value)
@@ -52,18 +52,22 @@ function normalizedOperationId(context: AnnualCycleMutationContext, key: string)
   return value
 }
 
-function parseScoped<T extends { organizationId: string; farmId: string; exampleData: true }>(
+function parseScoped<T extends { organizationId: string; farmId: string; exampleData: boolean }>(
   data: DocumentData,
   context: AnnualCycleMutationContext,
 ): T {
-  if (data.exampleData !== true) throw new Error('Annual Cycle Emulator ต้องเป็น SIMULATED/TEST ONLY')
+  if (typeof data.exampleData !== 'boolean') throw new Error('Annual Cycle มี data mode ไม่ถูกต้อง')
   const record = data as T
   assertAnnualCycleScope(context, record)
   return copy(record)
 }
 
 export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
-  constructor(private readonly firestore: Firestore) {}
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly exampleData = true,
+    private readonly timeLabel = defaultTimeLabel,
+  ) {}
 
   private farmReference(context: AnnualCycleMutationContext) {
     return rootDoc(
@@ -97,7 +101,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
     return snapshot.exists() ? snapshot.data() : undefined
   }
 
-  private async listCollection<T extends { organizationId: string; farmId: string; exampleData: true }>(
+  private async listCollection<T extends { organizationId: string; farmId: string; exampleData: boolean }>(
     context: AnnualCycleMutationContext,
     collectionName: string,
     operationalOnly = false,
@@ -125,7 +129,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       resultCollection,
       resultId,
       secondaryResultId,
-      exampleData: true,
+      exampleData: this.exampleData,
       createdAt: serverTimestamp(),
     })
   }
@@ -164,8 +168,8 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       beforeSummary,
       afterSummary,
       recordVersion,
-      createdAtLabel: emulatorTimeLabel,
-      exampleData: true,
+      createdAtLabel: this.timeLabel,
+      exampleData: this.exampleData,
     }
   }
 
@@ -226,9 +230,9 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       version: 1,
       createdBy: context.actor.userId,
       updatedBy: context.actor.userId,
-      createdAtLabel: emulatorTimeLabel,
-      updatedAtLabel: emulatorTimeLabel,
-      exampleData: true,
+      createdAtLabel: this.timeLabel,
+      updatedAtLabel: this.timeLabel,
+      exampleData: this.exampleData,
     }
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
@@ -238,7 +242,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         )).data() ?? {}, context)
       }
       const event = this.audit(context, record.annualCycleId, 'CYCLE_CREATED', record.annualCycleId,
-        'สร้างรอบปีแบบจำลอง', '', annualCycleSummary(record), record.version)
+        'สร้างรอบปี', '', annualCycleSummary(record), record.version)
       transaction.set(this.reference(context, 'annualCycles', record.annualCycleId), {
         ...record, actorUserId: context.actor.userId, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       })
@@ -283,7 +287,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         periodEndExclusive: calculatePeriodEndExclusive(validated.periodStart),
         version: current.version + 1,
         updatedBy: context.actor.userId,
-        updatedAtLabel: emulatorTimeLabel,
+        updatedAtLabel: this.timeLabel,
       }
       const event = this.audit(context, annualCycleId, 'CYCLE_UPDATED', annualCycleId,
         reason.trim(), annualCycleSummary(current), annualCycleSummary(updated), updated.version)
@@ -293,7 +297,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         version: updated.version,
         updatedBy: context.actor.userId,
         actorUserId: context.actor.userId,
-        updatedAtLabel: emulatorTimeLabel,
+        updatedAtLabel: this.timeLabel,
         updatedAt: serverTimestamp(),
       })
       this.setAudit(transaction, context, event)
@@ -336,7 +340,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
           farmId: context.farm.farmId,
           annualCycleId,
           status: 'ACTIVE',
-          exampleData: true,
+          exampleData: this.exampleData,
           actorUserId: context.actor.userId,
           updatedAt: serverTimestamp(),
         })
@@ -352,12 +356,12 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         transaction.delete(guardReference)
       }
       const updated = { ...current, status: nextStatus, version: current.version + 1,
-        updatedBy: context.actor.userId, updatedAtLabel: emulatorTimeLabel }
+        updatedBy: context.actor.userId, updatedAtLabel: this.timeLabel }
       const event = this.audit(context, annualCycleId, 'CYCLE_STATUS_CHANGED', annualCycleId,
         reason.trim(), annualCycleSummary(current), annualCycleSummary(updated), updated.version)
       transaction.update(reference, { status: nextStatus, version: updated.version,
         updatedBy: context.actor.userId, actorUserId: context.actor.userId,
-        updatedAtLabel: emulatorTimeLabel, updatedAt: serverTimestamp() })
+        updatedAtLabel: this.timeLabel, updatedAt: serverTimestamp() })
       this.setAudit(transaction, context, event)
       this.setOperation(transaction, context, idempotencyKey, 'annualCycles', annualCycleId)
       return updated
@@ -416,7 +420,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         lastCorrectionId: correctionId,
         version: current.version + 1,
         updatedBy: context.actor.userId,
-        updatedAtLabel: emulatorTimeLabel,
+        updatedAtLabel: this.timeLabel,
       }
       const event = this.audit(context, annualCycleId, 'CYCLE_CORRECTED', correctionId,
         reason.trim(), annualCycleSummary(current), annualCycleSummary(cycle), cycle.version)
@@ -435,9 +439,9 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         afterRevision: cycle.revision,
         actorUserId: context.actor.userId,
         actorDisplayName: context.actor.displayName,
-        createdAtLabel: emulatorTimeLabel,
+        createdAtLabel: this.timeLabel,
         idempotencyKey,
-        exampleData: true,
+        exampleData: this.exampleData,
       }
       transaction.update(reference, {
         ...validated,
@@ -448,7 +452,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
         version: cycle.version,
         updatedBy: context.actor.userId,
         actorUserId: context.actor.userId,
-        updatedAtLabel: emulatorTimeLabel,
+        updatedAtLabel: this.timeLabel,
         updatedAt: serverTimestamp(),
       })
       transaction.set(this.reference(context, 'annualCycleCorrections', correctionId), {
@@ -489,9 +493,9 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       version: 1,
       createdBy: context.actor.userId,
       updatedBy: context.actor.userId,
-      createdAtLabel: emulatorTimeLabel,
-      updatedAtLabel: emulatorTimeLabel,
-      exampleData: true,
+      createdAtLabel: this.timeLabel,
+      updatedAtLabel: this.timeLabel,
+      exampleData: this.exampleData,
     }
     return runTransaction(this.firestore, async (transaction) => {
       const operation = await transaction.get(this.operationReference(context, idempotencyKey))
@@ -501,7 +505,7 @@ export class FirebaseAnnualCycleRepository implements AnnualCycleRepository {
       const currentCycle = await transaction.get(this.reference(context, 'annualCycles', annualCycleId))
       if (!currentCycle.exists() || currentCycle.data().status === 'CLOSED') throw new Error('รอบปิดแล้วเพิ่มแผนไม่ได้')
       const event = this.audit(context, annualCycleId, 'PLAN_CREATED', record.planItemId,
-        'สร้าง Annual Plan Item แบบจำลอง', '', `${record.title}|${record.target.scope}`, record.version)
+        'สร้าง Annual Plan Item', '', `${record.title}|${record.target.scope}`, record.version)
       transaction.set(this.reference(context, 'annualPlanItems', record.planItemId), {
         ...record, dataClass: 'OPERATIONAL', actorUserId: context.actor.userId,
         createdAt: serverTimestamp(), updatedAt: serverTimestamp(),

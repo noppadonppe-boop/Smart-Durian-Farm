@@ -242,7 +242,7 @@ export interface WorkOrderRecord extends WorkOrderDraft {
   reworkReason: string
   sourceDiseaseIncidentId: string | null
   version: number
-  exampleData: true
+  exampleData: boolean
   createdBy: string
   createdAtLabel: string
   audit: readonly WorkAuditEvent[]
@@ -272,7 +272,7 @@ export interface CareEventRecord {
   approvalStatus: SpecialistApprovalStatus
   approvedBy: string | null
   version: number
-  exampleData: true
+  exampleData: boolean
   createdAtLabel: string
 }
 
@@ -337,7 +337,7 @@ export interface DiseasePhotoMockEvidence extends DiseasePhotoMockDraft {
   incidentId: string
   positionId: string
   source: 'SYNTHETIC_PLACEHOLDER'
-  classification: 'SIMULATED/TEST ONLY'
+  classification: 'SIMULATED/TEST ONLY' | 'OPERATIONAL'
   uploadState: DiseasePhotoUploadState
   retryCount: number
   lastError: string
@@ -394,7 +394,7 @@ export interface DiseaseIncidentRecord extends DiseaseIncidentDraft {
   photos: readonly DiseasePhotoMockEvidence[]
   treatmentWorkOrderId: string | null
   version: number
-  exampleData: true
+  exampleData: boolean
   reportedBy: string
   createdAtLabel: string
   audit: readonly DiseaseAuditEvent[]
@@ -409,7 +409,7 @@ export interface InAppNotification {
   description: string
   targetPath: string
   priority: WorkPriority
-  exampleData: true
+  exampleData: boolean
 }
 
 const managementRoles: readonly CanonicalRole[] = ['ORG_OWNER', 'FARM_MANAGER']
