@@ -38,7 +38,8 @@ describe('Smart Durian local mock app', () => {
 
     expect(await screen.findByRole('heading', { name: 'ภาพรวมสวนที่เปิดอยู่' })).toBeInTheDocument()
     expect(screen.getAllByText('สวนสาธิตเหนือ — ข้อมูลจำลอง').length).toBeGreaterThan(0)
-    expect(screen.getByText(/Mock offline adapter/u)).toBeInTheDocument()
+    expect(screen.getByText(/ข้อมูลจำลองแยกจาก Production/u)).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/Local|Emulator/u)
     expect(screen.queryByLabelText('รหัส OTP 6 หลัก')).not.toBeInTheDocument()
     expect(
       within(screen.getByRole('complementary', { name: 'เมนูหลักบนจอใหญ่' }))
@@ -52,9 +53,7 @@ describe('Smart Durian local mock app', () => {
 
     expect(screen.getAllByText('สวนสาธิตเหนือ — ข้อมูลจำลอง').length).toBeGreaterThan(0)
     expect(screen.getAllByText('DEMO-F01').length).toBeGreaterThan(0)
-    expect(
-      screen.getByText(/ข้อมูลจำลองเท่านั้น.*ไม่เชื่อม Production/u),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/SIMULATED\/TEST ONLY.*ข้อมูลจำลองแยกจาก Production/u)).toBeInTheDocument()
   })
 
   it('applies explicit dark and light theme tokens while retaining system mode', async () => {
@@ -380,7 +379,8 @@ describe('Smart Durian local mock app', () => {
 
     expect(await screen.findByRole('heading', { name: 'ศูนย์วิเคราะห์โรคจำลอง', level: 1 })).toBeInTheDocument()
     expect(screen.getByText(/P1 — Approved/u)).toBeInTheDocument()
-    expect(screen.getByText(/SIMULATED\/TEST ONLY · LOCAL\/EMULATOR/u)).toBeInTheDocument()
+    expect(screen.getByText(/SIMULATED\/TEST ONLY/u)).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/Local|Emulator/u)
     expect((await screen.findAllByText(/candidate finding/u)).length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: 'เปิดติดตามโรคปัจจุบัน' })).toHaveAttribute('href', '/disease')
     expect(screen.queryByRole('button', { name: /อัปโหลด|เปิดกล้อง/u })).not.toBeInTheDocument()

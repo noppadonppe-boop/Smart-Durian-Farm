@@ -101,7 +101,7 @@ export function WorkDetailPage() {
       return
     }
     setBusy(true)
-    setMessage(isProduction ? 'กำลังเตรียมภาพเพื่ออัปโหลดไป Firebase Storage…' : 'กำลังเก็บภาพใน Local Adapter/Storage Emulator…')
+    setMessage(isProduction ? 'กำลังเตรียมภาพเพื่ออัปโหลดไป Firebase Storage…' : 'กำลังเก็บภาพในข้อมูลจำลอง…')
     try {
       if (!currentFarm) throw new Error('ไม่พบสวนปัจจุบัน')
       const beforeId = `photo_before_${crypto.randomUUID().replaceAll('-', '')}`

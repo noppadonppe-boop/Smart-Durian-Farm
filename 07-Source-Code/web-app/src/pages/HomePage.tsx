@@ -33,9 +33,7 @@ export function HomePage() {
       <PageHeader
         eyebrow={mode === 'firebase-live'
           ? 'Firebase Production Dashboard'
-          : mode === 'firebase-emulator'
-            ? 'Firebase Local Emulator Dashboard'
-            : 'Local Mock Dashboard'}
+          : 'Mock Dashboard'}
         title="ภาพรวมสวนที่เปิดอยู่"
         description="แสดงเฉพาะข้อมูลและหัวข้อที่บทบาทปัจจุบันได้รับสิทธิ์ พร้อมสถานะ Offline/Sync ที่มองเห็นได้"
       />
@@ -96,7 +94,7 @@ export function HomePage() {
               : authMode === 'firebase-live'
               ? 'Authentication เชื่อม Firebase จริงเพื่อส่ง OTP; Dashboard และข้อมูลสวนยังเป็น Mock ในเครื่อง'
               : mode === 'firebase-emulator'
-              ? 'เชื่อมต่อเฉพาะ Firebase Local Emulator บนเครื่องนี้ และไม่เชื่อม Production'
+              ? 'ใช้งานข้อมูลจำลองและไม่เชื่อม Production'
               : 'ไม่มีการส่งข้อมูลออกไปยัง Firebase หรือบริการภายนอก'}
           </li>
         </ul>

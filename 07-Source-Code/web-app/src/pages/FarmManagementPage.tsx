@@ -55,7 +55,7 @@ export function FarmManagementPage() {
       />
       {isProduction
         ? <div className="operational-data-banner" role="status">Firebase Production · จัดการ Farm Profile ในองค์กรปัจจุบัน</div>
-        : <div className="mock-scope-note" role="status">SIMULATED/TEST ONLY · Farm Profile Mockup 4 สวน · Local/Emulator เท่านั้น</div>}
+        : <div className="mock-scope-note" role="status">SIMULATED/TEST ONLY · Farm Profile Mockup 4 สวน · ข้อมูลจำลองเท่านั้น</div>}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <div className="farm-management-list" aria-label="รายการสวนในองค์กร">
         {profiles.map((profile) => (

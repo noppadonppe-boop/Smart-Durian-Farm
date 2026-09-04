@@ -30,8 +30,8 @@ export function MorePage() {
           ? 'Phone OTP และข้อมูลสวนผ่าน Firebase Production'
           : 'Phone OTP ผ่าน Firebase จริง · ข้อมูลสวนยังเป็น Mock ในเครื่อง'
         : mode === 'firebase-emulator'
-          ? 'Phone OTP ผ่าน Firebase Local Emulator · ไม่ส่ง SMS จริง'
-          : 'Mock OTP ในเครื่อง · ไม่ส่ง SMS จริง',
+          ? 'Phone OTP สำหรับการทดสอบ · ไม่ส่ง SMS จริง'
+          : 'OTP สำหรับการทดสอบ · ไม่ส่ง SMS จริง',
     ],
     ['บทบาทปัจจุบัน', `${roleLabels[currentFarm.role]} · ${currentFarm.farmCode}`],
     ['ข้อมูล', mode === 'firebase-live' ? 'ข้อมูล Production แยกตาม Organization/Farm' : 'ข้อมูลจำลองเท่านั้น · แยกตาม Organization/Farm'],
@@ -48,7 +48,7 @@ export function MorePage() {
   return (
     <section className="page-stack">
       <PageHeader
-        eyebrow="Access & local controls"
+        eyebrow="Access & controls"
         title="เพิ่มเติม"
         description="เมนูปรับตามบทบาทและไม่แสดง action ที่ไม่มีสิทธิ์"
       />
@@ -258,7 +258,7 @@ export function MorePage() {
 
       <section className="phase2-test-controls" aria-labelledby="pending-test-title">
         <div>
-          <span className="status-pill">Local validation control</span>
+          <span className="status-pill">Validation control</span>
           <h2 id="pending-test-title">ทดสอบรายการค้างส่งกับ Farm Switcher</h2>
           <p>
             สร้างรายการจำลองที่ล็อกกับ {currentFarm.farmCode} แล้วลองเปลี่ยนสวน

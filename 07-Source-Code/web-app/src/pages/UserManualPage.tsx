@@ -159,7 +159,7 @@ const workflows = [
 ] as const
 
 const troubleshooting = [
-  ['เข้าสู่ระบบไม่ได้', 'ใช้หมายเลข/OTP ทดสอบที่กำหนด ตรวจตัวเลข 6 หลัก และห้ามใช้ SMS จริงใน Local'],
+  ['เข้าสู่ระบบไม่ได้', 'ใช้หมายเลข/OTP ทดสอบที่กำหนด ตรวจตัวเลข 6 หลัก และห้ามใช้ SMS จริงในโหมดทดสอบ'],
   ['ไม่เห็นสวน', 'ตรวจ Active membership; ห้ามแก้ URL หรือ Farm ID เพื่อข้ามสิทธิ์'],
   ['QR ไม่ตรงงาน', 'หยุดงาน เปรียบเทียบ expected/actual และแจ้ง Manager'],
   ['ออฟไลน์แล้วไม่พบต้น', 'กลับ Online เพื่อโหลดข้อมูล ห้ามใช้ cache ของต้นอื่น'],
@@ -188,7 +188,7 @@ export function UserManualPage() {
       />
 
       <div className="field-validation-banner" role="note">
-        <strong>LOCAL/MOCK · SIMULATED/TEST ONLY</strong>
+        <strong>MOCK · SIMULATED/TEST ONLY</strong>
         <span>คู่มือนี้อธิบายฟังก์ชันใน Candidate ปัจจุบัน ไม่ใช่การอนุมัติ Deploy, Pilot หรือ Production</span>
       </div>
 
@@ -207,7 +207,7 @@ export function UserManualPage() {
           <h2 id="manual-start-title">เริ่มต้นใช้งานให้ถูกสวนและถูกสิทธิ์</h2>
         </div>
         <ol className="manual-step-list">
-          <li><strong>เข้าสู่ระบบ</strong><span>Local ใช้ Phone + OTP ทดสอบเท่านั้น</span></li>
+          <li><strong>เข้าสู่ระบบ</strong><span>โหมดทดสอบใช้ Phone + OTP ทดสอบเท่านั้น</span></li>
           <li><strong>เลือกสวน</strong><span>ตรวจชื่อ Farm Code และบทบาทใน Header ก่อนอ่านหรือสร้างข้อมูล</span></li>
           <li><strong>ตรวจสถานะ</strong><span>ดู Online/Offline, จำนวนรายการค้าง และเวลาซิงก์ล่าสุด</span></li>
           <li><strong>เปิดงานหรือโมดูล</strong><span>เมนูจะแสดงความสามารถตามบทบาทของสวนปัจจุบัน</span></li>
@@ -275,7 +275,7 @@ export function UserManualPage() {
               <tr><td>รหัสต้น</td><td>ใช้ Farm + Zone + Row + Position + QR ร่วมกัน</td><td>ใช้ GPS หรือ QR อย่างเดียวเป็น authorization</td></tr>
               <tr><td>รูปภาพ</td><td>แยก Instruction, BEFORE และ AFTER พร้อม Farm/Work/purpose</td><td>ปะปนรูปต่างงาน ต่างสวน หรือส่งรูปที่ยัง Failed</td></tr>
               <tr><td>Correction</td><td>อ้าง Record เดิม ระบุเหตุผล และเก็บ before/after</td><td>แก้หรือลบประวัติสำคัญแบบเงียบ ๆ</td></tr>
-              <tr><td>ข้อมูลจริง</td><td>Local/Mock ใช้ข้อมูลที่ติดป้าย SIMULATED/TEST ONLY</td><td>นำชื่อ เบอร์โทร รูป พิกัด หรือข้อมูลสวนจริงเข้า repository/Emulator</td></tr>
+              <tr><td>ข้อมูลจริง</td><td>ข้อมูลจำลองใช้ข้อมูลที่ติดป้าย SIMULATED/TEST ONLY</td><td>นำชื่อ เบอร์โทร รูป พิกัด หรือข้อมูลสวนจริงเข้าแหล่งข้อมูลใช้งานจริง</td></tr>
             </tbody>
           </table>
         </div>
@@ -317,10 +317,10 @@ export function UserManualPage() {
         <span className="status-pill">Current boundary</span>
         <h2 id="manual-boundary-title">สถานะการใช้งานปัจจุบัน</h2>
         <ul>
-          <li>Gate 6 ผ่าน และ PA-1 Local/Emulator ผ่าน</li>
+          <li>Gate 6 ผ่าน และการทดสอบ PA-1 ผ่าน</li>
           <li>External PA-1 เป็น NO-GO/BLOCKED</li>
           <li>PA-2, Controlled Pilot, Deployment และ Production ยังไม่อนุมัติ</li>
-          <li>การมี API Key ในไฟล์ Local ไม่เปลี่ยน Gate และไม่อนุญาตเชื่อม External resource โดยอัตโนมัติ</li>
+          <li>การมี API Key ในไฟล์ตั้งค่าไม่เปลี่ยน Gate และไม่อนุญาตเชื่อม External resource โดยอัตโนมัติ</li>
         </ul>
       </section>
     </section>

@@ -49,14 +49,14 @@ import { rootCollection, rootDoc } from './firebaseDataRoot'
 function requiredString(data: DocumentData, field: string): string {
   const value: unknown = data[field]
   if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`Invalid emulator document field: ${field}`)
+    throw new Error(`Invalid test-data document field: ${field}`)
   }
   return value
 }
 
 function stringField(data: DocumentData, field: string): string {
   const value: unknown = data[field]
-  if (typeof value !== 'string') throw new Error(`Invalid emulator document field: ${field}`)
+  if (typeof value !== 'string') throw new Error(`Invalid test-data document field: ${field}`)
   return value
 }
 
@@ -75,7 +75,7 @@ function timestampLabel(value: unknown): string {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(value.toDate())
-    : 'รอเวลา Firebase Emulator'
+    : 'รอเวลาในข้อมูลจำลอง'
 }
 
 function dataClassification(data: DocumentData): {
@@ -163,10 +163,10 @@ function memberFromData(data: DocumentData): FarmMember {
   const status: unknown = data.status
   const version: unknown = data.version
   if (!isCanonicalRole(role) || !isMembershipStatus(status)) {
-    throw new Error('Invalid role or membership status in emulator document')
+    throw new Error('Invalid role or membership status in test data')
   }
   if (typeof version !== 'number' || !Number.isInteger(version)) {
-    throw new Error('Invalid membership version in emulator document')
+    throw new Error('Invalid membership version in test data')
   }
 
   return {
@@ -287,7 +287,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
             getDoc(organizationMemberReference),
           ])
         if (!farmDocument.exists() || !organizationDocument.exists()) {
-          throw new Error('ข้อมูลสมาชิกอ้างถึงสวนหรือองค์กรที่ไม่มีใน Emulator')
+          throw new Error('ข้อมูลสมาชิกอ้างถึงสวนหรือองค์กรที่ไม่มีในข้อมูลจำลอง')
         }
 
         const farm = farmDocument.data()
@@ -984,7 +984,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
           event !== 'MEMBERSHIP_REVOKED' &&
           event !== 'MEMBERSHIP_RESTORED')
       ) {
-        throw new Error('Invalid audit event in emulator document')
+        throw new Error('Invalid audit event in test data')
       }
 
         return {
@@ -1006,7 +1006,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
               dateStyle: 'medium',
               timeStyle: 'short',
             }).format(data.createdAt.toDate())
-          : 'รอเวลา Emulator',
+          : 'รอเวลาในข้อมูลจำลอง',
         }
       })
   }

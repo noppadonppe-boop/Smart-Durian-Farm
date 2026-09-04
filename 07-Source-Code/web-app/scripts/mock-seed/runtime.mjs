@@ -39,15 +39,16 @@ async function loadJson(relativePath) {
 }
 
 export async function loadMockPacks() {
-  const [foundation, annualCycles, work, commercial, operations, diseaseAnalysis] = await Promise.all([
-    loadJson('../../src/demo/phase2-demo-seed.json'),
-    loadJson('../../src/demo/annual-cycle-mock-data-pack-v1.0.json'),
-    loadJson('../../src/demo/phase4-mock-data-pack-v1.0.json'),
-    loadJson('../../src/demo/phase5-mock-data-pack-v1.0.json'),
-    loadJson('../../src/demo/phase6-mock-data-pack-v1.0.json'),
-    loadJson('../../src/demo/disease-analysis-p1-mock-data-pack-v1.0.json'),
+  const [foundation, annualCycles, work, commercial, operations, diseaseAnalysis, managementReporting] = await Promise.all([
+    loadJson('../seed-data/phase2-demo-seed.json'),
+    loadJson('../seed-data/annual-cycle-mock-data-pack-v1.0.json'),
+    loadJson('../seed-data/phase4-mock-data-pack-v1.0.json'),
+    loadJson('../seed-data/phase5-mock-data-pack-v1.0.json'),
+    loadJson('../seed-data/phase6-mock-data-pack-v1.0.json'),
+    loadJson('../seed-data/disease-analysis-p1-mock-data-pack-v1.0.json'),
+    loadJson('../seed-data/management-reporting-mock-data-pack-v1.0.json'),
   ])
-  return { foundation, annualCycles, work, commercial, operations, diseaseAnalysis }
+  return { foundation, annualCycles, work, commercial, operations, diseaseAnalysis, managementReporting }
 }
 
 async function jsonResponse(response) {

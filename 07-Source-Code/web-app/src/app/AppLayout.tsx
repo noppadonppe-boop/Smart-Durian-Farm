@@ -122,9 +122,7 @@ export function AppLayout() {
                   ? 'Firebase Live'
                   : authMode === 'firebase-live'
                   ? 'Phone Auth'
-                  : mode === 'firebase-emulator'
-                    ? 'Emulator'
-                    : 'Mock'}
+                  : 'Mock'}
               </span>
             </div>
           </div>
@@ -170,9 +168,7 @@ export function AppLayout() {
               ? 'Firebase Production · สวนปัจจุบันยังเป็นข้อมูล Seed/Mock'
               : authMode === 'firebase-live'
             ? 'Authentication เชื่อม Firebase จริง; ไม่เชื่อม Firestore/Storage จริง'
-            : mode === 'firebase-emulator'
-              ? 'Firebase Local Emulator · ไม่เชื่อม Production'
-              : 'Mock offline adapter · ไม่เชื่อม Production'}</>}
+            : 'ข้อมูลจำลองแยกจาก Production'}</>}
         </div>
       </header>
 

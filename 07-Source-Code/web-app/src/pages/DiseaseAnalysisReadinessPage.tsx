@@ -67,7 +67,7 @@ function SessionCard({ session, incident, tree, canReview, isProduction, busy, o
       <div><dt>Quality</dt><dd>{session.qualityScorePercent}%{isProduction ? '' : ' · Mock score'}</dd></div>
       <div><dt>Confidence</dt><dd>{candidate ? `${candidate.confidencePercent}%${isProduction ? '' : ' · Mock confidence'}` : 'ไม่มี — Abstain'}</dd></div>
       <div><dt>Source</dt><dd>{session.analysisSource}</dd></div>
-      <div><dt>Sync</dt><dd>{session.syncState === 'LOCAL_ONLY' ? 'Local only' : isProduction ? 'Firebase Production' : 'Firebase Emulator'}</dd></div>
+      <div><dt>Sync</dt><dd>{isProduction ? 'Firebase Production' : 'ข้อมูลจำลอง'}</dd></div>
       <div><dt>Diagnosis writeback</dt><dd>NOT_WRITTEN</dd></div>
     </dl>
 
@@ -262,7 +262,7 @@ export function DiseaseAnalysisReadinessPage() {
 
     {isProduction
       ? <aside className="operational-data-banner"><strong>Firebase Production</strong><span>Analysis Session และ Human Review บันทึกใน Farm ปัจจุบัน; ผลไม่เขียน confirmed diagnosis อัตโนมัติ</span></aside>
-      : <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY · LOCAL/EMULATOR</strong><span>ไม่มี Upload, Camera, External AI/API/model, External Storage, diagnosis writeback หรือคำแนะนำสารเคมีอัตโนมัติ</span></aside>}
+      : <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY</strong><span>ไม่มี Upload, Camera, External AI/API/model, External Storage, diagnosis writeback หรือคำแนะนำสารเคมีอัตโนมัติ</span></aside>}
 
     <article className="hero-card">
       <div>
@@ -321,7 +321,7 @@ export function DiseaseAnalysisReadinessPage() {
       />)}
       {!loading && !error && sessions.length === 0 ? <article className="empty-state">
         <h2>ยังไม่มี Analysis Session ในสวนนี้</h2>
-        <p>{isProduction ? 'เลือก Disease Incident และ Scenario เพื่อสร้างผลใน Firebase ของ Farm ปัจจุบัน' : 'เลือก Disease Incident และ Scenario เพื่อสร้างผลจำลอง โดยข้อมูลจะไม่ออกจากเครื่อง/Emulator'}</p>
+         <p>{isProduction ? 'เลือก Disease Incident และ Scenario เพื่อสร้างผลใน Firebase ของ Farm ปัจจุบัน' : 'เลือก Disease Incident และ Scenario เพื่อสร้างผลจำลอง โดยข้อมูลแยกจากข้อมูลใช้งานจริง'}</p>
       </article> : null}
     </div>
 

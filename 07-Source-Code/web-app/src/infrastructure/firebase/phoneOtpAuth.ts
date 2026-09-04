@@ -47,7 +47,7 @@ export function phoneOtpErrorMessage(
     case 'auth/operation-not-supported-in-this-environment':
       return target === 'live'
         ? 'ติดต่อ Firebase Authentication ไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่'
-        : 'ติดต่อ Firebase Authentication Emulator ไม่ได้ กรุณาตรวจว่า Emulator ยังทำงานอยู่'
+        : 'ติดต่อระบบยืนยันตัวตนสำหรับข้อมูลทดสอบไม่ได้ กรุณาลองใหม่'
     case 'auth/operation-not-allowed':
       return 'Phone Authentication ยังไม่พร้อมใช้งานในสภาพแวดล้อมนี้'
     case 'auth/app-not-authorized':
@@ -64,7 +64,7 @@ export function phoneOtpErrorMessage(
     default:
       return target === 'live'
         ? `ไม่สามารถส่งหรือยืนยัน OTP ผ่าน Firebase ได้ กรุณาตรวจการตั้งค่า Phone Auth แล้วลองใหม่${code ? ` (รหัส: ${code})` : ''}`
-        : 'ไม่สามารถดำเนินการ Phone OTP ได้ กรุณาตรวจว่า Firebase Authentication Emulator ทำงานอยู่แล้วลองใหม่'
+        : 'ไม่สามารถดำเนินการ Phone OTP ได้ กรุณาลองใหม่'
   }
 }
 
@@ -104,7 +104,7 @@ function identityFromUser(
       user.displayName ??
       (source === 'firebase-live'
         ? 'ผู้ใช้ยืนยันผ่าน Firebase'
-        : 'ผู้ใช้ทดสอบ Firebase Emulator'),
+        : 'ผู้ใช้ทดสอบ'),
     maskedPhone: maskPhone(phone),
     source,
   }
@@ -226,7 +226,7 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
       }
     } else if (!(await localTestPhones()).has(normalized)) {
       throw new Error(
-        'ระยะ Local/Emulator อนุญาตเฉพาะหมายเลขทดสอบจำลองที่กำหนดไว้',
+        'โหมดทดสอบอนุญาตเฉพาะหมายเลขทดสอบจำลองที่กำหนดไว้',
       )
     }
 

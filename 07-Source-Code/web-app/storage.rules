@@ -109,7 +109,7 @@ service firebase.storage {
           && request.resource.metadata.processingVersion == 'work-photo-v1'
           && request.resource.metadata.processingMode == 'CANVAS_REENCODED'
           && request.resource.metadata.metadataStripped == 'true'
-          && request.resource.metadata.exampleData == 'true'
+          && request.resource.metadata.exampleData in ['true', 'false']
         && firestore.exists(workOrderPath(organizationId, farmId, workOrderId))
         && (
           (request.resource.metadata.evidencePhase == 'INSTRUCTION'
@@ -139,8 +139,8 @@ service firebase.storage {
         && request.resource != null
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp']
-        && request.resource.metadata.exampleData == 'true'
-        && request.resource.metadata.classification == 'SIMULATED/TEST ONLY';
+        && request.resource.metadata.exampleData in ['true', 'false']
+        && request.resource.metadata.classification in ['SIMULATED/TEST ONLY', 'OPERATIONAL'];
       allow update, delete: if false;
     }
   }

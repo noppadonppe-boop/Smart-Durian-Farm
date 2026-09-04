@@ -96,7 +96,7 @@ function nullableString(data: DocumentData, field: string): string | null {
 
 function timestampLabel(value: unknown, exampleData: boolean): string {
   const suffix = exampleData ? ' · SIMULATED/TEST ONLY' : ''
-  if (!(value instanceof Timestamp)) return `รอเวลา ${exampleData ? 'Emulator' : 'Firebase'}${suffix}`
+  if (!(value instanceof Timestamp)) return `รอเวลา ${exampleData ? 'ข้อมูลจำลอง' : 'Firebase'}${suffix}`
   return `${new Intl.DateTimeFormat('th-TH', {
     dateStyle: 'medium',
     timeStyle: 'short',

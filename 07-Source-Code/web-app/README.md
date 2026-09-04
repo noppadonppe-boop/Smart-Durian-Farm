@@ -1,17 +1,18 @@
-# Smart Durian Farm Web App — Phase 6 + Firebase Production Firestore
+# Smart Durian Farm Web App — Firebase Production
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.2.0 |
-| สถานะ | Firebase Production Firestore Ready; Owner OTP Seed Pending; Storage Provisioning Pending |
+| เวอร์ชัน | 1.3.0 |
+| สถานะ | Firebase Production Adapter + Production Seed Script Ready |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-09-01 |
+| วันที่ปรับปรุง | 2026-09-04 |
 | Source of Truth | `../../AGENTS.md` v3.6, Development/Mock Data/Pilot Knowledge v1.0.4, DEC-027, DEC-038, DEC-040 และ DEC-041 |
 
-Web App สำหรับ Smart Durian Farm / KDOMS ตามแนวทาง Mock-first Development
-runtime ปกติเชื่อม Firebase Authentication และ Cloud Firestore ของ project
-`durian-smartfarm` จริงตาม DEC-041 ข้อมูลเริ่มต้นยังเป็น `SIMULATED/TEST ONLY`
-และเก็บใต้ shared document `durian-smartfarm/root`
+Web App สำหรับ Smart Durian Farm / KDOMS โดย runtime Production เชื่อม Firebase
+Authentication, Cloud Firestore และ Storage ของ project `durian-smartfarm`
+โดยตรง ข้อมูลที่เขียนผ่าน Production Seed จะถูกบันทึกเป็น
+`classification=OPERATIONAL` และ `exampleData=false` ใต้ shared document
+`durian-smartfarm/root`
 
 ## เปิดแอปด้วย Firebase Production
 
@@ -23,15 +24,26 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-เปิด URL ที่ Vite แสดง ยืนยัน Phone OTP แล้วกด **Seed Mock Data ไป Firebase**
-ในหน้า No-Farm หรือหน้าหลัก ระบบจะเขียนชุดข้อมูลทุกเมนูไปยัง
-`durian-smartfarm/root` แล้วอ่าน Farm membership กลับด้วย Firebase UID ของผู้ใช้
+เปิด URL ที่ Vite แสดงและยืนยัน Phone OTP ด้วยบัญชี Firebase ที่มีสิทธิ์ใน
+Organization/Farm ข้อมูลเริ่มต้นให้รัน [Production Seed Script](scripts/PRODUCTION-SEED.md)
+จากเครื่องที่มี Firebase Admin credential; ไม่มีปุ่ม Seed ข้อมูล Production ในหน้าเว็บ
 
-ระหว่างรันด้วย Development Server หน้า Login จะแสดงปุ่ม
-**เข้าสู่ระบบโดยผู้ดูแล** สำหรับตรวจทุกโมดูลโดยไม่ใช้ OTP ปุ่มนี้สลับทั้ง Auth และ
-Data Adapter ไปยังบัญชี `ORG_OWNER` และข้อมูล `SIMULATED/TEST ONLY` ในเครื่อง
-จึงไม่อ่าน/เขียน Firestore Production ส่วน Production build จะไม่แสดงปุ่มและ
-ฟังก์ชันทางลัดจะปฏิเสธการเข้าใช้เสมอ
+Dry run:
+
+```powershell
+pnpm seed:production -- --owner-uid <firebase-owner-uid>
+```
+
+เมื่อยืนยัน project, Owner UID, backup/rollback และสิทธิ์ของ service account แล้ว
+จึงใช้ confirmation สองชั้นเพื่อเขียนจริง:
+
+```powershell
+pnpm seed:production -- --owner-uid <firebase-owner-uid> --confirm-production --confirm-production-seed
+```
+
+โหมด Local/Emulator และ Mock adapter ยังคงอยู่สำหรับ automated regression เท่านั้น
+และแยกจาก Production adapter; Production build ไม่ใช้บัญชีทางลัดหรือข้อมูล Mock
+เป็นข้อมูล Production
 
 ## ขอบเขตที่ทำเสร็จ
 
@@ -60,7 +72,7 @@ Data Adapter ไปยังบัญชี `ORG_OWNER` และข้อมู
 - Crop Cycle และ Fruit Observation ที่ระบุ method, count, confidence, unit,
   actor และเวลา พร้อมแยก measured/estimated/unknown
 - Fruit Observation เลือกที่มาของจำนวนเป็น `MANUAL` หรือ `AI_ASSISTED` ได้
-  โดย AI เป็น deterministic mock, ให้คนแก้จำนวนก่อนบันทึก และบังคับ `ESTIMATED`
+  โดย Production ใช้ deterministic rules และให้คนแก้จำนวนก่อนบันทึก
 - Harvest Lot และ Sales Lot แบบ partial พร้อม customer reference ขั้นต่ำ,
   ยอดมัดจำ/รับแล้ว/ค้าง, correction, archive และ idempotency
 - Trace Tree/Zone → Crop Cycle → Harvest → Sales
@@ -76,11 +88,11 @@ Data Adapter ไปยังบัญชี `ORG_OWNER` และข้อมู
 - Operational Audit และ Farm-scoped minimal CSV Export พร้อม formula protection
 - route/Firebase adapter code splitting, PWA performance budget และ Light/Dark theme
 
-## Mock Data Pack
+## Seed Data และ Firebase Emulator
 
-ไฟล์แพ็กหลักอยู่ใน `src/demo/` ได้แก่ Phase 2, Phase 4, Phase 5, Phase 6 และ
-Disease Analysis P1 โดย Seeder รวมแต่ละแพ็กตาม dependency แล้วตรวจความสัมพันธ์
-ก่อนเขียนลง Emulator
+ไฟล์ Seed Pack สำหรับการทดสอบและการนำเข้าครั้งแรกอยู่ใน `scripts/seed-data/`
+แยกออกจาก `src/` แล้ว โดย Seeder รวมแต่ละแพ็กตาม dependency และ Production
+Script จะแปลง mode/classification เป็นค่า Production ก่อนเขียน Firebase
 
 - เวอร์ชัน `1.0.0`
 - ป้ายกำกับ `SIMULATED/TEST ONLY`
@@ -113,11 +125,13 @@ pnpm seed:emulator:disease-analysis
 pnpm test:seed:emulator
 ```
 
-Full Seed ประกอบด้วย Auth test accounts, Organization/Farm/Membership,
+Emulator Full Seed ประกอบด้วย Auth test accounts, Organization/Farm/Membership,
 Tree/Planting Cycle/Tag/QR route, Work/Care/Disease/รูป Placeholder, Crop/Fruit/
 Harvest/Sales/Inventory, Dashboard/Offline/Conflict/Recovery/Audit และ Disease
-Analysis Session/Human Review รวม 127 records ทุกชุดติดป้าย
-`SIMULATED/TEST ONLY`
+Analysis Session/Human Review และ Management Reporting/Cost สำหรับ regression
+
+Production Script ไม่สร้าง Firebase Auth user; ต้องเตรียม Owner Auth account และ
+ส่ง UID จริงผ่าน `--owner-uid` ก่อนเขียนข้อมูล
 
 Mock adapter ในเบราว์เซอร์จะรีเซ็ตเมื่อสร้าง runtime ใหม่ และใช้ ID ที่สร้างซ้ำได้
 สำหรับ mutation จำลอง

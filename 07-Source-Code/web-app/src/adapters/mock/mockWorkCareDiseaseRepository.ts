@@ -701,7 +701,7 @@ export class MockWorkCareDiseaseRepository implements WorkCareDiseaseRepository 
         this.nextId('diseaseevt'),
         context,
         eventType[action],
-        `${photo.photoId} → ${photo.uploadState} · Local DRY_RUN`,
+        `${photo.photoId} → ${photo.uploadState} · Synthetic DRY_RUN`,
         incident.version,
       ),
       ...incident.audit,

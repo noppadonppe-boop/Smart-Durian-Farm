@@ -154,7 +154,7 @@ service cloud.firestore {
     function validOperationalScope(data, organizationId, farmId) {
       return data.organizationId == organizationId
         && data.farmId == farmId
-        && data.exampleData == true;
+        && data.exampleData is bool;
     }
 
     function validOperationalAudit(data, organizationId, farmId, eventId) {
@@ -230,7 +230,7 @@ service cloud.firestore {
     function validAnnualScope(data, organizationId, farmId) {
       return data.organizationId == organizationId
         && data.farmId == farmId
-        && data.exampleData == true;
+        && data.exampleData is bool;
     }
 
     function validAnnualTransition(before, after) {
@@ -254,7 +254,7 @@ service cloud.firestore {
     function validCommercialScope(data, organizationId, farmId) {
       return data.organizationId == organizationId
         && data.farmId == farmId
-        && data.exampleData == true;
+        && data.exampleData is bool;
     }
 
     function validFinancialScope(data, organizationId, farmId) {
@@ -597,8 +597,7 @@ service cloud.firestore {
         && data.organizationId == organizationId
         && data.farmSequence == farmSequence
         && data.farmSequence.matches('^F[0-9]{2,}$')
-        && data.classification == 'SIMULATED/TEST ONLY'
-        && data.exampleData == true
+        && validFarmDataClassification(data)
         && data.createdAt == request.time
         && existsAfter(farmPath(organizationId, data.farmId))
         && getAfter(farmPath(organizationId, data.farmId)).data.farmSequence == farmSequence
@@ -700,8 +699,7 @@ service cloud.firestore {
         && data.role == 'ORG_OWNER'
         && data.status == 'ACTIVE'
         && data.version == 1
-        && data.classification == 'SIMULATED/TEST ONLY'
-        && data.exampleData == true
+        && validFarmDataClassification(data)
         && data.createdAt == request.time
         && existsAfter(farmPath(organizationId, farmId))
         && data.auditEventId == getAfter(farmPath(organizationId, farmId)).data.lastAuditEventId
@@ -1091,7 +1089,7 @@ service cloud.firestore {
         && data.version is int
         && data.version > 0
         && data.lastEventId is string
-        && data.exampleData == true
+        && data.exampleData is bool
         && data.createdBy is string
         && data.updatedBy is string;
     }
@@ -1115,7 +1113,7 @@ service cloud.firestore {
         && isWorkStatus(data.afterStatus)
         && data.reason is string
         && data.workVersion is int
-        && data.exampleData == true
+        && data.exampleData is bool
         && data.createdAt == request.time;
     }
 
@@ -1215,7 +1213,7 @@ service cloud.firestore {
         && data.approvalStatus in ['NOT_REQUIRED', 'PENDING_SPECIALIST', 'APPROVED']
         && (data.approvedBy == null || data.approvedBy is string)
         && data.version is int && data.version > 0
-        && data.lastEventId is string && data.exampleData == true;
+        && data.lastEventId is string && data.exampleData is bool;
     }
 
     function validCareAudit(data, organizationId, farmId, careEventId, eventId) {
@@ -1225,7 +1223,7 @@ service cloud.firestore {
         && data.eventType in ['CARE_RECORDED', 'SPECIALIST_APPROVED']
         && data.actorUserId == request.auth.uid
         && data.careVersion is int && data.careVersion > 0
-        && data.exampleData == true && data.createdAt == request.time;
+        && data.exampleData is bool && data.createdAt == request.time;
     }
 
     function matchingCareAuditExists(organizationId, farmId, careEventId, data) {
@@ -1249,7 +1247,7 @@ service cloud.firestore {
         && (data.treatmentWorkOrderId == null || data.treatmentWorkOrderId is string)
         && (data.treatmentOperationId == null || data.treatmentOperationId is string)
         && data.version is int && data.version > 0
-        && data.lastEventId is string && data.exampleData == true
+        && data.lastEventId is string && data.exampleData is bool
         && data.reportedBy is string && data.updatedBy is string;
     }
 
@@ -1267,7 +1265,7 @@ service cloud.firestore {
         && data.actorUserId == request.auth.uid
         && data.actorDisplayName is string && data.description is string
         && data.incidentVersion is int && data.incidentVersion > 0
-        && data.exampleData == true && data.createdAt == request.time;
+        && data.exampleData is bool && data.createdAt == request.time;
     }
 
     function validDiseasePhoto(photo, organizationId, farmId, incidentId, positionId) {
@@ -1290,7 +1288,7 @@ service cloud.firestore {
         && photo.sizeBytes <= 5 * 1024 * 1024
         && photo.note is string && photo.note.size() > 0
         && photo.source == 'SYNTHETIC_PLACEHOLDER'
-        && photo.classification == 'SIMULATED/TEST ONLY'
+        && photo.classification in ['SIMULATED/TEST ONLY', 'OPERATIONAL']
         && photo.uploadState in ['PENDING', 'UPLOADING', 'UPLOADED', 'FAILED']
         && photo.retryCount is int && photo.retryCount >= 0 && photo.retryCount <= 3
         && photo.lastError is string
@@ -1351,7 +1349,7 @@ service cloud.firestore {
         && finding.keys().hasOnly([
           'findingCode', 'label', 'confidencePercent', 'uncertaintyNote'
         ])
-        && finding.findingCode == 'MOCK_SYMPTOM_PATTERN_A'
+        && finding.findingCode in ['MOCK_SYMPTOM_PATTERN_A', 'SYMPTOM_PATTERN_A']
         && finding.label is string && finding.label.size() > 0
         && finding.confidencePercent is int
         && finding.confidencePercent >= 0 && finding.confidencePercent <= 100
@@ -1404,8 +1402,8 @@ service cloud.firestore {
           'CONFLICTING_OBSERVATIONS'
         ]
         && data.observedSymptom is string && data.observedSymptom.size() > 0
-        && data.analysisSource == 'MOCK_DETERMINISTIC_V1'
-        && data.classification == 'SIMULATED/TEST ONLY'
+        && data.analysisSource in ['MOCK_DETERMINISTIC_V1', 'DETERMINISTIC_RULES_V1']
+        && data.classification in ['SIMULATED/TEST ONLY', 'OPERATIONAL']
         && data.status in ['HUMAN_REVIEW_REQUIRED', 'REVIEWED']
         && validDiseaseAnalysisResult(data)
         && (data.reviewedBy == null || data.reviewedBy is string)
@@ -1418,7 +1416,7 @@ service cloud.firestore {
         && data.version is int && data.version > 0
         && data.lastEventId is string
         && data.createdBy is string && data.updatedBy is string
-        && data.exampleData == true;
+        && data.exampleData is bool;
     }
 
     function validDiseaseAnalysisEvent(data, organizationId, farmId, analysisSessionId, eventId) {
@@ -1431,6 +1429,7 @@ service cloud.firestore {
         && data.eventId == eventId
         && data.eventType in [
           'MOCK_ANALYSIS_COMPLETED', 'MOCK_ANALYSIS_ABSTAINED',
+          'ANALYSIS_COMPLETED', 'ANALYSIS_ABSTAINED',
           'HUMAN_REVIEW_ACCEPTED', 'HUMAN_REVIEW_CORRECTED',
           'HUMAN_REVIEW_REJECTED'
         ]
@@ -1439,7 +1438,7 @@ service cloud.firestore {
         && data.actorUserId == request.auth.uid
         && data.actorDisplayName is string && data.description is string
         && data.sessionVersion is int && data.sessionVersion > 0
-        && data.exampleData == true && data.createdAt == request.time;
+        && data.exampleData is bool && data.createdAt == request.time;
     }
 
     function matchingDiseaseAnalysisEventExists(organizationId, farmId, analysisSessionId, data) {
@@ -1923,7 +1922,7 @@ service cloud.firestore {
             && request.resource.data.scope is string
             && request.resource.data.targetId is string
             && request.resource.data.actorUserId == request.auth.uid
-            && request.resource.data.exampleData == true
+            && request.resource.data.exampleData is bool
             && request.resource.data.createdAt == request.time;
           allow update, delete: if false;
         }
@@ -2001,7 +2000,7 @@ service cloud.firestore {
             && request.resource.data.workOrderId.matches('^work_treatment_[A-Za-z0-9_-]{12,}$')
             && request.resource.data.operationId.matches('^disease_treatment_work_[A-Za-z0-9_-]{6,}$')
             && request.resource.data.actorUserId == request.auth.uid
-            && request.resource.data.exampleData == true
+            && request.resource.data.exampleData is bool
             && request.resource.data.createdAt == request.time
             && exists(diseasePath(organizationId, farmId, incidentId))
             && get(diseasePath(organizationId, farmId, incidentId)).data.positionId
@@ -2282,7 +2281,7 @@ service cloud.firestore {
             && request.resource.data.scope in ['CREATE_ANALYSIS', 'REVIEW_ANALYSIS']
             && request.resource.data.targetId is string
             && request.resource.data.actorUserId == request.auth.uid
-            && request.resource.data.exampleData == true
+            && request.resource.data.exampleData is bool
             && request.resource.data.createdAt == request.time
             && (
               (request.resource.data.scope == 'CREATE_ANALYSIS'
@@ -2482,6 +2481,70 @@ service cloud.firestore {
             && request.resource.data.version == 1
             && request.resource.data.createdAt == request.time;
           allow update, delete: if false;
+        }
+
+        match /laborCosts/{laborCostId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'annualCycleId', 'incurredOn', 'workerReference', 'basis', 'quantity',
+              'rateBaht', 'referenceType', 'referenceId', 'notes', 'organizationId',
+              'farmId', 'laborCostId', 'amountBaht', 'actorUserId', 'actorDisplayName',
+              'version', 'createdAtLabel', 'exampleData', 'createdAt'
+            ])
+            && request.resource.data.laborCostId == laborCostId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.version == 1
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /operatingExpenses/{expenseId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'annualCycleId', 'incurredOn', 'category', 'description', 'amountBaht',
+              'allocationScope', 'allocationReferenceId', 'notes', 'costTreatment',
+              'organizationId', 'farmId', 'expenseId', 'actorUserId', 'actorDisplayName',
+              'version', 'createdAtLabel', 'exampleData', 'createdAt'
+            ])
+            && request.resource.data.expenseId == expenseId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.version == 1
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /managementCostAuditEvents/{eventId} {
+          allow read: if canAccessFinancialData(organizationId, farmId);
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'eventId', 'organizationId', 'farmId', 'annualCycleId', 'eventType',
+              'targetId', 'actorUserId', 'actorDisplayName', 'amountBaht', 'reason',
+              'idempotencyKey', 'createdAtLabel', 'exampleData', 'createdAt'
+            ])
+            && request.resource.data.eventId == eventId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /managementCostOperations/{operationId} {
+          allow get: if canAccessFinancialData(organizationId, farmId);
+          allow list, update, delete: if false;
+          allow create: if canAccessFinancialData(organizationId, farmId)
+            && validFinancialScope(request.resource.data, organizationId, farmId)
+            && request.resource.data.keys().hasOnly([
+              'recordType', 'operationId', 'organizationId', 'farmId', 'actorUserId',
+              'resultCollection', 'resultId', 'exampleData', 'createdAt'
+            ])
+            && request.resource.data.recordType == 'MANAGEMENT_COST_OPERATION'
+            && request.resource.data.operationId == operationId
+            && request.resource.data.actorUserId == request.auth.uid
+            && request.resource.data.createdAt == request.time;
         }
 
         match /annualCycleCorrections/{correctionId} {

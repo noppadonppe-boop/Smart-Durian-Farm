@@ -39,7 +39,7 @@ function splitHost(value: string): [host: string, port: number] {
   const port = Number(value.slice(separator + 1))
 
   if (!host || !Number.isInteger(port) || port <= 0) {
-    throw new Error(`Invalid emulator host: ${value}`)
+    throw new Error(`Invalid test-service host: ${value}`)
   }
 
   return [host, port]
@@ -50,12 +50,12 @@ export function createFirebaseEmulatorClients(
 ): FirebaseEmulatorClients {
   if (environment.dataAdapter !== 'firebase-emulator') {
     throw new Error(
-      'Firebase clients are disabled. Set VITE_DATA_ADAPTER=firebase-emulator explicitly.',
+      'Firebase clients are disabled. Select the approved test data adapter explicitly.',
     )
   }
 
   if (environment.firebase.projectId !== 'demo-smart-durian') {
-    throw new Error('Local development allows only the demo-smart-durian emulator project.')
+    throw new Error('Test mode allows only the approved demo-smart-durian project.')
   }
 
   const [authHost] = splitHost(environment.firebase.authEmulatorHost)
@@ -66,7 +66,7 @@ export function createFirebaseEmulatorClients(
     environment.firebase.storageEmulatorHost,
   )
   if (![authHost, firestoreHost, storageHost].every(isLoopbackHost)) {
-    throw new Error('Firebase services must use local loopback emulators in this phase.')
+    throw new Error('Test-mode Firebase services must use the approved test-service endpoints in this phase.')
   }
 
   if (clients) return clients

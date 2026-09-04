@@ -194,10 +194,10 @@ function cycleFromData(data: DocumentData): PlantingCycleRecord {
     baselineDate: requiredString(data, 'baselineDate'),
     baselineMeasurements: baselineMeasurementsFromData(data.baselineMeasurements),
     notes: typeof data.notes === 'string' ? data.notes : '',
-    startedAtLabel: timestampLabel(data.startedAt, 'รอเวลา Emulator'),
+    startedAtLabel: timestampLabel(data.startedAt, 'รอเวลาในข้อมูลจำลอง'),
     endedAtLabel: data.endedAt === null
       ? null
-      : timestampLabel(data.endedAt, 'รอเวลา Emulator'),
+      : timestampLabel(data.endedAt, 'รอเวลาในข้อมูลจำลอง'),
     version: requiredInteger(data, 'version'),
   }
   validateTreeCycleInput(result)
@@ -223,7 +223,7 @@ function eventFromData(data: DocumentData): TreeTimelineEvent {
     actorUserId: requiredString(data, 'actorUserId'),
     actorDisplayName: requiredString(data, 'actorDisplayName'),
     description: requiredString(data, 'description'),
-    createdAtLabel: timestampLabel(data.createdAt, 'รอเวลา Emulator'),
+    createdAtLabel: timestampLabel(data.createdAt, 'รอเวลาในข้อมูลจำลอง'),
     positionVersion: requiredInteger(data, 'positionVersion'),
   }
 }
@@ -367,7 +367,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     const cycles = cyclesSnapshot.docs.map((cycleDocument) => cycleFromData(cycleDocument.data()))
     const currentCycleNumber = requiredInteger(positionDocument.data(), 'currentCycleNumber')
     const currentCycle = cycles.find((cycle) => cycle.cycleNumber === currentCycleNumber)
-    if (!currentCycle) throw new Error('ไม่พบ Planting Cycle ปัจจุบันใน Emulator')
+    if (!currentCycle) throw new Error('ไม่พบ Planting Cycle ปัจจุบันในข้อมูลจำลอง')
     return {
       ...this.summaryFromData(positionDocument.data(), currentCycle),
       plantingCycles: cycles,

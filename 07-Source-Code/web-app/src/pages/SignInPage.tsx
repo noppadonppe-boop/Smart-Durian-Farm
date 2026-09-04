@@ -105,7 +105,7 @@ export function SignInPage() {
               ? 'Firebase Production · Shared Data Root'
               : 'Firebase Phone Auth จริง · Mock Data'
             : authMode === 'firebase-emulator'
-              ? 'โหมดพัฒนา · Firebase Auth Emulator'
+              ? 'โหมดพัฒนา · ข้อมูลจำลอง'
               : 'โหมดพัฒนา · Mock Data'}
         </span>
         <h1 id="sign-in-title">เข้าสู่ Smart Durian Farm</h1>
@@ -115,7 +115,7 @@ export function SignInPage() {
               ? 'ยืนยันตัวตนด้วย OTP ทาง SMS แล้วอ่านและเขียนข้อมูลจาก Firebase Production โดยตรง'
               : 'ยืนยันตัวตนด้วย OTP ทาง SMS จาก Firebase จริง แล้วเปิดข้อมูลจำลองในเครื่องเท่านั้น'
             : authMode === 'firebase-emulator'
-              ? 'เข้าสู่ระบบด้วยหมายเลขทดสอบผ่าน Firebase Authentication Emulator โดยไม่มีการส่ง SMS จริง'
+              ? 'เข้าสู่ระบบด้วยหมายเลขทดสอบ โดยไม่มีการส่ง SMS จริง'
               : 'เปิดแอปด้วยข้อมูลจำลองได้ทันที ไม่ต้องมี Firebase และไม่มีการส่ง SMS จริง'}
         </p>
 
@@ -173,7 +173,7 @@ export function SignInPage() {
               {authMode === 'firebase-live'
                 ? 'กรอกรหัส 6 หลักจาก SMS ที่ Firebase ส่งให้หมายเลขนี้'
                 : authMode === 'firebase-emulator'
-                  ? 'ดูรหัส 6 หลักในหน้าต่างที่กำลังรัน Firebase Emulator แล้วนำมากรอกด้านล่าง'
+                  ? 'กรอกรหัส OTP ทดสอบที่ระบบแสดงให้ แล้วนำมากรอกด้านล่าง'
                   : 'ใช้รหัส OTP จำลองของบัญชีทดสอบที่เลือก'}
             </small>
             <label htmlFor="otp-code">รหัส OTP 6 หลัก</label>
@@ -229,7 +229,7 @@ export function SignInPage() {
               >
                 <strong>{account.displayName}</strong>
                 <code>{account.phoneNumber}</code>
-                <span>{authMode === 'mock' ? `OTP ${account.otp}` : 'OTP แสดงในหน้าต่าง Emulator'}</span>
+                <span>{authMode === 'mock' ? `OTP ${account.otp}` : 'OTP สำหรับการทดสอบ'}</span>
               </button>
             ))}
           </div>
@@ -242,7 +242,7 @@ export function SignInPage() {
               ? 'Firebase Authentication + Firestore Production · durian-smartfarm/root'
               : 'Firebase Authentication จริง · ข้อมูลแอปยังเป็น Mock'
             : authMode === 'firebase-emulator'
-              ? 'Firebase Emulator'
+              ? 'ข้อมูลจำลองสำหรับทดสอบ'
               : 'Mock สำหรับทดสอบออฟไลน์'}
         </small>
       </section>

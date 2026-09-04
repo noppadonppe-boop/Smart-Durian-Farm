@@ -20,12 +20,12 @@ const scenarioLabels: Record<DevelopmentScenario, string> = {
   PERMISSION_DENIED: 'Permission Denied',
 }
 const scenarioDescriptions: Record<DevelopmentScenario, string> = {
-  DEFAULT: 'เปิด deterministic baseline และเข้า Workflow Disease จริงใน Local Mock',
+  DEFAULT: 'เปิด deterministic baseline และเข้า Workflow Disease จริงใน Mock Data',
   EMPTY: 'ตรวจ Empty state โดยไม่สร้างหรือแก้ข้อมูลใน Repository',
   ERROR: 'จำลองการโหลดล้มเหลวที่ UI boundary',
   LARGE_LIST: 'สร้างรายการสังเคราะห์ 60 รายการเพื่อตรวจการเลื่อนและ Responsive',
   OFFLINE: 'จำลองรายการ Pending ที่รักษา Farm scope และ idempotency key',
-  CONFLICT: 'เปรียบเทียบ Local/Server mock version ก่อนส่งให้คนตัดสินใจ',
+  CONFLICT: 'เปรียบเทียบ mock version ก่อนส่งให้คนตัดสินใจ',
   PERMISSION_DENIED: 'ปฏิเสธการอ่านข้อมูลต่างสวนโดยไม่แสดง payload',
 }
 function storageKey(farmId: string): string {
@@ -80,7 +80,7 @@ export function DevelopmentMockScenarioPage() {
       {scenario === 'ERROR' ? <p className="form-error" role="alert">SIMULATED/TEST ONLY — โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่</p> : null}
       {scenario === 'LARGE_LIST' ? <div className="scenario-large-list">{largeList.map((item) => <article key={item.id}><strong>{item.label}</strong><small>{item.id} · {currentFarm.farmCode}</small></article>)}</div> : null}
       {scenario === 'OFFLINE' ? <div className="scenario-data-card"><strong>Pending · Offline</strong><code>idem_{currentFarm.farmId}_scenario_001</code><p>Retry ใช้ key เดิมและห้ามย้าย Farm scope</p><Link to="/sync">เปิด Sync Center</Link></div> : null}
-      {scenario === 'CONFLICT' ? <div className="scenario-compare"><article><strong>Local v3</strong><p>ข้อสังเกตจำลองจาก Offline queue</p></article><article><strong>Server v4</strong><p>ค่า Master จำลองที่ใหม่กว่า</p></article><p>ต้อง Review ก่อน Resolve; ห้ามเขียนทับเงียบ ๆ</p></div> : null}
+      {scenario === 'CONFLICT' ? <div className="scenario-compare"><article><strong>Mock v3</strong><p>ข้อสังเกตจำลองจาก Offline queue</p></article><article><strong>Server v4</strong><p>ค่า Master จำลองที่ใหม่กว่า</p></article><p>ต้อง Review ก่อน Resolve; ห้ามเขียนทับเงียบ ๆ</p></div> : null}
       {scenario === 'PERMISSION_DENIED' ? <div className="scenario-data-card scenario-data-card--denied"><strong>Permission Denied</strong><p>Cross-Farm access ถูกปฏิเสธ · ไม่มี payload จากสวนเป้าหมาย</p></div> : null}
     </section>
   </section>

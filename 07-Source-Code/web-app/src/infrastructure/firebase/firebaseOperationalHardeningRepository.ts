@@ -109,7 +109,7 @@ export class FirebaseOperationalHardeningRepository implements OperationalHarden
     if (!canReadFarmDashboard(context.farm.role)) throw new Error('บทบาท Auditor เปิด Dashboard ปฏิบัติการไม่ได้')
     const roleBucket = context.farm.isOrganizationOwner ? 'ORG_OWNER' : context.farm.role
     const result = await getDoc(doc(this.farmReference(context), 'dashboardViews', roleBucket))
-    if (!result.exists()) throw new Error('ไม่พบ Dashboard view ใน Emulator')
+    if (!result.exists()) throw new Error('ไม่พบ Dashboard view ในข้อมูลจำลอง')
     const snapshot = documentValue<FarmDashboardSnapshot>(result.data())
     assertOperationalScope(context, snapshot)
     const financialResult = canAccessFinancialData(context.farm)

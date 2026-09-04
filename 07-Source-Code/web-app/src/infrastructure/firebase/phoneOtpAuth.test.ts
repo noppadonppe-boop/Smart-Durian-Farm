@@ -11,7 +11,7 @@ describe('phoneOtpErrorMessage', () => {
     ['auth/invalid-verification-code', 'รหัส OTP ไม่ถูกต้อง'],
     ['auth/code-expired', 'รหัส OTP หมดอายุแล้ว'],
     ['auth/too-many-requests', 'ขอรหัสบ่อยเกินไป'],
-    ['auth/network-request-failed', 'ติดต่อ Firebase Authentication Emulator ไม่ได้'],
+    ['auth/network-request-failed', 'ติดต่อระบบยืนยันตัวตนสำหรับข้อมูลทดสอบไม่ได้'],
     ['auth/app-not-authorized', 'HTTPS บนโดเมน Hosting'],
     ['auth/invalid-app-credential', 'HTTPS บนโดเมน Hosting'],
     ['auth/billing-not-enabled', 'ตรวจ Billing และโควตา'],

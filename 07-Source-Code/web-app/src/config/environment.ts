@@ -25,8 +25,8 @@ export interface AppEnvironment {
 
 function adapterMode(value: string | undefined): DataAdapterMode {
   if (value === 'firebase-emulator') return 'firebase-emulator'
-  if (value === 'firebase-live') return 'firebase-live'
-  return 'mock'
+  if (value === 'mock') return 'mock'
+  return 'firebase-live'
 }
 
 function authAdapterMode(
@@ -55,17 +55,17 @@ const dataAdapter = adapterMode(import.meta.env.VITE_DATA_ADAPTER)
 export const appEnvironment: AppEnvironment = Object.freeze({
   dataAdapter,
   authAdapter: authAdapterMode(import.meta.env.VITE_AUTH_ADAPTER, dataAdapter),
-  qrBaseUrl: import.meta.env.VITE_QR_BASE_URL ?? 'http://localhost:5173',
+  qrBaseUrl: import.meta.env.VITE_QR_BASE_URL ?? 'https://durian-smartfarm.web.app',
   firebase: {
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'demo-smart-durian',
-    apiKey:
-      import.meta.env.VITE_FIREBASE_API_KEY ?? 'demo-api-key-not-a-secret',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? 'localhost',
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'durian-smartfarm',
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
+    authDomain:
+      import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? 'durian-smartfarm.firebaseapp.com',
     appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
     storageBucket:
       import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ??
-      'demo-smart-durian.appspot.com',
+      'durian-smartfarm.appspot.com',
     storageReady: import.meta.env.VITE_FIREBASE_STORAGE_READY === 'true',
     liveAuthDemoUserId:
       import.meta.env.VITE_FIREBASE_LIVE_AUTH_DEMO_USER_ID ?? '',

@@ -536,7 +536,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
     private readonly firestore: Firestore,
     private readonly storage: FirebaseStorage,
     private readonly exampleData = true,
-    private readonly timeLabel = 'Firebase Emulator',
+    private readonly timeLabel = 'ข้อมูลจำลอง',
   ) {}
 
   async listWorkOrders(context: WorkMutationContext): Promise<readonly WorkOrderRecord[]> {
@@ -1097,7 +1097,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         lifecycleMode: 'DRY_RUN',
         version: 1,
         createdBy: context.actor.userId,
-        createdAtLabel: this.exampleData ? 'Firebase Emulator' : 'Firebase',
+        createdAtLabel: this.exampleData ? 'ข้อมูลจำลอง' : 'Firebase',
       }
       const version = incident.version + 1
       const eventId = createOpaqueRecordId('diseaseevt')
@@ -1175,7 +1175,7 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
         incidentId,
         eventId,
         eventType[action],
-        `${photo.photoId} → ${photo.uploadState} · Local DRY_RUN`,
+        `${photo.photoId} → ${photo.uploadState} · Synthetic DRY_RUN`,
         version,
       ))
     })

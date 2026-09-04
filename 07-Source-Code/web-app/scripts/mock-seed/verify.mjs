@@ -95,6 +95,13 @@ export async function verifySeed({ firestore, storage, packs, rootSegments = [],
     }
   }
 
+  if (modules.includes('management-reporting')) {
+    assertEqual(await countGroup(firestore, 'laborCosts'), results['management-reporting'].laborCosts, 'Labor costs')
+    assertEqual(await countGroup(firestore, 'operatingExpenses'), results['management-reporting'].operatingExpenses, 'Operating expenses')
+    assertEqual(await countGroup(firestore, 'annualPlanFinancials'), results['management-reporting'].annualPlanFinancials, 'Annual plan financials')
+    assertEqual(await countGroup(firestore, 'managementCostAuditEvents'), results['management-reporting'].managementCostAuditEvents, 'Management cost audit events')
+  }
+
   if (modules.includes('operations')) {
     assertEqual(await countGroup(firestore, 'dashboardViews'), results.operations.dashboardViews, 'Dashboard views')
     assertEqual(await countGroup(firestore, 'financialDashboardViews'), results.operations.financialDashboardViews, 'Financial dashboard views')

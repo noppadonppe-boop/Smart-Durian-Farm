@@ -86,11 +86,15 @@
 }
 
 .orchard-plan,
-.orchard-zone,
 .orchard-checklist {
   min-width: 0;
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
 .orchard-zone__heading span,
@@ -101,20 +105,21 @@
 }
 
 .orchard-zone {
-  padding: var(--space-2);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.orchard-zone__heading {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px dashed var(--color-border);
 }
 
 .orchard-rows {
-  min-width: 0;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(6rem, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
   padding-block-end: var(--space-1);
 }
 
@@ -195,12 +200,9 @@
 
 .orchard-checklist__zone {
   min-width: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-2);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
 }
 
 .orchard-checklist__zone-heading {
@@ -209,6 +211,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px dashed var(--color-border);
 }
 
 .orchard-checklist__zone-heading h4 {
@@ -217,17 +221,13 @@
 
 .orchard-checklist__scroll {
   min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
   padding-block-end: var(--space-1);
 }
 
 .orchard-checklist__rows {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(6.5rem, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  min-width: max-content;
 }
 
 .orchard-checklist__row {

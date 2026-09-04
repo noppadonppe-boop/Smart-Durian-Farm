@@ -32,8 +32,10 @@
     "seed:emulator:trees": "node scripts/seed-emulator.mjs --module trees",
     "seed:emulator:work": "node scripts/seed-emulator.mjs --module work",
     "seed:emulator:commercial": "node scripts/seed-emulator.mjs --module commercial",
+    "seed:emulator:management-reporting": "node scripts/seed-emulator.mjs --module management-reporting",
     "seed:emulator:operations": "node scripts/seed-emulator.mjs --module operations",
     "seed:emulator:disease-analysis": "node scripts/seed-emulator.mjs --module disease-analysis",
+    "seed:production": "node scripts/seed-production.mjs --project durian-smartfarm",
     "test:seed:emulator": "node scripts/firebase-local.cjs emulators:exec --project demo-smart-durian --only auth,firestore,storage \"pnpm seed:emulator\"",
     "smoke:offline": "node scripts/check-no-external-runtime.mjs",
     "firebase:local": "node scripts/firebase-local.cjs",
@@ -45,6 +47,7 @@
   "dependencies": {
     "fflate": "^0.8.3",
     "firebase": "^12.18.0",
+    "firebase-admin": "^13.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"

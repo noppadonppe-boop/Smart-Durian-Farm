@@ -251,7 +251,7 @@ export class FirebaseCommercialTraceabilityRepository implements CommercialTrace
       this.listCollection<InventoryMovementRecord>(context, 'inventoryMovements', !canAccessCommercialFinancialData(context.farm)),
     ])
     const inventoryBalances = calculateInventoryBalances(inventoryItems, inventoryMovements)
-    if (inventoryBalances.some((entry) => entry.balance < 0)) throw new Error('Critical: พบยอดสต็อกติดลบใน Emulator')
+    if (inventoryBalances.some((entry) => entry.balance < 0)) throw new Error('Critical: พบยอดสต็อกติดลบในข้อมูลจำลอง')
     let financial: CommercialSnapshot['financial'] = null
     if (canAccessCommercialFinancialData(context.farm)) {
       const [salesFinancials, inventoryMovementFinancials, auditSnapshots] = await Promise.all([

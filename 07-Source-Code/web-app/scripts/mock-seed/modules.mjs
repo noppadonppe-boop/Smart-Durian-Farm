@@ -1,13 +1,78 @@
-import { doc, serverTimestamp, setDoc as firebaseSetDoc } from 'firebase/firestore'
-import { ref, uploadBytes } from 'firebase/storage'
+import { doc as firebaseDoc, serverTimestamp as firebaseServerTimestamp, setDoc as firebaseSetDoc } from 'firebase/firestore'
+import { ref as firebaseRef, uploadBytes as firebaseUploadBytes } from 'firebase/storage'
 
-const seedBatchId = 'KDOMS-PRODUCTION-MOCK-V1'
+function seedBatchId() {
+  return activeSdk.production ? 'KDOMS-PRODUCTION-SEED-V1' : 'KDOMS-PRODUCTION-MOCK-V1'
+}
+
+const browserSdk = Object.freeze({
+  doc: firebaseDoc,
+  serverTimestamp: firebaseServerTimestamp,
+  setDoc: firebaseSetDoc,
+  ref: firebaseRef,
+  uploadBytes: firebaseUploadBytes,
+  production: false,
+})
+
+let activeSdk = browserSdk
+
+function productionValue(value) {
+  if (!activeSdk.production) return value
+  if (Array.isArray(value)) return value.map(productionValue)
+  if (!value || typeof value !== 'object') {
+    return typeof value === 'string'
+      ? value.replaceAll('SIMULATED/TEST ONLY', 'Production seed').replaceAll('EXAMPLE DATA ONLY', 'Firebase data')
+      : value
+  }
+  const prototype = Object.getPrototypeOf(value)
+  if (prototype !== Object.prototype && prototype !== null) return value
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+    if (key === 'exampleData') return [key, false]
+    if (key === 'createdAtLabel' || key === 'updatedAtLabel' || key === 'submittedAtLabel' || key === 'lastCalculatedAtLabel') {
+      return [key, 'Firebase']
+    }
+    if (key === 'classification' && (item === 'SIMULATED/TEST ONLY' || item === 'OPERATIONAL')) {
+      return [key, 'OPERATIONAL']
+    }
+    if (key === 'analysisSource' && item === 'MOCK_DETERMINISTIC_V1') {
+      return [key, 'DETERMINISTIC_RULES_V1']
+    }
+    if (key === 'findingCode' && item === 'MOCK_SYMPTOM_PATTERN_A') {
+      return [key, 'SYMPTOM_PATTERN_A']
+    }
+    if (key === 'eventType' && item === 'MOCK_ANALYSIS_COMPLETED') {
+      return [key, 'ANALYSIS_COMPLETED']
+    }
+    if (key === 'eventType' && item === 'MOCK_ANALYSIS_ABSTAINED') {
+      return [key, 'ANALYSIS_ABSTAINED']
+    }
+    if (key === 'syncState' && item === 'EMULATOR_SYNCED') return [key, 'FIREBASE_SYNCED']
+    return [key, productionValue(item)]
+  }))
+}
+
+function doc(...args) {
+  return activeSdk.doc(...args)
+}
+
+function serverTimestamp(...args) {
+  return activeSdk.serverTimestamp(...args)
+}
+
+function ref(...args) {
+  return activeSdk.ref(...args)
+}
+
+function uploadBytes(...args) {
+  const [reference, bytes, metadata] = args
+  return activeSdk.uploadBytes(reference, bytes, productionValue(metadata))
+}
 
 function setDoc(reference, data, options) {
-  const seededData = { ...data, seedBatchId }
+  const seededData = productionValue({ ...data, seedBatchId: seedBatchId() })
   return options
-    ? firebaseSetDoc(reference, seededData, options)
-    : firebaseSetDoc(reference, seededData)
+    ? activeSdk.setDoc(reference, seededData, options)
+    : activeSdk.setDoc(reference, seededData)
 }
 
 const placeholderPngBase64 =
@@ -1072,6 +1137,7 @@ export async function seedDiseaseAnalysis({ firestore, packs, rootSegments = [],
       reviewedFindingLabel: session.reviewedFindingLabel,
       reviewNote: session.reviewNote,
       diagnosisWritebackStatus: 'NOT_WRITTEN',
+      syncState: 'EMULATOR_SYNCED',
       version: session.version,
       lastEventId: lastEvent.eventId,
       createdBy: uidFor(userMappings, session.createdBy),
@@ -1105,7 +1171,50 @@ export async function seedDiseaseAnalysis({ firestore, packs, rootSegments = [],
   }
 }
 
-export const seeders = Object.freeze({
+export async function seedManagementReporting({ firestore, packs, rootSegments = [], userMappings }) {
+  assertMockPack(packs.managementReporting, 'Management Reporting and Cost')
+  const collections = [
+    ['laborCosts', packs.managementReporting.laborCosts],
+    ['operatingExpenses', packs.managementReporting.operatingExpenses],
+    ['annualPlanFinancials', packs.managementReporting.annualPlanFinancials],
+  ]
+  const counts = {}
+  for (const [collectionName, records] of collections) {
+    counts[collectionName] = records.length
+    for (const record of records) {
+      await setDoc(farmDoc(
+        firestore,
+        rootSegments,
+        record.organizationId,
+        record.farmId,
+        collectionName,
+        record.laborCostId ?? record.expenseId ?? record.planItemId,
+      ), {
+        ...record,
+        actorUserId: uidFor(userMappings, record.actorUserId),
+        classification: 'SIMULATED/TEST ONLY',
+      })
+    }
+  }
+  counts.managementCostAuditEvents = packs.managementReporting.audit.length
+  for (const event of packs.managementReporting.audit) {
+    await setDoc(farmDoc(
+      firestore,
+      rootSegments,
+      event.organizationId,
+      event.farmId,
+      'managementCostAuditEvents',
+      event.eventId,
+    ), {
+      ...event,
+      actorUserId: uidFor(userMappings, event.actorUserId),
+      classification: 'SIMULATED/TEST ONLY',
+    })
+  }
+  return counts
+}
+
+const seedFunctions = Object.freeze({
   foundation: seedFoundation,
   'annual-cycles': seedAnnualCycles,
   trees: seedTreeRegister,
@@ -1113,4 +1222,17 @@ export const seeders = Object.freeze({
   commercial: seedCommercialTraceability,
   operations: seedOperationalHardening,
   'disease-analysis': seedDiseaseAnalysis,
+  'management-reporting': seedManagementReporting,
 })
+
+export const seeders = Object.freeze(Object.fromEntries(
+  Object.entries(seedFunctions).map(([name, seedFunction]) => [name, async (context) => {
+    const previousSdk = activeSdk
+    activeSdk = context.sdk ?? browserSdk
+    try {
+      return await seedFunction(context)
+    } finally {
+      activeSdk = previousSdk
+    }
+  }]),
+))

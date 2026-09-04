@@ -123,7 +123,7 @@ function DiseaseIncidentCard({
     </dl>
 
     {mayAddPhoto && incident.status !== 'CLOSED' ? <section className="disease-photo-panel" aria-label={`${isProduction ? 'รูปประกอบ' : 'รูปจำลอง'}สำหรับ ${incident.observedSymptom}`}>
-      <div><span className="status-pill">{isProduction ? 'Firebase metadata' : 'Local DRY_RUN'}</span><h3>{isProduction ? 'Disease-photo workflow' : 'Disease-photo mock flow'}</h3><p>{isProduction ? 'บันทึก Metadata ของ Placeholder ลง Firebase; ยังไม่มี binary image ใน flow นี้' : 'รับเฉพาะ Placeholder/Synthetic ไม่มีไฟล์ภาพ กล้อง EXIF/GPS หรือ External Storage'}</p></div>
+      <div><span className="status-pill">{isProduction ? 'Firebase metadata' : 'Synthetic DRY_RUN'}</span><h3>{isProduction ? 'Disease-photo workflow' : 'Disease-photo mock flow'}</h3><p>{isProduction ? 'บันทึก Metadata ของ Placeholder ลง Firebase; ยังไม่มี binary image ใน flow นี้' : 'รับเฉพาะ Placeholder/Synthetic ไม่มีไฟล์ภาพ กล้อง EXIF/GPS หรือ External Storage'}</p></div>
       <form className="disease-photo-form" onSubmit={(event) => void addPhoto(event)}>
         <label>Placeholder<select value={placeholderKind} onChange={(event) => setPlaceholderKind(event.target.value as DiseasePhotoPlaceholderKind)}>{diseasePhotoPlaceholderKinds.map((value) => <option key={value} value={value}>{placeholderLabels[value]}</option>)}</select></label>
         <label>{isProduction ? 'ชนิดไฟล์' : 'ชนิดไฟล์จำลอง'}<select value={mimeType} onChange={(event) => setMimeType(event.target.value as DiseasePhotoMimeType)}>{diseasePhotoMimeTypes.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
@@ -256,7 +256,7 @@ export function DiseasePage() {
 
   const assess = (item: DiseaseIncidentRecord, input: DiseaseAssessmentInput) => runMutation(item, () => assessDiseaseIncident(item.incidentId, crypto.randomUUID(), input), isProduction ? 'Agronomist บันทึก diagnosis และ treatment ใน Firebase แล้ว' : 'Agronomist บันทึก diagnosis และ treatment จำลองแล้ว', 'บันทึก assessment ไม่สำเร็จ')
   const followUp = (item: DiseaseIncidentRecord, input: DiseaseFollowUpInput) => runMutation(item, () => followUpDiseaseIncident(item.incidentId, crypto.randomUUID(), input), input.closeIncident ? 'ปิด incident แล้ว' : 'บันทึก follow-up แล้ว', 'บันทึก follow-up ไม่สำเร็จ')
-  const addPhoto = (item: DiseaseIncidentRecord, draft: DiseasePhotoMockDraft) => runMutation(item, () => addDiseasePhotoMock(item.incidentId, crypto.randomUUID(), draft), isProduction ? 'เพิ่ม Photo Metadata ใน Firebase แล้ว · สถานะ Pending' : 'เพิ่ม Synthetic Placeholder แล้ว · สถานะ Pending · Local DRY_RUN', 'เพิ่ม Placeholder ไม่สำเร็จ')
+  const addPhoto = (item: DiseaseIncidentRecord, draft: DiseasePhotoMockDraft) => runMutation(item, () => addDiseasePhotoMock(item.incidentId, crypto.randomUUID(), draft), isProduction ? 'เพิ่ม Photo Metadata ใน Firebase แล้ว · สถานะ Pending' : 'เพิ่ม Synthetic Placeholder แล้ว · สถานะ Pending', 'เพิ่ม Placeholder ไม่สำเร็จ')
   const advancePhoto = (item: DiseaseIncidentRecord, photoId: string, action: DiseasePhotoAction) => runMutation(item, () => advanceDiseasePhotoMock(item.incidentId, photoId, crypto.randomUUID(), action), isProduction ? `เปลี่ยนสถานะรูปด้วย ${action} ใน Firebase แล้ว` : `เปลี่ยนสถานะรูปจำลองด้วย ${action} แล้ว`, isProduction ? 'เปลี่ยนสถานะรูปไม่สำเร็จ' : 'เปลี่ยนสถานะรูปจำลองไม่สำเร็จ')
   const createTreatment = (item: DiseaseIncidentRecord, input: TreatmentWorkOrderInput) => runMutation(item, () => createTreatmentWorkOrder(item.incidentId, crypto.randomUUID(), input), 'สร้าง Treatment Work Order และลิงก์ Audit สองทางแล้ว', 'สร้างงานรักษาไม่สำเร็จ')
   const runDemo = (item: DiseaseIncidentRecord, tree: TreePositionSummary) => runMutation(item, async () => {
@@ -269,10 +269,10 @@ export function DiseasePage() {
   }, isProduction ? 'สร้าง Workflow ใน Firebase สำเร็จ: Photo Metadata และ Treatment Work Order แล้ว' : 'One-click Mock Demo สำเร็จ: Photo Uploaded และสร้าง Treatment Work Order แล้ว', isProduction ? 'สร้าง Workflow ไม่สำเร็จ' : 'One-click Mock Demo ไม่สำเร็จ')
 
   return <section className="page-stack">
-    <PageHeader eyebrow={isProduction ? 'Firebase Production · Disease tracking' : 'Local Mock MVP · Disease tracking'} title={incidentId ? 'รายละเอียดอาการและการติดตาม' : 'อาการ โรค และการติดตาม'} description="Observed symptom → Photo Metadata → Treatment Work Order · แยก Farm และมี Audit" />
+    <PageHeader eyebrow={isProduction ? 'Firebase Production · Disease tracking' : 'Mock MVP · Disease tracking'} title={incidentId ? 'รายละเอียดอาการและการติดตาม' : 'อาการ โรค และการติดตาม'} description="Observed symptom → Photo Metadata → Treatment Work Order · แยก Farm และมี Audit" />
     {isProduction
       ? <aside className="operational-data-banner"><strong>Firebase Production</strong><span>Incident, assessment, follow-up และ Photo Metadata บันทึกใน Farm ปัจจุบัน</span></aside>
-      : <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY · Local/Emulator</strong><span>ไม่มีภาพจริง กล้อง EXIF/GPS External Storage หรือหลักฐาน Physical Device/Field Validation</span></aside>}
+      : <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY</strong><span>ไม่มีภาพจริง กล้อง EXIF/GPS External Storage หรือหลักฐาน Physical Device/Field Validation</span></aside>}
     {incidentId ? <div className="page-actions"><Link className="secondary-action" to="/disease">กลับรายการโรคทั้งหมด</Link></div> : null}
     {!incidentId && canReport ? <form className="workflow-panel" onSubmit={(event) => void create(event)}>
       <h2>{isProduction ? 'รายงานอาการ' : 'รายงานอาการจำลอง'}</h2>
