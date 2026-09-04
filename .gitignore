@@ -10,21 +10,18 @@ outputs/
 .env
 .env.*
 !.env.example
-!.env.emulator
 
 # KDOMS Firebase Production config stays local and must never be committed.
 07-Source-Code/web-app/.env
 07-Source-Code/web-app/.env.production
 07-Source-Code/web-app/.env.production.local
 
-# Firebase Local Emulator state and logs
+# Firebase CLI state and logs
 .firebase/
-.firebase-local/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
 *-debug.log
-emulator-data/
 
 # Editors and operating systems
 .DS_Store

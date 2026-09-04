@@ -2,11 +2,11 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2 |
-| สถานะ | Passed Full Engineering Validation — Two Views, Multi-Zone and Complete Target Actions; Local/Mock/Firebase Emulator Only |
+| เวอร์ชัน | 0.3 |
+| สถานะ | Passed Incremental DEC-052 Engineering and Responsive Visual Validation — No Deployment Performed |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ตรวจ | 2026-09-01 |
-| Source of Truth | AGENTS.md v4.1, DEC-045/047, KDOMS Orchard Layout and Target Selection Knowledge v0.2.0, KDOMS Scope Knowledge v0.2.6, KDOMS UX/UI Knowledge v0.1.6, Phase 3 Tree Register & QR Architecture v0.3 |
+| วันที่ตรวจ | 2026-09-04 |
+| Source of Truth | AGENTS.md v5.1, DEC-045/047/052, KDOMS Orchard Layout and Target Selection Knowledge v0.3.0, KDOMS Scope Knowledge v0.3.0, KDOMS UX/UI Knowledge v0.2.0, Phase 3 Tree Register & QR Architecture v0.3 |
 
 ## 1. สรุปผล
 
@@ -20,6 +20,11 @@ DEC-047 เพิ่มมุมมอง `ตารางติ๊กเลื�
 รองรับ Zone ทุกค่าจากทะเบียนแบบ data-driven และเพิ่มเมนูจากตำแหน่งที่เลือกครบ
 Work ทั่วไป, Work ดูแล, Disease Incident, Fruit Observation และ Harvest Lot
 
+DEC-052 เพิ่มตัวเลือก projection ในมุมมอง `แปลนต้น` เป็น `แถวแนวตั้ง` และ
+`แถวแนวนอน` แสดงต้นเป็นวงกลมพร้อมหมายเลขตำแหน่งด้านล่าง โดย TAG เต็มยังอยู่ใน
+accessible name/tooltip และสรุปรายการที่เลือก การสลับทิศทางไม่ล้าง selection
+และไม่เปลี่ยน `treeSequence` หรือ opaque Position ID
+
 ผลนี้ไม่ใช่หลักฐาน topology ภาคสนาม ไม่ใช่ Physical Device/QR validation และไม่
 อนุญาต Deploy, Controlled Pilot, ข้อมูลจริง หรือ Production เพิ่มเติม
 
@@ -27,6 +32,8 @@ Work ทั่วไป, Work ดูแล, Disease Incident, Fruit Observation 
 
 - Farm name/code, Zone, Row และ Tree sequence ตาม DEC-045
 - แถวเรียงซ้ายไปขวาและต้นเรียงบนลงล่างด้วย deterministic structural layout
+- สลับ projection เป็นแถวแนวตั้ง/แนวนอนโดยคงลำดับและ selection เดิม
+- วงกลมตำแหน่งต้นพร้อมหมายเลข `Tnnn`, สถานะ และ TAG เต็มสำหรับ accessibility
 - โหมดเลือกต้นเดียว หลายต้น ทั้งแถว และทั้งโซน
 - สถานะต้นแบบข้อความ/สัญลักษณ์ร่วมกับสี และปิดการเลือก Archived
 - Empty position เลือกได้เฉพาะ Workflow ที่อนุญาต เช่น งานทั่วไป/ตรวจสำรวจ
@@ -42,6 +49,8 @@ Work ทั่วไป, Work ดูแล, Disease Incident, Fruit Observation 
 - responsive mobile/desktop และไม่มี page-level horizontal overflow
 
 ## 3. หลักฐานการทดสอบ
+
+ตารางเดิมต่อไปนี้เป็นหลักฐาน DEC-045/047 ณ 2026-09-01 และคงไว้ตามประวัติ:
 
 | รายการ | ผล |
 |---|---|
@@ -60,6 +69,20 @@ Work ทั่วไป, Work ดูแล, Disease Incident, Fruit Observation 
 | Browser functional | สลับแปลน↔ตารางแล้ว T001 ยัง checked; หลังเลือกมี action link ครบ 5 รายการ |
 | Browser Fruit/Harvest | เปิด hash/form ถูกส่วนและคงตำแหน่งเดิม 1 ตำแหน่งทั้งสอง Workflow |
 | Browser console | ไม่พบ error |
+
+### 3.1 หลักฐานเพิ่มสำหรับ DEC-052 — 2026-09-04
+
+| รายการ | ผล |
+|---|---|
+| ESLint | ผ่านทั้งโครงการ ไม่มี warning/error |
+| TypeScript strict | ผ่านทั้งโครงการ |
+| Unit/component/integration ทั้งหมด | 232/232 ผ่านใน 29 test files |
+| Selector/domain เฉพาะส่วน | 6/6 ผ่าน รวมสลับแนวตั้ง/แนวนอน, TAG/หมายเลข และ selection persistence |
+| Production build + PWA | ผ่าน; 139 modules และ precache 92 entries |
+| Visual desktop | ผ่าน: แยก Zone เป็นกรอบ, Row/วงกลมต้นอ่านได้ทั้งสองทิศทาง |
+| Visual mobile | ผ่านที่ 390×844 และ 320×800; ไม่มี page-level horizontal overflow (`320 > document 305`) |
+| Mobile controls | ที่ 320px ปุ่มทิศทางเรียงซ้อนและ scroll ที่จำเป็นอยู่ภายในกรอบ Zone |
+| Deployment | ไม่ได้ดำเนินการในงานนี้ |
 
 Security/domain tests ยืนยันอย่างน้อย:
 
@@ -89,7 +112,7 @@ Security/domain tests ยืนยันอย่างน้อย:
 
 ## 6. สถานะ Gate
 
-DEC-045/047 ผ่าน Engineering Validation ในขอบเขต Local/Mock/Firebase Emulator โดยไม่
-เปลี่ยนสถานะ Gate หลักของโครงการ: **Gate 6 Passed; Phase 7 readiness เท่านั้น**
-External PA-1 ส่วนที่ยังไม่อนุมัติ, PA-2, Controlled Pilot และ Production ยังคงต้อง
-ขอ Owner approval แยกก่อนดำเนินการ
+DEC-052 ผ่าน Incremental Engineering/Responsive Visual Validation สำหรับ source
+ปัจจุบันแล้ว คำอนุมัติ Firebase Live Operational Go-Live ตาม DEC-051 ยังคงมีผล
+ตามขอบเขตที่ระบุ แต่การตรวจครั้งนี้ **ไม่ได้ Deploy** และไม่เปลี่ยนหลักฐาน
+Physical Device/Field Validation เดิมให้เป็น Passed

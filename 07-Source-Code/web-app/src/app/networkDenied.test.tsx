@@ -20,7 +20,11 @@ describe('network-denied foundation smoke', () => {
     const router = createMemoryRouter(routes, { initialEntries: ['/'] })
 
     render(<RouterProvider router={router} />)
-    await screen.findByRole('heading', { name: 'เข้าสู่ Smart Durian Farm' })
+    await screen.findByRole(
+      'heading',
+      { name: 'เข้าสู่ Smart Durian Farm' },
+      { timeout: 5_000 },
+    )
     await user.click(screen.getByRole('button', { name: 'ขอรหัส OTP ทดสอบ' }))
     await user.type(await screen.findByLabelText('รหัส OTP 6 หลัก'), '111111')
     await user.click(screen.getByRole('button', { name: 'ยืนยัน OTP' }))

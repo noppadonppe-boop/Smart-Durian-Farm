@@ -12,9 +12,9 @@ function renderAnnualPage() {
 
 async function signInAsOwner() {
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'เข้าสู่ระบบโดยผู้ดูแล' }))
-  await screen.findByRole('heading', { name: 'รอบบริหารสวนรายปี', level: 1 })
-  await screen.findByRole('button', { name: /AFY-2026-06/u })
+  await user.click(await screen.findByRole('button', { name: 'เข้าสู่ระบบโดยผู้ดูแล' }, { timeout: 4000 }))
+  await screen.findByRole('heading', { name: 'รอบบริหารสวนรายปี', level: 1 }, { timeout: 4000 })
+  await screen.findByRole('button', { name: /AFY-2026-06/u }, { timeout: 4000 })
   return user
 }
 

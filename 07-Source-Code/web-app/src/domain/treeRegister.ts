@@ -8,12 +8,15 @@ export const treeStatuses = [
   'dead',
   'empty',
 ] as const
+export const treeHealthStatuses = ['normal', 'watch', 'sick', 'recovering', 'dead'] as const
 export const positionStatuses = ['ACTIVE', 'ARCHIVED'] as const
 export const identityConfidences = ['confirmed', 'estimated', 'unknown'] as const
 export const measurementConfidences = ['measured', 'estimated', 'unknown'] as const
 export const rowCountingDirections = ['ASCENDING', 'DESCENDING', 'TBD'] as const
 
 export type TreeStatus = (typeof treeStatuses)[number]
+export type TreeHealthStatus = (typeof treeHealthStatuses)[number]
+export type TreePresence = 'present' | 'empty'
 export type PositionStatus = (typeof positionStatuses)[number]
 export type IdentityConfidence = (typeof identityConfidences)[number]
 export type MeasurementConfidence = (typeof measurementConfidences)[number]
@@ -26,6 +29,15 @@ export const treeStatusLabels: Record<TreeStatus, string> = {
   recovering: 'พักฟื้น',
   dead: 'ตาย',
   empty: 'ไม่มีต้น',
+}
+
+export const treePresenceLabels: Record<TreePresence, string> = {
+  present: 'มีต้น',
+  empty: 'ไม่มีต้น',
+}
+
+export function treePresenceFromStatus(status: TreeStatus): TreePresence {
+  return status === 'empty' ? 'empty' : 'present'
 }
 
 export const identityConfidenceLabels: Record<IdentityConfidence, string> = {
@@ -230,9 +242,11 @@ export interface TreeImportResult {
 
 const organizationCodePattern = /^[A-Z0-9]{2,10}$/u
 const farmSequencePattern = /^F\d{2,}$/u
-const zoneCodePattern = /^Z\d{2,}$/u
-const rowCodePattern = /^R\d{2,}$/u
-const tagPattern = /^([A-Z0-9]{2,10})-(F\d{2,})-(Z\d{2,})-(R\d{2,})-T(\d{3,})$/u
+const zoneCodePattern = /^(?:Z)?\d+$/u
+const rowCodePattern = /^(?:R)?\d+$/u
+const legacyTagPattern = /^([A-Z0-9]{2,10})-(F\d{2,})-(Z\d+)-(R\d+)-T(\d+)$/u
+const farmLocalTagPattern = /^(Z\d+)-(R\d+)-T(\d+)$/u
+const treeSequencePattern = /^(?:T)?\d+$/u
 const opaquePositionIdPattern = /^pos_[A-Za-z0-9_-]{12,}$/u
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/u
 
@@ -240,51 +254,115 @@ export function normalizeTagCode(value: string): string {
   return value.trim().toUpperCase()
 }
 
+function positiveCodeNumber(value: string, prefix: 'Z' | 'R', label: string): number {
+  const normalized = value.trim().toUpperCase()
+  const pattern = prefix === 'Z' ? zoneCodePattern : rowCodePattern
+  if (!pattern.test(normalized)) {
+    throw new Error(`${label}ต้องเป็น ${prefix}01, ${prefix}1, 01 หรือ 1`)
+  }
+  const numberPart = normalized.startsWith(prefix) ? normalized.slice(1) : normalized
+  const number = Number(numberPart)
+  if (!Number.isSafeInteger(number) || number <= 0) {
+    throw new Error(`${label}ต้องมากกว่า 0`)
+  }
+  return number
+}
+
+export function normalizeZoneCode(value: string): string {
+  return `Z${String(positiveCodeNumber(value, 'Z', 'รหัสโซน')).padStart(2, '0')}`
+}
+
+export function normalizeRowCode(value: string): string {
+  return `R${String(positiveCodeNumber(value, 'R', 'รหัสแถว')).padStart(2, '0')}`
+}
+
+export function normalizeTreeSequence(value: number | string): number {
+  const normalized = String(value).trim().toUpperCase()
+  if (!treeSequencePattern.test(normalized)) {
+    throw new Error('ลำดับตำแหน่งต้องเป็น T01, T1, 01 หรือ 1')
+  }
+  const number = Number(normalized.startsWith('T') ? normalized.slice(1) : normalized)
+  if (!Number.isSafeInteger(number) || number <= 0) {
+    throw new Error('ลำดับตำแหน่งต้องมากกว่า 0')
+  }
+  return number
+}
+
 export function generateTagCode(parts: TagParts): string {
   const organizationCode = parts.organizationCode.trim().toUpperCase()
   const farmSequence = parts.farmSequence.trim().toUpperCase()
-  const zoneCode = parts.zoneCode.trim().toUpperCase()
-  const rowCode = parts.rowCode.trim().toUpperCase()
+  const zoneCode = normalizeZoneCode(parts.zoneCode)
+  const rowCode = normalizeRowCode(parts.rowCode)
   if (!organizationCodePattern.test(organizationCode)) {
     throw new Error('Organization Code ต้องเป็น A–Z/0–9 จำนวน 2–10 ตัว')
   }
   if (!farmSequencePattern.test(farmSequence)) {
     throw new Error('Farm Sequence ต้องเป็น F ตามด้วยเลขอย่างน้อย 2 หลัก')
   }
-  if (!zoneCodePattern.test(zoneCode)) {
-    throw new Error('Zone Code ต้องเป็น Z ตามด้วยเลขอย่างน้อย 2 หลัก')
-  }
-  if (!rowCodePattern.test(rowCode)) {
-    throw new Error('Row Code ต้องเป็น R ตามด้วยเลขอย่างน้อย 2 หลัก')
-  }
-  if (!Number.isInteger(parts.treeSequence) || parts.treeSequence <= 0) {
-    throw new Error('ลำดับตำแหน่งต้องเป็นจำนวนเต็มบวก')
-  }
-  return `${organizationCode}-${farmSequence}-${zoneCode}-${rowCode}-T${String(parts.treeSequence).padStart(3, '0')}`
+  const treeSequence = normalizeTreeSequence(parts.treeSequence)
+  return `${zoneCode}-${rowCode}-T${String(treeSequence).padStart(2, '0')}`
 }
 
-export function parseTagCode(value: string): TagParts {
+export function generateLegacyTagCode(parts: TagParts): string {
+  const organizationCode = parts.organizationCode.trim().toUpperCase()
+  const farmSequence = parts.farmSequence.trim().toUpperCase()
+  const zoneCode = normalizeZoneCode(parts.zoneCode)
+  const rowNumber = positiveCodeNumber(parts.rowCode, 'R', 'รหัสแถว')
+  if (!organizationCodePattern.test(organizationCode)) {
+    throw new Error('Organization Code ต้องเป็น A–Z/0–9 จำนวน 2–10 ตัว')
+  }
+  if (!farmSequencePattern.test(farmSequence)) {
+    throw new Error('Farm Sequence ต้องเป็น F ตามด้วยเลขอย่างน้อย 2 หลัก')
+  }
+  const treeSequence = normalizeTreeSequence(parts.treeSequence)
+  return `${organizationCode}-${farmSequence}-${zoneCode}-R${String(rowNumber).padStart(2, '0')}-T${String(treeSequence).padStart(3, '0')}`
+}
+
+export function parseTagCode(
+  value: string,
+  scope?: Pick<TagParts, 'organizationCode' | 'farmSequence'>,
+): TagParts {
   const normalized = normalizeTagCode(value)
-  const match = tagPattern.exec(normalized)
-  if (!match) {
-    throw new Error('รูปแบบ Tag ต้องเป็น ORG-F01-Z01-R01-T001 และใช้ตัวพิมพ์ใหญ่')
+  const legacyMatch = legacyTagPattern.exec(normalized)
+  if (legacyMatch) {
+    const treeSequence = normalizeTreeSequence(legacyMatch[5] ?? '')
+    const organizationCode = legacyMatch[1]
+    const farmSequence = legacyMatch[2]
+    const zoneCode = legacyMatch[3]
+    const rowCode = legacyMatch[4]
+    if (!organizationCode || !farmSequence || !zoneCode || !rowCode) {
+      throw new Error('ส่วนประกอบ Tag ไม่ครบถ้วน')
+    }
+    if (!Number.isSafeInteger(treeSequence) || treeSequence <= 0) {
+      throw new Error('ลำดับตำแหน่งใน Tag ต้องมากกว่า 0')
+    }
+    return {
+      organizationCode,
+      farmSequence,
+      zoneCode: normalizeZoneCode(zoneCode),
+      rowCode: normalizeRowCode(rowCode),
+      treeSequence,
+    }
   }
-  const treeSequence = Number(match[5])
-  const organizationCode = match[1]
-  const farmSequence = match[2]
-  const zoneCode = match[3]
-  const rowCode = match[4]
-  if (!organizationCode || !farmSequence || !zoneCode || !rowCode) {
-    throw new Error('ส่วนประกอบ Tag ไม่ครบถ้วน')
+
+  const localMatch = farmLocalTagPattern.exec(normalized)
+  if (!localMatch || !scope) {
+    throw new Error('รูปแบบรหัสป้ายต้องเป็น Z01-R01-T01; รหัสรุ่นเดิม ORG-F01-Z01-R01-T001 ยังรองรับ')
   }
-  if (!Number.isSafeInteger(treeSequence) || treeSequence <= 0) {
-    throw new Error('ลำดับตำแหน่งใน Tag ต้องมากกว่า 0')
+  const organizationCode = scope.organizationCode.trim().toUpperCase()
+  const farmSequence = scope.farmSequence.trim().toUpperCase()
+  const zoneCode = localMatch[1]
+  const rowCode = localMatch[2]
+  const treeSequence = normalizeTreeSequence(localMatch[3] ?? '')
+  if (!organizationCodePattern.test(organizationCode) || !farmSequencePattern.test(farmSequence)) {
+    throw new Error('บริบทองค์กรหรือสวนสำหรับรหัสป้ายไม่ถูกต้อง')
   }
+  if (!zoneCode || !rowCode) throw new Error('ส่วนประกอบรหัสป้ายไม่ครบถ้วน')
   return {
     organizationCode,
     farmSequence,
-    zoneCode,
-    rowCode,
+    zoneCode: normalizeZoneCode(zoneCode),
+    rowCode: normalizeRowCode(rowCode),
     treeSequence,
   }
 }
@@ -455,6 +533,28 @@ export const treeRegisterThaiHeaderByField = {
 export const treeRegisterThaiCsvHeaders = treeRegisterCsvHeaders.map(
   (field) => treeRegisterThaiHeaderByField[field],
 )
+
+export const treeRegisterRegistrationCsvHeaders = [
+  'zoneCode',
+  'rowCode',
+  'treeSequence',
+  'tagCode',
+  'plantingCycle',
+  'variety',
+  'plantingYear',
+] as const satisfies readonly TreeCsvHeader[]
+
+export const treeRegisterThaiRegistrationCsvHeaders = treeRegisterRegistrationCsvHeaders.map(
+  (field) => treeRegisterThaiHeaderByField[field],
+)
+
+// Kept only so files made by the previous downloaded template remain importable.
+const treeRegisterLegacyThaiRegistrationCsvHeaders = [
+  treeRegisterThaiHeaderByField.recordType,
+  treeRegisterThaiHeaderByField.organizationCode,
+  treeRegisterThaiHeaderByField.farmSequence,
+  ...treeRegisterThaiRegistrationCsvHeaders,
+] as const
 
 export const treeRegisterThaiSpreadsheetOptions = {
   recordTypes: ['ข้อมูลภาคสนาม'],
@@ -750,6 +850,38 @@ function baselineMeasurementsFromRecord(record: TreeCsvRecord): TreeBaselineMeas
   }
 }
 
+function registrationDateInBangkok(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function applyRegistrationDefaults(
+  record: TreeCsvRecord,
+  organizationCode?: string,
+  farmSequence?: string,
+): TreeCsvRecord {
+  const plantingYear = Number(record.plantingYear)
+  const hasTreeData = Boolean(record.variety || record.plantingYear)
+  return {
+    ...record,
+    ...(organizationCode && farmSequence
+      ? { recordType: 'FIELD_DATA', organizationCode, farmSequence }
+      : {}),
+    plantingCycle: record.plantingCycle || '1',
+    varietyConfidence: 'unknown',
+    plantingYearCalendar: record.plantingYear && Number.isFinite(plantingYear)
+      ? (plantingYear >= 2400 ? 'BE' : 'CE')
+      : '',
+    plantingYearConfidence: 'unknown',
+    treeStatus: hasTreeData ? 'normal' : 'empty',
+    baselineDate: registrationDateInBangkok(),
+  }
+}
+
 function candidateFromRecord(
   record: TreeCsvRecord,
   sourceRow: number,
@@ -760,11 +892,27 @@ function candidateFromRecord(
   if (record.recordType !== 'FIELD_DATA') {
     errors.push('ประเภทข้อมูลต้องเป็น “ข้อมูลภาคสนาม”; แถว “ตัวอย่าง” ใช้ตรวจรูปแบบเท่านั้น')
   }
-  const treeSequence = Number(record.treeSequence)
+  let treeSequence = 0
+  try {
+    treeSequence = normalizeTreeSequence(record.treeSequence)
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : 'ลำดับตำแหน่งไม่ถูกต้อง')
+  }
   const plantingCycle = Number(record.plantingCycle)
   let parts: TagParts | undefined
   try {
-    parts = parseTagCode(record.tagCode)
+    parts = record.tagCode.trim()
+      ? parseTagCode(record.tagCode, {
+        organizationCode: expectedOrganizationCode,
+        farmSequence: expectedFarmSequence,
+      })
+      : {
+        organizationCode: expectedOrganizationCode,
+        farmSequence: expectedFarmSequence,
+        zoneCode: normalizeZoneCode(record.zoneCode),
+        rowCode: normalizeRowCode(record.rowCode),
+        treeSequence,
+      }
   } catch (error) {
     errors.push(error instanceof Error ? error.message : 'Tag ไม่ถูกต้อง')
   }
@@ -783,15 +931,27 @@ function candidateFromRecord(
   if (parts) {
     try {
       if (
-        generateTagCode({
-          organizationCode: record.organizationCode,
-          farmSequence: record.farmSequence,
-          zoneCode: record.zoneCode,
-          rowCode: record.rowCode,
-          treeSequence,
-        }) !== normalizeTagCode(record.tagCode)
+        parts.organizationCode !== expectedOrganizationCode ||
+        parts.farmSequence !== expectedFarmSequence
       ) {
-        errors.push('tagCode ไม่ตรงกับ Organization/Farm/Zone/Row/Tree columns')
+        errors.push('รหัสป้ายต้องอยู่ในองค์กรและสวนปัจจุบัน')
+      }
+      const fieldTagCode = generateTagCode({
+        organizationCode: expectedOrganizationCode,
+        farmSequence: expectedFarmSequence,
+        zoneCode: record.zoneCode,
+        rowCode: record.rowCode,
+        treeSequence,
+      })
+      const tagPositionCode = generateTagCode({
+        organizationCode: expectedOrganizationCode,
+        farmSequence: expectedFarmSequence,
+        zoneCode: parts.zoneCode,
+        rowCode: parts.rowCode,
+        treeSequence: parts.treeSequence,
+      })
+      if (fieldTagCode !== tagPositionCode) {
+        errors.push('รหัสป้ายไม่ตรงกับโซน แถว และลำดับตำแหน่ง')
       }
     } catch (error) {
       errors.push(error instanceof Error ? error.message : 'ส่วนประกอบ Tag ไม่ถูกต้อง')
@@ -921,6 +1081,13 @@ function candidateFromRecord(
   }
 
   if (errors.length > 0 || !parts) return { errors }
+  const canonicalTagCode = generateTagCode({
+    organizationCode: expectedOrganizationCode,
+    farmSequence: expectedFarmSequence,
+    zoneCode: parts.zoneCode,
+    rowCode: parts.rowCode,
+    treeSequence,
+  })
   return {
     errors,
     candidate: {
@@ -928,7 +1095,7 @@ function candidateFromRecord(
       ...parts,
       rowCountingDirection: 'TBD',
       plantingCycle,
-      tagCode: normalizeTagCode(record.tagCode),
+      tagCode: canonicalTagCode,
       variety: record.variety || null,
       varietyConfidence: varietyConfidence as IdentityConfidence,
       plantingYear,
@@ -994,7 +1161,13 @@ export function previewTreeRegisterCsv(
   const thaiHeaderValid =
     header.length === treeRegisterThaiCsvHeaders.length &&
     header.every((value, index) => value === treeRegisterThaiCsvHeaders[index])
-  const headerValid = englishHeaderValid || thaiHeaderValid
+  const thaiRegistrationHeaderValid =
+    header.length === treeRegisterThaiRegistrationCsvHeaders.length &&
+    header.every((value, index) => value === treeRegisterThaiRegistrationCsvHeaders[index])
+  const legacyThaiRegistrationHeaderValid =
+    header.length === treeRegisterLegacyThaiRegistrationCsvHeaders.length &&
+    header.every((value, index) => value === treeRegisterLegacyThaiRegistrationCsvHeaders[index])
+  const headerValid = englishHeaderValid || thaiHeaderValid || thaiRegistrationHeaderValid || legacyThaiRegistrationHeaderValid
   if (!headerValid) {
     return {
       headerValid: false,
@@ -1003,7 +1176,7 @@ export function previewTreeRegisterCsv(
       rejects: [{
         sourceRow: 1,
         tagCode: '',
-        errors: [`หัวคอลัมน์ต้องตรงกับแม่แบบภาษาไทยทั้ง ${treeRegisterCsvHeaders.length} คอลัมน์; ไฟล์ภาษาอังกฤษเดิมยังรองรับ`],
+        errors: [`หัวคอลัมน์ต้องตรงกับแม่แบบภาษาไทย ${treeRegisterRegistrationCsvHeaders.length} คอลัมน์; ไฟล์ 49 คอลัมน์และรุ่นเดิมยังรองรับ`],
       }],
       idempotencyKey: `import_${stableHash(csv)}`,
     }
@@ -1012,27 +1185,53 @@ export function previewTreeRegisterCsv(
   const candidates: TreeImportCandidate[] = []
   const rejects: TreeImportReject[] = []
   const seenTags = new Map<string, number>()
+  const seenPositions = new Map<string, number>()
+  const tagColumnIndex = thaiRegistrationHeaderValid
+    ? treeRegisterRegistrationCsvHeaders.indexOf('tagCode')
+    : treeRegisterCsvHeaders.indexOf('tagCode')
   rows.slice(1).forEach((cells, index) => {
     const sourceRow = index + 2
     if (index >= treeRegisterImportLimit) {
       rejects.push({
         sourceRow,
-        tagCode: cells[6] ?? '',
+        tagCode: cells[tagColumnIndex] ?? '',
         errors: [`นำเข้าได้ไม่เกิน ${treeRegisterImportLimit} ตำแหน่งต่อไฟล์`],
       })
       return
     }
-    if (cells.length !== header.length) {
+    const paddedCells = (thaiRegistrationHeaderValid || legacyThaiRegistrationHeaderValid) && cells.length < header.length
+      ? [...cells, ...Array.from({ length: header.length - cells.length }, () => '')]
+      : cells
+    if (paddedCells.length !== header.length) {
       rejects.push({
         sourceRow,
-        tagCode: cells[6] ?? '',
+        tagCode: paddedCells[tagColumnIndex] ?? '',
         errors: [`จำนวนคอลัมน์เป็น ${cells.length}; ต้องเป็น ${header.length}`],
       })
       return
     }
-    const record = normalizeTreeCsvRecord(Object.fromEntries(
-      treeRegisterCsvHeaders.map((field, fieldIndex) => [field, (cells[fieldIndex] ?? '').trim()]),
-    ) as TreeCsvRecord)
+    const rowHeaders = thaiRegistrationHeaderValid
+      ? treeRegisterRegistrationCsvHeaders
+      : legacyThaiRegistrationHeaderValid
+        ? [
+          'recordType',
+          'organizationCode',
+          'farmSequence',
+          ...treeRegisterRegistrationCsvHeaders,
+        ] as const
+        : treeRegisterCsvHeaders
+    const baseRecord = Object.fromEntries(
+      treeRegisterCsvHeaders.map((field) => [field, '']),
+    ) as TreeCsvRecord
+    rowHeaders.forEach((field, fieldIndex) => {
+      baseRecord[field] = (paddedCells[fieldIndex] ?? '').trim()
+    })
+    const normalizedRecord = normalizeTreeCsvRecord(baseRecord)
+    const record = thaiRegistrationHeaderValid
+      ? applyRegistrationDefaults(normalizedRecord, expectedOrganizationCode, expectedFarmSequence)
+      : legacyThaiRegistrationHeaderValid
+        ? applyRegistrationDefaults(normalizedRecord)
+        : normalizedRecord
     const validation = candidateFromRecord(
       record,
       sourceRow,
@@ -1052,7 +1251,18 @@ export function previewTreeRegisterCsv(
       })
       return
     }
+    const positionKey = `${normalizeZoneCode(validation.candidate.zoneCode)}:${normalizeRowCode(validation.candidate.rowCode)}:${validation.candidate.treeSequence}`
+    const previousPositionRow = seenPositions.get(positionKey)
+    if (previousPositionRow !== undefined) {
+      rejects.push({
+        sourceRow,
+        tagCode: validation.candidate.tagCode,
+        errors: [`โซน แถว และลำดับตำแหน่งซ้ำกับแถว ${previousPositionRow}`],
+      })
+      return
+    }
     seenTags.set(validation.candidate.tagCode, sourceRow)
+    seenPositions.set(positionKey, sourceRow)
     candidates.push(validation.candidate)
   })
 

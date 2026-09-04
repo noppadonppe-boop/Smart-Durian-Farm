@@ -39,7 +39,7 @@ describe('Smart Durian local mock app', () => {
     expect(await screen.findByRole('heading', { name: 'ภาพรวมสวนที่เปิดอยู่' })).toBeInTheDocument()
     expect(screen.getAllByText('สวนสาธิตเหนือ — ข้อมูลจำลอง').length).toBeGreaterThan(0)
     expect(screen.getByText(/ข้อมูลจำลองแยกจาก Production/u)).toBeInTheDocument()
-    expect(document.body.textContent).not.toMatch(/Local|Emulator/u)
+    expect(document.body.textContent).not.toMatch(/Local test service/u)
     expect(screen.queryByLabelText('รหัส OTP 6 หลัก')).not.toBeInTheDocument()
     expect(
       within(screen.getByRole('complementary', { name: 'เมนูหลักบนจอใหญ่' }))
@@ -114,11 +114,99 @@ describe('Smart Durian local mock app', () => {
     renderApp('/trees')
     const user = await signIn()
 
+    const treeTable = await screen.findByRole('region', { name: 'ตารางรายการต้นไม้' })
+    expect(within(treeTable).getByRole('table')).toBeInTheDocument()
+    expect(within(treeTable).getByRole('columnheader', { name: 'รหัสป้าย' })).toBeInTheDocument()
+    expect(screen.queryByText('ทะเบียนต้น', { exact: true })).not.toBeInTheDocument()
     const tree = await screen.findByRole('link', { name: /DEMO-F01-Z01-R01-T001/u })
     expect(screen.queryByText('DEMO-F02-Z01-R01-T001')).not.toBeInTheDocument()
     await user.click(tree)
     expect(await screen.findByRole('heading', { name: 'DEMO-F01-Z01-R01-T001' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ข้อมูลต้นและตำแหน่ง' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'ข้อมูลสำรวจเริ่มต้น' })).toBeInTheDocument()
+    expect(screen.getAllByText('มีต้น').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'ลบรายการ (เก็บถาวร)' })).toBeInTheDocument()
     expect(screen.getByText(/QR permanent route/u)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'ลบรายการ (เก็บถาวร)' }))
+    expect(screen.getByRole('heading', { name: 'ยืนยันลบรายการแบบเก็บถาวร' })).toBeInTheDocument()
+    await user.type(screen.getByLabelText('เหตุผล'), 'ลบรายการทดสอบ')
+    await user.click(screen.getByRole('button', { name: 'ยืนยันและบันทึก Audit' }))
+    expect(await screen.findByText(/ลบรายการออกจากการใช้งานแล้ว/u)).toBeInTheDocument()
+    expect(screen.getByText('ตำแหน่งเก็บถาวร')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'ลบรายการ (เก็บถาวร)' })).not.toBeInTheDocument()
+  })
+
+  it('displays TAG ID column with QR code, generates QR, and connects to scan menu', async () => {
+    renderApp('/trees')
+    const user = await signIn()
+
+    const treeTable = await screen.findByRole('region', { name: 'ตารางรายการต้นไม้' })
+    expect(within(treeTable).getByRole('columnheader', { name: 'TAG ID' })).toBeInTheDocument()
+
+    const createQrButtons = screen.getAllByRole('button', { name: /\+ สร้าง QR/u })
+    expect(createQrButtons.length).toBeGreaterThan(0)
+    await user.click(createQrButtons[0]!)
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    expect(within(dialog).getByRole('heading', { name: /DEMO-F01/u })).toBeInTheDocument()
+    const scanLink = within(dialog).getByRole('link', { name: /ทดสอบในเมนูสแกน/u })
+    expect(scanLink).toBeInTheDocument()
+
+    await user.click(scanLink)
+    expect(await screen.findByRole('heading', { name: 'สแกนยืนยันตำแหน่ง', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ยืนยันตำแหน่งตรงกัน', level: 2 })).toBeInTheDocument()
+    expect(screen.getAllByText('DEMO-F01-Z01-R01-T002').length).toBeGreaterThan(0)
+  })
+
+  it('opens the 10-field registration form and creates the farm-local tag preview', async () => {
+    renderApp('/trees')
+    const user = await signIn()
+
+    await user.click(await screen.findByRole('link', { name: 'ลงทะเบียน' }))
+    expect(await screen.findByRole('heading', { name: 'ลงทะเบียน', level: 1 })).toBeInTheDocument()
+    expect(screen.getByLabelText('ประเภทข้อมูล')).toHaveValue('ข้อมูลภาคสนาม')
+    expect(screen.getByLabelText('รหัสองค์กร')).toHaveValue('DEMO')
+    expect(screen.getByLabelText('ลำดับสวน')).toHaveValue('F01')
+    expect(screen.getByLabelText('รอบปลูก')).toHaveValue('1')
+
+    await screen.findByDisplayValue('Z01')
+    const zone = screen.getByLabelText(/^รหัสโซน/u)
+    const row = screen.getByLabelText(/^รหัสแถว/u)
+    const position = screen.getByLabelText(/^ลำดับตำแหน่ง/u)
+    await user.clear(zone)
+    await user.type(zone, '1')
+    await user.clear(row)
+    await user.type(row, '1')
+    await user.type(position, '5')
+    expect(screen.getByLabelText('รหัสป้าย')).toHaveValue('Z01-R01-T05')
+    expect(screen.getByRole('button', { name: 'ลงทะเบียน' })).toBeEnabled()
+
+    await user.clear(row)
+    await user.type(row, 'R01')
+    await user.clear(position)
+    await user.type(position, '1')
+    expect(await screen.findByText(/รหัสนี้ถูกใช้แล้วโดย DEMO-F01-Z01-R01-T001/u)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ลงทะเบียน' })).toBeDisabled()
+  })
+
+  it('separates tree presence from health status in the detail editor', async () => {
+    renderApp('/trees/pos_demo_a01f783bc219')
+    const user = await signIn()
+
+    await user.click(await screen.findByRole('button', { name: 'แก้ไขรายละเอียด' }))
+    const presence = screen.getByLabelText(/^สถานะการมีต้น/u)
+    expect(presence).toHaveValue('present')
+    expect(screen.getByLabelText(/^สถานะสุขภาพต้น/u)).toHaveValue('normal')
+
+    await user.selectOptions(presence, 'empty')
+    expect(presence).toHaveValue('empty')
+    expect(screen.queryByLabelText(/^สถานะสุขภาพต้น/u)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^พันธุ์/u)).toBeDisabled()
+
+    await user.selectOptions(presence, 'present')
+    expect(screen.getByLabelText(/^สถานะสุขภาพต้น/u)).toHaveValue('normal')
   })
 
   it('selects a farm-scoped tree from the structural orchard plan and carries it to Work creation', async () => {
@@ -126,7 +214,9 @@ describe('Smart Durian local mock app', () => {
     const user = await signIn()
 
     expect(await screen.findByRole('heading', { name: 'แปลนสวนและเลือกตำแหน่ง' })).toBeInTheDocument()
-    expect(screen.getByText(/แถวเรียงซ้ายไปขวา/u)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'กลับ' })).toHaveAttribute('href', '/trees')
+    expect(screen.getByRole('button', { name: /แถวแนวตั้ง/u })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /แถวแนวนอน/u })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.queryByText('DEMO-F02-Z01-R01-T001')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Z01' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Z02' })).toBeInTheDocument()
@@ -380,7 +470,7 @@ describe('Smart Durian local mock app', () => {
     expect(await screen.findByRole('heading', { name: 'ศูนย์วิเคราะห์โรคจำลอง', level: 1 })).toBeInTheDocument()
     expect(screen.getByText(/P1 — Approved/u)).toBeInTheDocument()
     expect(screen.getByText('SIMULATED/TEST ONLY', { selector: 'strong' })).toBeInTheDocument()
-    expect(document.body.textContent).not.toMatch(/Local|Emulator/u)
+    expect(document.body.textContent).not.toMatch(/Local test service/u)
     expect((await screen.findAllByText(/candidate finding/u)).length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: 'เปิดติดตามโรคปัจจุบัน' })).toHaveAttribute('href', '/disease')
     expect(screen.queryByRole('button', { name: /อัปโหลด|เปิดกล้อง/u })).not.toBeInTheDocument()

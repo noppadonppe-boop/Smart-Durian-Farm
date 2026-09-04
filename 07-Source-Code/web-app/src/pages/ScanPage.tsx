@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
@@ -11,6 +11,7 @@ import {
   type TreePositionDetail,
   type TreePositionSummary,
 } from '../domain/treeRegister'
+import { scanVideoFrame } from '../services/qrScanner'
 import { PageHeader } from './PageHeader'
 
 interface LayoutContext {
@@ -41,7 +42,9 @@ export function ScanPage() {
   } = usePhase2()
   const [positions, setPositions] = useState<readonly TreePositionSummary[]>([])
   const [expectedPositionId, setExpectedPositionId] = useState(searchParams.get('expected') ?? '')
-  const [manualInput, setManualInput] = useState('')
+  const [manualInput, setManualInput] = useState(
+    searchParams.get('tag') ?? searchParams.get('input') ?? searchParams.get('q') ?? '',
+  )
   const [result, setResult] = useState<ScanResult>()
   const [message, setMessage] = useState<string>()
   const [cameraState, setCameraState] = useState<'IDLE' | 'STARTING' | 'ACTIVE' | 'FALLBACK'>('IDLE')
@@ -73,60 +76,95 @@ export function ScanPage() {
 
   useEffect(() => stopCamera, [])
 
-  const resolveInput = async (value: string, expectedOverride?: string) => {
-    if (!currentFarm) return
-    const input = value.trim()
-    setMessage(undefined)
-    setResult(undefined)
-    if (!input) {
-      setMessage('กรุณาสแกนหรือกรอก Tag/QR ก่อน')
-      return
-    }
-    try {
-      let position: TreePositionDetail | undefined
-      if (input.startsWith('http://') || input.startsWith('https://') || input.startsWith('pos_')) {
-        const positionId = positionIdFromQrInput(input, appEnvironment.qrBaseUrl)
-        const resolution = await resolvePositionRoute(positionId)
-        if (resolution.status === 'ACCESS_DENIED') {
-          setResult({ status: 'ACCESS_DENIED', message: 'QR นี้อยู่คนละสวนหรือบัญชีไม่มีสิทธิ์ ระบบไม่เปิดเผยข้อมูลต้น' })
-          return
-        }
-        if (resolution.status === 'UNKNOWN') {
-          setResult({ status: 'UNKNOWN', message: 'ไม่พบ Opaque Position ID นี้ในทะเบียนที่เข้าถึงได้' })
-          return
-        }
-        position = resolution.position
-      } else {
-        const tag = parseTagCode(input)
-        if (
-          tag.organizationCode !== currentFarm.organizationCode ||
-          tag.farmSequence !== currentFarm.farmSequence
-        ) {
-          setResult({ status: 'ACCESS_DENIED', message: `Tag ที่กรอกระบุคนละสวนกับ ${currentFarm.farmCode} จึงไม่ค้นข้อมูลข้ามสวน` })
-          return
-        }
-        position = await resolveTag(input)
-        if (!position) {
-          setResult({ status: 'UNKNOWN', message: 'ไม่พบ Tag นี้ในสวนปัจจุบัน ตรวจรหัสหรือแจ้งป้ายชำรุด' })
-          return
-        }
+  const resolveInput = useCallback(
+    async (value: string, expectedOverride?: string) => {
+      if (!currentFarm) return
+      const input = value.trim()
+      setMessage(undefined)
+      setResult(undefined)
+      if (!input) {
+        setMessage('กรุณาสแกนหรือกรอก Tag/QR ก่อน')
+        return
       }
+      try {
+        let position: TreePositionDetail | undefined
+        if (input.startsWith('http://') || input.startsWith('https://') || input.startsWith('pos_')) {
+          let positionId = ''
+          try {
+            positionId = positionIdFromQrInput(input, appEnvironment.qrBaseUrl)
+          } catch {
+            if (typeof window !== 'undefined') {
+              try {
+                positionId = positionIdFromQrInput(input, window.location.origin)
+              } catch {
+                // ignore
+              }
+            }
+          }
+          if (!positionId && input.startsWith('pos_')) {
+            positionId = input.trim()
+          }
+          if (!positionId) {
+            throw new Error('QR URL ไม่ถูกต้อง หรือไม่ได้มาจากโดเมนของระบบ')
+          }
+          const resolution = await resolvePositionRoute(positionId)
+          if (resolution.status === 'ACCESS_DENIED') {
+            setResult({ status: 'ACCESS_DENIED', message: 'QR นี้อยู่คนละสวนหรือบัญชีไม่มีสิทธิ์ ระบบไม่เปิดเผยข้อมูลต้น' })
+            return
+          }
+          if (resolution.status === 'UNKNOWN') {
+            setResult({ status: 'UNKNOWN', message: 'ไม่พบ Opaque Position ID นี้ในทะเบียนที่เข้าถึงได้' })
+            return
+          }
+          position = resolution.position
+        } else {
+          const tag = parseTagCode(input)
+          if (
+            tag.organizationCode !== currentFarm.organizationCode ||
+            tag.farmSequence !== currentFarm.farmSequence
+          ) {
+            setResult({ status: 'ACCESS_DENIED', message: `Tag ที่กรอกระบุคนละสวนกับ ${currentFarm.farmCode} จึงไม่ค้นข้อมูลข้ามสวน` })
+            return
+          }
+          position = await resolveTag(input)
+          if (!position) {
+            setResult({ status: 'UNKNOWN', message: 'ไม่พบ Tag นี้ในสวนปัจจุบัน ตรวจรหัสหรือแจ้งป้ายชำรุด' })
+            return
+          }
+        }
 
-      const expectedId = expectedOverride ?? expectedPositionId
-      if (expectedId && position.positionId !== expectedId) {
-        setResult({ status: 'MISMATCH', position })
-      } else if (syncState === 'offline') {
-        setResult({ status: 'OFFLINE_CACHED', position })
-      } else {
-        setResult({ status: 'MATCH', position })
+        const expectedId = expectedOverride ?? expectedPositionId
+        if (expectedId && position.positionId !== expectedId) {
+          setResult({ status: 'MISMATCH', position })
+        } else if (expectedId || workOrderId) {
+          if (syncState === 'offline') {
+            setResult({ status: 'OFFLINE_CACHED', position })
+          } else {
+            setResult({ status: 'MATCH', position })
+          }
+        } else {
+          // สแกน QR หรือตรวจ TAG ทั่วไป: ไปหน้ารายละเอียดต้นไม้เพื่อดำเนินการทันที
+          void navigate(`/trees/${position.positionId}`)
+        }
+      } catch (cause) {
+        setResult({
+          status: 'UNKNOWN',
+          message: cause instanceof Error ? cause.message : 'อ่าน QR/Tag ไม่สำเร็จ',
+        })
       }
-    } catch (cause) {
-      setResult({
-        status: 'UNKNOWN',
-        message: cause instanceof Error ? cause.message : 'อ่าน QR/Tag ไม่สำเร็จ',
-      })
+    },
+    [currentFarm, expectedPositionId, navigate, resolvePositionRoute, resolveTag, syncState, workOrderId],
+  )
+
+  useEffect(() => {
+    const initial = searchParams.get('tag') ?? searchParams.get('input') ?? searchParams.get('q')
+    if (initial && currentFarm) {
+      const timer = window.setTimeout(() => {
+        void resolveInput(initial)
+      }, 0)
+      return () => window.clearTimeout(timer)
     }
-  }
+  }, [currentFarm, resolveInput, searchParams])
 
   const startCamera = async () => {
     setMessage(undefined)
@@ -134,7 +172,11 @@ export function ScanPage() {
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('เบราว์เซอร์นี้ไม่เปิดกล้องผ่าน Web API')
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       })
       streamRef.current = stream
@@ -142,27 +184,49 @@ export function ScanPage() {
       if (!video) throw new Error('ไม่พบพื้นที่แสดงภาพกล้อง')
       video.srcObject = stream
       await video.play()
+
       const Detector = (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector
-      if (!Detector) {
-        setCameraState('FALLBACK')
-        setMessage('เปิดกล้องได้ แต่เบราว์เซอร์นี้ไม่มีตัวอ่าน QR ในตัว กรุณากรอกรหัสด้วยมือ')
-        return
-      }
-      const detector = new Detector({ formats: ['qr_code'] })
-      setCameraState('ACTIVE')
-      const detectFrame = async () => {
-        if (!videoRef.current || !streamRef.current) return
+      let detector: BarcodeDetectorLike | undefined
+      if (Detector) {
         try {
-          const codes = await detector.detect(videoRef.current)
-          const rawValue = codes.at(0)?.rawValue
-          if (rawValue) {
+          detector = new Detector({ formats: ['qr_code'] })
+        } catch {
+          // native detector not ready, will use canvas scanner
+        }
+      }
+
+      setCameraState('ACTIVE')
+      const canvas = document.createElement('canvas')
+      let isScanning = true
+
+      const detectFrame = async () => {
+        if (!isScanning || !videoRef.current || !streamRef.current) return
+        const currentVideo = videoRef.current
+        if (currentVideo.readyState >= 2 && currentVideo.videoWidth > 0) {
+          let rawValue: string | null = null
+          if (detector) {
+            try {
+              const codes = await detector.detect(currentVideo)
+              rawValue = codes.at(0)?.rawValue ?? null
+            } catch {
+              // native detect failed on frame, fallback to canvas
+            }
+          }
+          if (!rawValue) {
+            rawValue = scanVideoFrame(currentVideo, canvas)
+          }
+          if (rawValue && isScanning) {
+            isScanning = false
+            try {
+              if (navigator.vibrate) navigator.vibrate(100)
+            } catch {
+              // ignore
+            }
             setManualInput(rawValue)
             stopCamera()
             await resolveInput(rawValue)
             return
           }
-        } catch {
-          setMessage('ยังอ่าน QR ไม่ได้ ให้เล็งใหม่หรือใช้การกรอกรหัสด้วยมือ')
         }
         frameRef.current = requestAnimationFrame(() => void detectFrame())
       }
@@ -226,11 +290,21 @@ export function ScanPage() {
         <div className={`camera-view camera-view--${cameraState.toLowerCase()}`}>
           <video aria-label="ภาพจากกล้องสำหรับสแกน QR" muted playsInline ref={videoRef} />
           {cameraState === 'IDLE' ? <span aria-hidden="true">⌗</span> : null}
+          {cameraState === 'ACTIVE' ? (
+            <div className="camera-view__reticle" aria-hidden="true">
+              <div className="camera-view__corner camera-view__corner--tl" />
+              <div className="camera-view__corner camera-view__corner--tr" />
+              <div className="camera-view__corner camera-view__corner--bl" />
+              <div className="camera-view__corner camera-view__corner--br" />
+              <div className="camera-view__laser" />
+            </div>
+          ) : null}
         </div>
-        <h2>{cameraState === 'ACTIVE' ? 'กำลังค้นหา QR' : 'กล้องใช้เพื่ออ่าน URL เท่านั้น'}</h2>
-        <p>ระบบจะขอสิทธิ์กล้องเมื่อกดเปิด และไม่อัปโหลดวิดีโอ</p>
+        <h2>{cameraState === 'ACTIVE' ? 'กำลังค้นหา QR แบบเรียลไทม์' : 'สแกน QR Code หรือป้าย TAG'}</h2>
+        <p>{cameraState === 'ACTIVE' ? 'เล็งกล้องไปที่ QR Code ของต้นไม้ ระบบจะตรวจจับและอ่านค่าอัตโนมัติ' : 'ระบบจะขอสิทธิ์กล้องเมื่อกดเปิด และไม่อัปโหลดวิดีโอ'}</p>
         <div className="form-actions">{cameraState === 'IDLE' || cameraState === 'FALLBACK' ? <button className="primary-action" onClick={() => void startCamera()} type="button">เปิดกล้อง QR</button> : <button className="secondary-action" onClick={stopCamera} type="button">ปิดกล้อง</button>}</div>
       </article>
+
 
       <section className="manual-scan" aria-labelledby="manual-scan-title">
         <h2 id="manual-scan-title">กรอกรหัสด้วยมือ</h2>

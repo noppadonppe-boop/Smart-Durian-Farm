@@ -1,5 +1,5 @@
-export type DataAdapterMode = 'mock' | 'firebase-emulator' | 'firebase-live'
-export type AuthAdapterMode = 'mock' | 'firebase-emulator' | 'firebase-live'
+export type DataAdapterMode = 'mock' | 'firebase-live'
+export type AuthAdapterMode = 'mock' | 'firebase-live'
 
 export interface AppEnvironment {
   dataAdapter: DataAdapterMode
@@ -13,19 +13,16 @@ export interface AppEnvironment {
     messagingSenderId: string
     storageBucket: string
     storageReady: boolean
-    liveAuthDemoUserId: string
     liveAuthAllowedPhoneHashes: readonly string[]
     liveAuthAllowlistSalt: string
     liveAuthAllowlistIterations: number
-    authEmulatorHost: string
-    firestoreEmulatorHost: string
-    storageEmulatorHost: string
   }
 }
 
 function adapterMode(value: string | undefined): DataAdapterMode {
-  if (value === 'firebase-emulator') return 'firebase-emulator'
-  if (value === 'mock') return 'mock'
+  // Mock adapters exist only for the Vitest process. Every browser build uses
+  // Firebase Live even if a stale local environment variable says otherwise.
+  if (import.meta.env.MODE === 'test' && value === 'mock') return 'mock'
   return 'firebase-live'
 }
 
@@ -33,9 +30,8 @@ function authAdapterMode(
   value: string | undefined,
   dataAdapter: DataAdapterMode,
 ): AuthAdapterMode {
-  if (dataAdapter === 'firebase-emulator') return 'firebase-emulator'
   if (dataAdapter === 'firebase-live') return 'firebase-live'
-  return value === 'firebase-live' ? 'firebase-live' : 'mock'
+  return import.meta.env.MODE === 'test' && value === 'mock' ? 'mock' : 'firebase-live'
 }
 
 function commaSeparatedValues(value: string | undefined): readonly string[] {
@@ -67,8 +63,6 @@ export const appEnvironment: AppEnvironment = Object.freeze({
       import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ??
       'durian-smartfarm.appspot.com',
     storageReady: import.meta.env.VITE_FIREBASE_STORAGE_READY === 'true',
-    liveAuthDemoUserId:
-      import.meta.env.VITE_FIREBASE_LIVE_AUTH_DEMO_USER_ID ?? '',
     liveAuthAllowedPhoneHashes: commaSeparatedValues(
       import.meta.env.VITE_FIREBASE_LIVE_AUTH_ALLOWED_PHONE_HASHES,
     ),
@@ -78,11 +72,5 @@ export const appEnvironment: AppEnvironment = Object.freeze({
       import.meta.env.VITE_FIREBASE_LIVE_AUTH_ALLOWLIST_ITERATIONS,
       310_000,
     ),
-    authEmulatorHost:
-      import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099',
-    firestoreEmulatorHost:
-      import.meta.env.VITE_FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080',
-    storageEmulatorHost:
-      import.meta.env.VITE_FIREBASE_STORAGE_EMULATOR_HOST ?? '127.0.0.1:9199',
   },
 })

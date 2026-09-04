@@ -9,6 +9,7 @@ import {
 } from '../domain/farm'
 import { usePhase2 } from './usePhase2'
 import { navigationItems, userManualNavigationItem } from './navigation'
+import { useAuth } from '../security/AuthContext'
 
 const NoFarmPage = lazy(async () => ({
   default: (await import('../pages/NoFarmPage')).NoFarmPage,
@@ -24,6 +25,9 @@ const FarmSwitcher = lazy(async () => ({
 }))
 const PendingFarmSwitchDialog = lazy(async () => ({
   default: (await import('./FarmSwitcher')).PendingFarmSwitchDialog,
+}))
+const FirebaseAdminPage = lazy(async () => ({
+  default: (await import('../pages/FirebaseAdminPage')).FirebaseAdminPage,
 }))
 
 function AuthPageFallback() {
@@ -53,6 +57,8 @@ export function AppLayout() {
   } = usePhase2()
   const [syncState, setSyncState] = useState<SyncState>('synced')
   const [colorScheme, setColorScheme] = useState<'system' | 'light' | 'dark'>('system')
+  const { userProfile, isSystemAdmin, loading: authLoading } = useAuth()
+
 
   useEffect(() => {
     const root = document.documentElement
@@ -90,6 +96,18 @@ export function AppLayout() {
       </Suspense>
     )
   }
+  if (!farm && authLoading) {
+    return <AuthPageFallback />
+  }
+  if (!farm && isSystemAdmin) {
+    return (
+      <main className="app-main firebase-admin-standalone" id="main-content">
+        <Suspense fallback={<AuthPageFallback />}>
+          <FirebaseAdminPage />
+        </Suspense>
+      </main>
+    )
+  }
   if (!farm) {
     return (
       <Suspense fallback={<AuthPageFallback />}>
@@ -98,10 +116,10 @@ export function AppLayout() {
     )
   }
 
-  const permissions = permissionsFor(farm)
-  const currentPendingCount = pendingOperations.filter(
+  const permissions = farm ? permissionsFor(farm) : { isReadOnly: false, allowedActions: [] }
+  const currentPendingCount = farm ? pendingOperations.filter(
     (operation) => operation.farmId === farm.farmId,
-  ).length
+  ).length : 0
 
   return (
     <div className="app-frame">
@@ -158,22 +176,45 @@ export function AppLayout() {
             >
               <span aria-hidden="true">◐</span>
             </button>
+            {userProfile?.photoURL && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '0.5rem' }}>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', width: '32px', height: '32px' }}
+                  onClick={() => {
+                    if (confirm('กด OK เพื่อออกจากระบบ')) {
+                      void signOut()
+                    }
+                  }}
+                  title="โปรไฟล์ (กดเพื่อออกจากระบบ)"
+                >
+                  <img src={userProfile.photoURL} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className={mode === 'firebase-live' && !farm.isMock ? 'operational-banner' : 'mock-banner'} role="status">
-          {mode === 'firebase-live' && !farm.isMock
-            ? 'Firebase Production · ข้อมูลทุกโมดูลอยู่ที่ durian-smartfarm/root และแยกตาม Farm'
-            : <>SIMULATED/TEST ONLY · ข้อมูลจำลองเท่านั้น ·{' '}{mode === 'firebase-live'
-              ? 'Firebase Production · สวนปัจจุบันยังเป็นข้อมูล Seed/Mock'
-              : authMode === 'firebase-live'
-            ? 'Authentication เชื่อม Firebase จริง; ไม่เชื่อม Firestore/Storage จริง'
-            : 'ข้อมูลจำลองแยกจาก Production'}</>}
+        <div className={mode === 'firebase-live' && farm && !farm.isMock ? 'operational-banner' : 'mock-banner'} role="status">
+          {mode === 'firebase-live' && farm && !farm.isMock
+            ? 'Firebase Live · ข้อมูล Operational อยู่ที่ durian-smartfarm/root และแยกตาม Farm'
+            : mode === 'firebase-live'
+              ? <>Firebase Live · SIMULATED/TEST ONLY · สวนนี้เป็นชุดทดสอบที่แยกจากข้อมูลจริง</>
+              : <>
+                SIMULATED/TEST ONLY · ข้อมูลจำลองเท่านั้น ·{' '}{authMode === 'firebase-live'
+                  ? 'Firebase Authentication จริง; Firestore/Storage ยังไม่ใช่ Production'
+                  : 'ข้อมูลจำลองแยกจาก Production'}
+              </>}
         </div>
       </header>
 
       <aside className="app-sidebar" aria-label="เมนูหลักบนจอใหญ่">
         <nav>
+          <div className="identity-card" style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+            <span>{userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : identity.displayName}</span>
+            <small>{userProfile ? userProfile.role.join(', ') : (farm ? roleLabels[farm.role] : '')}</small>
+            <button onClick={() => void signOut()} type="button">ออกจากระบบ</button>
+          </div>
           {navigationItems.map((item) => (
             <NavLink className={navigationClass} end={item.to === '/'} key={item.to} to={item.to}>
               <span aria-hidden="true">{item.icon}</span>
@@ -182,12 +223,19 @@ export function AppLayout() {
           ))}
         </nav>
         <div className="app-sidebar__footer">
-          <div className="identity-card">
-            <span>{identity.displayName}</span>
-            <small>{roleLabels[farm.role]} · {identity.maskedPhone}</small>
-            <button onClick={() => void signOut()} type="button">ออกจากระบบ</button>
-          </div>
-          <nav aria-label="คู่มือและความช่วยเหลือ">
+          <nav aria-label="เมนูผู้ดูแลและคู่มือ">
+            {isSystemAdmin && (
+              <NavLink className={navigationClass} to="/firebase-admin">
+                <span aria-hidden="true">◆</span>
+                Firebase Live / Seed
+              </NavLink>
+            )}
+            {isSystemAdmin && (
+              <NavLink className={navigationClass} to="/user-management">
+                <span aria-hidden="true">⚙️</span>
+                จัดการผู้ใช้งาน
+              </NavLink>
+            )}
             <NavLink
               className={navigationClass}
               to={userManualNavigationItem.to}
@@ -205,16 +253,16 @@ export function AppLayout() {
             กำลังใช้ shell แบบออฟไลน์ — หน้านี้ไม่ร้องขอข้อมูลภายนอก
           </div>
         ) : null}
-        {farm.farmStatus !== 'ACTIVE' ? (
+        {farm && farm.farmStatus !== 'ACTIVE' ? (
           <div className={`farm-state-notice farm-state-notice--${farm.farmStatus.toLowerCase()}`} role="status">
             สวนนี้อยู่ในสถานะ “{farmStatusLabels[farm.farmStatus]}” · เปิดดูได้ แต่การเขียนข้อมูลถูกระงับ
           </div>
-        ) : permissions.isReadOnly ? (
+        ) : farm && permissions.isReadOnly ? (
           <div className="farm-state-notice" role="status">
             สิทธิ์ {roleLabels[farm.role]} เป็นโหมดอ่านอย่างเดียวในสวนนี้
           </div>
         ) : null}
-        <Outlet key={farm.farmId} context={{ farm, syncState, permissions, toggleSyncState }} />
+        <Outlet key={farm?.farmId ?? 'no-farm'} context={{ farm, syncState, permissions, toggleSyncState }} />
       </main>
 
       <nav className="app-bottom-nav" aria-label="เมนูหลักบนมือถือ">

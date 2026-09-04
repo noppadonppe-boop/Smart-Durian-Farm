@@ -15,12 +15,11 @@
 
 ก่อนแก้ไข:
 1. อ่าน AGENTS.md
-2. อ่าน .agents/skills/kdoms-development-knowledge/SKILL.md
-3. อ่าน KDOMS Development, Mock Data & Pilot Knowledge v1.0
-4. อ่าน KDOMS Scope Knowledge v0.2
-5. อ่าน KDOMS Annual Farm Management Cycle Knowledge v0.1 ทั้งไฟล์
-6. อ่าน Farm Profile, UX/UI, Report Catalogue, Decision Log และ architecture ที่เกี่ยวข้อง
-7. ตรวจ git status และรักษาการเปลี่ยนแปลงที่ไม่เกี่ยวข้อง
+2. อ่าน KDOMS Development, Mock Data & Pilot Knowledge v1.0
+3. อ่าน KDOMS Scope Knowledge v0.2
+4. อ่าน KDOMS Annual Farm Management Cycle Knowledge v0.1 ทั้งไฟล์
+5. อ่าน Farm Profile, UX/UI, Report Catalogue, Decision Log และ architecture ที่เกี่ยวข้อง
+6. ตรวจ git status และรักษาการเปลี่ยนแปลงที่ไม่เกี่ยวข้อง
 
 เป้าหมาย:
 เพิ่ม Annual Farm Management Cycle ระดับ Farm เพื่อให้ Owner เลือก ดู วางแผน

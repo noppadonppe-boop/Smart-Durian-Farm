@@ -1,14 +1,14 @@
-# KDOMS Scope Knowledge v0.2.9 — Multi-Farm
+# KDOMS Scope Knowledge v0.3.0 — Multi-Farm
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2.9 |
-| สถานะ | Approved Baseline — Owner-only Financial Data (DEC-050), Annual Cycle and Management Reporting/Cost, Orchard Target Actions and Limited Operational Tree Register |
+| เวอร์ชัน | 0.3.0 |
+| สถานะ | Approved Baseline — Orchard Layout Direction Selector (DEC-052), Owner-only Financial Data, Annual Cycle, Reporting/Cost and Limited Operational Tree Register |
 | เจ้าของเอกสาร | Project Owner |
 | แทนที่ | Scope v0.1 single-farm concept |
-| วันที่ปรับปรุง | 2026-09-01 |
+| วันที่ปรับปรุง | 2026-09-04 |
 | Gate | Gate 0 review |
-| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047, DEC-048, DEC-049) |
+| Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047, DEC-048, DEC-049, DEC-052) |
 
 ## 1. Product statement
 
@@ -132,8 +132,12 @@ Canonical roles ฉบับ Working Proposal มี 7 roles:
 ### 7.2 Orchard Map and Tree Register
 
 - กำหนด Zone/Row/ทิศทางการนับ
-- แสดงแปลนเชิงโครงสร้างพร้อมชื่อ/รหัส Farm และกรอบ Zone โดย Row เรียงซ้ายไปขวา
-  และ Position เรียงบนลงล่างตาม `treeSequence`; ด้านบนต้องมี reference label
+- แสดงแปลนเชิงโครงสร้างพร้อมชื่อ/รหัส Farm และกรอบ Zone โดยเลือก projection ได้
+  2 แบบ: Row แนวตั้งวาง Row ซ้าย→ขวาและ Position บน→ล่าง หรือ Row แนวนอนวาง
+  Row บน→ล่างและ Position ซ้าย→ขวา ทั้งสองแบบเรียง Position ตาม `treeSequence`
+  เดิมและด้านบนต้องมี reference label
+- ตำแหน่งต้นในแปลนใช้วงกลมพร้อม Human-readable TAG/หมายเลขใต้ต้น โดย Tag
+  เป็นข้อมูลแสดงผล ไม่ใช่ identity หรือ authorization; การสลับทิศทางไม่ล้าง selection
 - ใช้ Shared Target Selector สำหรับ Single/Tree Set/Row/Zone ใน Workflow ที่ต้อง
   เลือกตำแหน่ง และรองรับ Tree Set ข้าม Zone ภายใน Farm เดียวกัน
 - Shared Target Selector มีทั้ง `แปลนต้น` และ `ตารางติ๊กเลือก` โดย selection คงอยู่

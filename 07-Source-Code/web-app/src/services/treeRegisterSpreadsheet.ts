@@ -4,10 +4,9 @@ import {
   generateTagCode,
   resolveTreeRegisterHeader,
   treeRegisterCsvHeaders,
-  treeRegisterThaiCsvHeaders,
+  treeRegisterRegistrationCsvHeaders,
   treeRegisterThaiHeaderByField,
-  treeRegisterThaiSpreadsheetOptions,
-  type TreeCsvHeader,
+  treeRegisterThaiRegistrationCsvHeaders,
 } from '../domain/treeRegister'
 
 const excelMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -102,31 +101,6 @@ function worksheetXml(
 </worksheet>`
 }
 
-function validationXml(): string {
-  const lists: Array<{ header: TreeCsvHeader; values: readonly string[] }> = [
-    { header: 'recordType', values: treeRegisterThaiSpreadsheetOptions.recordTypes },
-    { header: 'varietyConfidence', values: treeRegisterThaiSpreadsheetOptions.identityConfidences },
-    { header: 'plantingYearCalendar', values: treeRegisterThaiSpreadsheetOptions.plantingYearCalendars },
-    { header: 'plantingYearConfidence', values: treeRegisterThaiSpreadsheetOptions.identityConfidences },
-    { header: 'treeStatus', values: treeRegisterThaiSpreadsheetOptions.treeStatuses },
-    { header: 'gpsConfidence', values: treeRegisterThaiSpreadsheetOptions.measurementConfidences },
-    { header: 'trunkMeasureType', values: treeRegisterThaiSpreadsheetOptions.trunkMeasureTypes },
-    { header: 'trunkMeasureUnit', values: ['ซม.'] },
-    { header: 'trunkMeasureConfidence', values: treeRegisterThaiSpreadsheetOptions.measurementConfidences },
-    { header: 'canopyWidthNSUnit', values: ['ม.'] },
-    { header: 'canopyWidthEWUnit', values: ['ม.'] },
-    { header: 'canopyMeasureConfidence', values: treeRegisterThaiSpreadsheetOptions.measurementConfidences },
-    { header: 'heightUnit', values: ['ม.'] },
-    { header: 'heightMeasureConfidence', values: treeRegisterThaiSpreadsheetOptions.measurementConfidences },
-  ]
-  const items = lists.map(({ header, values }) => {
-    const index = treeRegisterCsvHeaders.indexOf(header)
-    const column = columnName(index)
-    return `<dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="ค่าไม่ถูกต้อง" error="เลือกค่าจากรายการที่กำหนด" sqref="${column}2:${column}51"><formula1>&quot;${values.join(',')}&quot;</formula1></dataValidation>`
-  }).join('')
-  return `<dataValidations count="${lists.length}">${items}</dataValidations>`
-}
-
 function stylesXml(): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -144,61 +118,49 @@ function createWorkbookBytes(scope: TreeRegisterTemplateScope): Uint8Array {
     organizationCode: scope.organizationCode,
     farmSequence: scope.farmSequence,
     zoneCode: 'Z01',
-    rowCode: 'R01',
-    treeSequence: 1,
+    rowCode: 'R03',
+    treeSequence: 5,
   })
-  const example = Object.fromEntries(treeRegisterCsvHeaders.map((header) => [header, '']))
+  const example = Object.fromEntries(treeRegisterRegistrationCsvHeaders.map((header) => [header, '']))
   Object.assign(example, {
-    recordType: 'ตัวอย่าง',
-    organizationCode: scope.organizationCode,
-    farmSequence: scope.farmSequence,
     zoneCode: 'Z01',
-    rowCode: 'R01',
-    treeSequence: '1',
+    rowCode: 'R03',
+    treeSequence: '5',
     tagCode: exampleTag,
     plantingCycle: '1',
     variety: 'พันธุ์ตัวอย่าง',
-    varietyConfidence: 'ไม่ทราบ',
-    plantingYearConfidence: 'ไม่ทราบ',
-    treeStatus: 'ปกติ',
-    baselineDate: '2026-01-01',
-    notes: 'SIMULATED/TEST ONLY — ตัวอย่างนี้อยู่คนละชีตและจะไม่ถูกนำเข้า',
+    plantingYear: '2568',
   })
-  const exampleRow = treeRegisterCsvHeaders.map((header) => String(example[header] ?? ''))
+  const exampleRow = treeRegisterRegistrationCsvHeaders.map((header) => String(example[header] ?? ''))
   const instructions = [
     ['แม่แบบทะเบียนต้น KDOMS', 'SIMULATED/TEST ONLY'],
     ['สวนเป้าหมาย', scope.farmCode],
-    ['รหัสองค์กร', scope.organizationCode],
-    ['ลำดับสวน', scope.farmSequence],
-    ['วิธีกรอก', 'กรอกข้อมูลในชีต “ทะเบียนตำแหน่ง” เริ่มแถว 2; ห้ามเปลี่ยนชื่อภาษาไทยหรือลำดับคอลัมน์'],
-    ['ประเภทข้อมูล', 'ทุกแถวที่จะนำเข้าต้องเลือก “ข้อมูลภาคสนาม”; ระบบปฏิเสธแถว “ตัวอย่าง”'],
+    ['วิธีกรอก', 'กรอก 7 คอลัมน์ในชีต “ทะเบียนตำแหน่ง” เริ่มแถว 2; หากลงทะเบียนเฉพาะตำแหน่ง กรอก 3 คอลัมน์แรกได้; ห้ามเปลี่ยนชื่อภาษาไทยหรือลำดับคอลัมน์'],
+    ['สวนปลายทาง', 'ระบบจะนำเข้าข้อมูลเข้าสวนปัจจุบันโดยอัตโนมัติ ไม่ต้องกรอกรหัสองค์กรหรือลำดับสวนในไฟล์'],
     ['ขอบเขต', 'ไฟล์หนึ่งนำเข้าได้ไม่เกิน 50 ตำแหน่ง และต้องเป็นสวนปัจจุบันเท่านั้น'],
     ['Google Sheets', 'อัปโหลดไฟล์นี้ไป Google Sheets แล้วดาวน์โหลดกลับเป็น Microsoft Excel (.xlsx) หรือ CSV ของชีต “ทะเบียนตำแหน่ง”'],
-    ['ไฟล์เดิม', 'ระบบยังนำเข้าแม่แบบภาษาอังกฤษรุ่นเดิมได้ แต่ห้ามผสมหัวคอลัมน์ไทยและอังกฤษในไฟล์เดียวกัน'],
+    ['รหัสป้าย', 'เว้นว่างได้ ระบบสร้างจากโซน-แถว-ต้น และบันทึกเป็นรูปแบบ เช่น Z01-R03-T05; ต้องไม่ซ้ำภายในสวน'],
+    ['ไฟล์เดิม', 'ระบบยังนำเข้าแม่แบบ 49 คอลัมน์และ compact ภาษาไทยรุ่นเดิมได้ แต่ห้ามผสมหัวคอลัมน์สองภาษา'],
     ['ความปลอดภัย', 'ตรวจตัวอย่างก่อนเขียนจริง; ถ้ามีแถวผิดหรือรหัสป้ายซ้ำ ระบบยกเลิกทั้งชุด'],
     ['ข้อมูลจริง', 'ใช้เฉพาะข้อมูลที่ Project Owner อนุมัติ ห้ามนำข้อมูลภาคสนามจริงเข้าข้อมูลจำลองโดยไม่ได้รับอนุญาต'],
   ]
   const allowedValues = [
     ['ชื่อคอลัมน์', 'ค่าที่อนุญาต'],
-    [treeRegisterThaiHeaderByField.recordType, treeRegisterThaiSpreadsheetOptions.recordTypes.join(' / ')],
-    [treeRegisterThaiHeaderByField.varietyConfidence, treeRegisterThaiSpreadsheetOptions.identityConfidences.join(' / ')],
-    [treeRegisterThaiHeaderByField.plantingYearCalendar, treeRegisterThaiSpreadsheetOptions.plantingYearCalendars.join(' / ')],
-    [treeRegisterThaiHeaderByField.plantingYearConfidence, treeRegisterThaiSpreadsheetOptions.identityConfidences.join(' / ')],
-    [treeRegisterThaiHeaderByField.treeStatus, treeRegisterThaiSpreadsheetOptions.treeStatuses.join(' / ')],
-    ['ความมั่นใจของค่าที่วัด', treeRegisterThaiSpreadsheetOptions.measurementConfidences.join(' / ')],
-    [treeRegisterThaiHeaderByField.trunkMeasureType, treeRegisterThaiSpreadsheetOptions.trunkMeasureTypes.join(' / ')],
-    [treeRegisterThaiHeaderByField.baselineDate, 'YYYY-MM-DD'],
-    [treeRegisterThaiHeaderByField.tagCode, `${scope.organizationCode}-${scope.farmSequence}-Z01-R01-T001 (รูปแบบตัวอย่างเท่านั้น)`],
+    [treeRegisterThaiHeaderByField.zoneCode, 'รับ Z01, Z1, 01 หรือ 1; ระบบบันทึกเป็น Z01'],
+    [treeRegisterThaiHeaderByField.rowCode, 'รับ R01, R1, 01 หรือ 1; ระบบบันทึกเป็น R01'],
+    [treeRegisterThaiHeaderByField.treeSequence, 'รับ T01, T1, 01 หรือ 1; ระบบบันทึกเป็นลำดับต้นและสร้าง Tag แบบ T01'],
+    [treeRegisterThaiHeaderByField.tagCode, 'เว้นว่างได้; ระบบสร้างเป็นโซน-แถว-ต้น เช่น Z01-R03-T05'],
+    [treeRegisterThaiHeaderByField.plantingCycle, 'เว้นว่างได้; ตำแหน่งใหม่เริ่มที่ 1'],
+    [treeRegisterThaiHeaderByField.plantingYear, 'พ.ศ. หรือ ค.ศ.; ระบบจำแนกจากค่า'],
   ]
-  const sheet1 = worksheetXml([treeRegisterThaiCsvHeaders], {
-    dataValidations: validationXml(),
+  const sheet1 = worksheetXml([treeRegisterThaiRegistrationCsvHeaders], {
     filter: true,
-    widths: treeRegisterThaiCsvHeaders.map((header) => Math.min(32, Math.max(14, header.length + 2))),
+    widths: treeRegisterThaiRegistrationCsvHeaders.map((header) => Math.min(32, Math.max(14, header.length + 2))),
   })
   const sheet2 = worksheetXml(instructions, { widths: [24, 96] })
-  const sheet3 = worksheetXml([treeRegisterThaiCsvHeaders, exampleRow], {
+  const sheet3 = worksheetXml([treeRegisterThaiRegistrationCsvHeaders, exampleRow], {
     filter: true,
-    widths: treeRegisterThaiCsvHeaders.map((header) => Math.min(32, Math.max(14, header.length + 2))),
+    widths: treeRegisterThaiRegistrationCsvHeaders.map((header) => Math.min(32, Math.max(14, header.length + 2))),
   })
   const sheet4 = worksheetXml(allowedValues, { widths: [28, 88] })
   const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

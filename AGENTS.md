@@ -2,19 +2,43 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 4.5 |
-| สถานะ | Gate 6 Passed — Owner-only Financial Data Approved; Annual Cycle and Management Reporting/Cost Approved Mock-first; Limited Tree Register Operational Data Authorized; Deployment/PA-2/Broader Production Not Approved |
+| เวอร์ชัน | 5.2 |
+| สถานะ | DEC-053 Approved — ปุ่มกลับจาก Orchard Layout ต้องไปเมนูต้นไม้; DEC-052/051 ยังคงมีผล |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-09-01 |
+| วันที่ปรับปรุง | 2026-09-04 |
+| Production Source | `00-Project-Management/Owner-Review-Decision_Firebase-Live-Operational-Go-Live_2026-09-04.md`, `00-Project-Management/Decision-Log.md` DEC-051 |
 | Annual Cycle Source | `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `08-Testing/Annual-Farm-Management-Cycle-Validation-Report_v1.0.md` |
 | Reporting Source | `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Management-Reporting-and-Cost-Architecture_v0.1.md`, `08-Testing/Management-Reporting-and-Cost-Validation-Report_v0.1.md`, `08-Testing/Owner-Only-Financial-Access-Validation-Report_v1.0.md` |
-| Source of Truth | `.agents/skills/kdoms-development-knowledge/SKILL.md`, `.agents/skills/kdoms-disease-analysis-development/SKILL.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Phase-2-Farm-Management-Remediation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `08-Testing/Phase-3-Operational-Tree-Register-Form-Validation_v1.0.md`, `01-Requirements/KDOMS_AI_Fruit_Counting_Feasibility_Knowledge_v0.1.md`, `00-Project-Management/AI-Fruit-Counting-Feasibility-Plan_v0.1.md`, `08-Testing/AI-Fruit-Counting-WP1-Partial-Validation-Report_v0.1.md`, `00-Project-Management/Decision-Log.md`, `00-Project-Management/Owner-Review-Addendum_Disease-Analysis-P1_2026-09-01.md`, `06-System-Architecture/Disease-Analysis-P1-Deterministic-Mock-Architecture_v0.1.md`, `08-Testing/Disease-Analysis-P1-Validation-Report_v0.1.md`, `00-Project-Management/Owner-Review-Decision_Phase-7-External-PA1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Development-Mock-Data-and-Pilot-Timing_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-2_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Phase-3-Field-Validation-Pack_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-3_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-4_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-5_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-6_2026-08-31.md`, `00-Project-Management/Phase-7-Plan.md`, `09-Deployment/phase7-pa1-local-rehearsal-approval-v1.1.json`, `08-Testing/Phase-7-PA1-Local-Emulator-Rehearsal-Report_v1.1.md`, `06-System-Architecture/Phase-7-Work-Photo-Durable-Queue-and-Lifecycle-Architecture_v1.0.md`, `10-Operations/Phase-7-Photo-Data-Governance-Decision-Sheet_v1.0.md`, `08-Testing/Phase-7-Work-Photo-Physical-Device-Test-Protocol_v1.0.md`, `08-Testing/Phase-7-Pilot-Readiness-Checklist.md` |
+| Source of Truth | `.agents/skills/kdoms-disease-analysis-development/SKILL.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `00-Project-Management/Phase-2-Farm-Management-Remediation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `08-Testing/Phase-3-Operational-Tree-Register-Form-Validation_v1.0.md`, `01-Requirements/KDOMS_AI_Fruit_Counting_Feasibility_Knowledge_v0.1.md`, `00-Project-Management/AI-Fruit-Counting-Feasibility-Plan_v0.1.md`, `08-Testing/AI-Fruit-Counting-WP1-Partial-Validation-Report_v0.1.md`, `00-Project-Management/Decision-Log.md`, `00-Project-Management/Owner-Review-Addendum_Disease-Analysis-P1_2026-09-01.md`, `06-System-Architecture/Disease-Analysis-P1-Deterministic-Mock-Architecture_v0.1.md`, `08-Testing/Disease-Analysis-P1-Validation-Report_v0.1.md`, `00-Project-Management/Owner-Review-Decision_Phase-7-External-PA1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Development-Mock-Data-and-Pilot-Timing_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-2_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Phase-3-Field-Validation-Pack_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-3_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-4_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-5_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-6_2026-08-31.md`, `00-Project-Management/Phase-7-Plan.md`, `09-Deployment/phase7-pa1-local-rehearsal-approval-v1.1.json`, `08-Testing/Phase-7-PA1-Local-Emulator-Rehearsal-Report_v1.1.md`, `06-System-Architecture/Phase-7-Work-Photo-Durable-Queue-and-Lifecycle-Architecture_v1.0.md`, `10-Operations/Phase-7-Photo-Data-Governance-Decision-Sheet_v1.0.md`, `08-Testing/Phase-7-Work-Photo-Physical-Device-Test-Protocol_v1.0.md`, `08-Testing/Phase-7-Pilot-Readiness-Checklist.md` |
 
 ## 1. เป้าหมาย
 
 สร้างระบบบริหารจัดการสวนทุเรียนแบบ Multi-Farm ที่ข้อมูลของแต่ละสวนแยกจากกันอย่างชัดเจน ต้นทุเรียนทุกต้นมีตัวตนถาวรผ่านรหัสตำแหน่งและ QR และมีประวัติตลอดวงจรตั้งแต่ดูแลจนถึงขาย
 
 ## 2. ระยะที่อนุญาตในปัจจุบัน
+
+- **คำสั่งล่าสุด DEC-053 (2026-09-04):** ปุ่ม `กลับ` จากหน้า
+  `แปลนสวนและเลือกตำแหน่ง` ต้องกลับไปเมนู `ต้นไม้` (`/trees`)
+- **คำสั่งล่าสุด DEC-052 (2026-09-04):** หน้าแปลนตำแหน่งต้นต้องเลือกแสดงแถว
+  แนวตั้งหรือแนวนอนได้ และแสดงแต่ละต้นเป็นวงกลมพร้อม TAG/หมายเลขใต้ต้น โดยเป็น
+  การเปลี่ยนรูปแบบแสดงผลเท่านั้น ไม่เปลี่ยน Position identity, Farm scope,
+  selection/eligibility หรือข้อกำหนดด้าน QR
+- **คำสั่งล่าสุด DEC-051 (2026-09-04):** Owner อนุมัติ Firebase Live
+  Operational Go-Live สำหรับโมดูล Web App ปัจจุบันทั้งหมด อนุมัติ Admin
+  Google/Phone sign-in, Operational bootstrap, Firestore Rules/Indexes และ Hosting
+  deployment พร้อมยกเลิก runtime/scripts/tests ที่เรียก local Firebase test
+  services ข้อห้าม Production/deployment ในรายการประวัติด้านล่างถูก supersede
+  เฉพาะขอบเขตนี้
+- Production build ต้องใช้ project `durian-smartfarm` โดยตรง; Mock adapter มีได้
+  เฉพาะ unit/component test ส่วน deterministic Mock seed ที่เขียน Firebase Live
+  ต้องแยก DEMO Farm และคง `SIMULATED/TEST ONLY` / `exampleData=true`
+- System Admin ต้องตรวจจาก root `seedOwnerUid` หรือ Firebase custom claim
+  `masterAdmin=true` เท่านั้น ห้ามเชื่อ Role จาก client; Operational bootstrap ห้าม
+  แต่งข้อมูลภาคสนามหรือข้อมูลการเงินที่ Owner ไม่ได้กรอก
+- Multi-Farm/Cross-Farm denial, Audit/idempotency, Owner-only Financial ตาม DEC-050,
+  Agronomist Human Review และข้อห้าม automatic chemical advice ยังบังคับ
+- สถานะ Physical Device/Field Validation เดิมยังเป็นหลักฐานย้อนหลังตามจริงและไม่
+  ถูกเปลี่ยนเป็น Passed เพียงเพราะ Owner อนุมัติ Go-Live
 
 - Gate 0, Gate 1 และ Gate 2 ผ่านเมื่อ 2026-08-31; Owner อนุมัติ Phase 3 ตาม
   `Owner-Review-Addendum_Gate-2_2026-08-31.md`
@@ -134,6 +158,9 @@
   `แปลนต้น` และ `ตารางติ๊กเลือก` โดยใช้ selection เดียวกัน รองรับ Zone ทุกค่า
   แบบ data-driven เช่น Z02/Z03 และมี action จากตำแหน่งที่เลือกครบ Work ทั่วไป,
   Work ดูแล, Disease Incident, Fruit Observation และ Harvest Lot ตามสิทธิ์เดิม
+- Owner อนุมัติ DEC-052 เมื่อ 2026-09-04 ให้หน้า `แปลนต้น` เลือกแสดง Row เป็น
+  แนวตั้งหรือแนวนอน โดยคงลำดับ `treeSequence` เดิม และแสดงวงกลมต้นไม้พร้อม
+  Human-readable TAG/หมายเลขใต้ต้น; การสลับทิศทางต้องไม่ล้าง selection
 - Owner อนุมัติ DEC-048 เมื่อ 2026-09-01 ให้เพิ่ม Annual Farm Management Cycle
   ระดับ Farm รอบละ 12 เดือน ค่าเริ่มต้น 1 มิ.ย.–31 พ.ค. แต่ Owner กำหนดวันเริ่ม
   เฉพาะสวนได้; วางแผน Farm/Zone เป็นหลักและรายต้นเฉพาะจำเป็น; รอบ Closed แก้ได้
@@ -196,27 +223,26 @@
 
 ## 3. เอกสารที่ต้องอ่านก่อนทำงาน
 
-1. `.agents/skills/kdoms-development-knowledge/SKILL.md`
-2. `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`
-3. `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`
-4. `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md`
-5. `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`
-6. `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`
-7. `00-Project-Management/Decision-Log.md`
-8. เมื่อทำงาน Farm Profile/Farm Management ให้อ่าน
+1. `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`
+2. `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`
+3. `01-Requirements/KDOMS_Codex_Master_Prompt_v1.1.md`
+4. `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`
+5. `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`
+6. `00-Project-Management/Decision-Log.md`
+7. เมื่อทำงาน Farm Profile/Farm Management ให้อ่าน
    `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`
-9. เมื่อทำงาน AIFC-01 ให้อ่าน
+8. เมื่อทำงาน AIFC-01 ให้อ่าน
    `01-Requirements/KDOMS_AI_Fruit_Counting_Feasibility_Knowledge_v0.1.md` และ
    `00-Project-Management/AI-Fruit-Counting-Feasibility-Plan_v0.1.md`
-10. เมื่อทำงาน Disease Analysis ให้อ่าน
+9. เมื่อทำงาน Disease Analysis ให้อ่าน
    `.agents/skills/kdoms-disease-analysis-development/SKILL.md`,
    `00-Project-Management/Owner-Review-Addendum_Disease-Analysis-P1_2026-09-01.md`
    และ `06-System-Architecture/Disease-Analysis-P1-Deterministic-Mock-Architecture_v0.1.md`
-11. เมื่อทำงาน Orchard Layout หรือการเลือกเป้าหมาย ให้อ่าน
+10. เมื่อทำงาน Orchard Layout หรือการเลือกเป้าหมาย ให้อ่าน
    `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`
-12. เมื่อทำงานรอบปี แผนประจำปี การเลือกรอบ การปิดรอบ หรือข้อมูลรายปี ให้อ่าน
+11. เมื่อทำงานรอบปี แผนประจำปี การเลือกรอบ การปิดรอบ หรือข้อมูลรายปี ให้อ่าน
    `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`
-13. เมื่อทำงานรายงานการจัดการสวน ต้นทุนแรงงาน ค่าใช้จ่าย หรือยอดขายเทียบต้นทุน
+12. เมื่อทำงานรายงานการจัดการสวน ต้นทุนแรงงาน ค่าใช้จ่าย หรือยอดขายเทียบต้นทุน
     ให้อ่าน `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`
     และ `01-Requirements/KDOMS_Report_Catalogue_and_KPI_Definitions_v0.1.md`
 

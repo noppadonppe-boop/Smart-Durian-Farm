@@ -100,7 +100,7 @@ export interface DiseaseAnalysisSessionRecord extends DiseaseAnalysisDraft {
   reviewedFindingLabel: string
   reviewNote: string
   diagnosisWritebackStatus: 'NOT_WRITTEN'
-  syncState: 'LOCAL_ONLY' | 'EMULATOR_SYNCED' | 'FIREBASE_SYNCED'
+  syncState: 'LOCAL_ONLY' | 'FIREBASE_SYNCED'
   version: number
   exampleData: boolean
   createdBy: string

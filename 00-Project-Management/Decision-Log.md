@@ -2,10 +2,10 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 4.6 |
-| สถานะ | Gate 6 Passed; Owner-only Financial Data Access Approved; Annual Cycle and Management Reporting/Cost Approved Mock-first; Limited Tree Register Operational Data Entry Authorized; Deployment Pending |
+| เวอร์ชัน | 5.2 |
+| สถานะ | DEC-053 Approved — Orchard Layout Back Navigation ไปเมนูต้นไม้ |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-09-01 |
+| วันที่ปรับปรุง | 2026-09-04 |
 | Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Management-Reporting-and-Cost_2026-09-01.md`, `00-Project-Management/Phase-2-Farm-Management-Remediation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `01-Requirements/KDOMS_AI_Fruit_Counting_Feasibility_Knowledge_v0.1.md`, `00-Project-Management/AI-Fruit-Counting-Feasibility-Plan_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Disease-Analysis-P1_2026-09-01.md`, `06-System-Architecture/Disease-Analysis-P1-Deterministic-Mock-Architecture_v0.1.md`, `08-Testing/Disease-Analysis-P1-Validation-Report_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Development-Mock_Data_and_Pilot_Timing_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-2_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Phase-3-Field-Validation-Pack_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-3_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-4_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-5_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-6_2026-08-31.md`, `00-Project-Management/Owner-Review-Decision_Phase-7-External-PA1_2026-08-31.md`, `00-Project-Management/Phase-7-Plan.md`, `09-Deployment/phase7-pa1-local-rehearsal-approval-v1.1.json`, `08-Testing/Phase-7-PA1-Local-Emulator-Rehearsal-Report_v1.1.md`, `06-System-Architecture/Phase-7-Work-Photo-Durable-Queue-and-Lifecycle-Architecture_v1.0.md`, `10-Operations/Phase-7-Photo-Data-Governance-Decision-Sheet_v1.0.md` |
 
 > Owner อนุมัติ Gate 0 และ Gate 1 เมื่อ 2026-08-31 พร้อมเลือก Phone + SMS OTP
@@ -104,6 +104,9 @@
 > `แปลนต้น` และ `ตารางติ๊กเลือก`; ต้องรองรับหลาย Zone เช่น Z02/Z03 แบบ data-driven
 > และมีเมนูสร้างรายการจากตำแหน่งที่เลือกครบสำหรับ Work ทั่วไป, Work ดูแล,
 > Disease Incident, Fruit Observation และ Harvest Lot ตามสิทธิ์/eligibility เดิม
+> Owner สั่งออกแบบหน้าแปลนตำแหน่งต้นใหม่เมื่อ 2026-09-04 ให้เลือกแสดงแถว
+> แนวตั้งหรือแนวนอนได้ และแสดงตำแหน่งต้นเป็นวงกลมพร้อม TAG/หมายเลขใต้ต้น
+> โดยยังคง Farm/Position identity, selection และ Workflow eligibility เดิม
 > Owner อนุมัติ Annual Farm Management Cycle เมื่อ 2026-09-01 ให้หนึ่งรอบยาว
 > 12 เดือน ค่าเริ่มต้นมิถุนายน–พฤษภาคม แต่ Owner กำหนดวันเริ่มเฉพาะสวนได้;
 > วางแผนระดับ Farm/Zone เป็นหลัก ใช้รายต้นเฉพาะจำเป็น และรอบ Closed แก้ได้เฉพาะ
@@ -169,6 +172,9 @@
 | DEC-048 | Annual Farm Management Cycle | Approved | เพิ่มรอบบริหารสวนรายปีระดับ Farm; ค่าเริ่มต้น 1 มิ.ย.–31 พ.ค. Owner กำหนดวันเริ่มเฉพาะสวนได้โดยรอบยาว 12 เดือน; วางแผน Farm/Zone เป็นหลักและ Tree Set เฉพาะจำเป็น; Annual Cycle แยกจาก Crop Cycle/Planting Cycle; Cycle header/closed summary ของรอบ Closed แก้ได้เฉพาะ Correction พร้อม Audit/revision ส่วน Plan ใหม่ระหว่าง Active/Closing เป็น append-only ตามสิทธิ์ | Project Owner exact instruction, 2026-09-01; ผล Local/Mock/Firebase Emulator/Browser อยู่ที่ `08-Testing/Annual-Farm-Management-Cycle-Validation-Report_v1.0.md`; ไม่อนุมัติ deployment, ข้อมูลจริงนอก DEC-046, PA-2, Controlled Pilot หรือ Production rollout |
 | DEC-049 | Management Reporting and Cost Baseline | Approved | เพิ่ม Unified Farm Management Report รายสัปดาห์ รายเดือน ราย 3 เดือน และรายปี; รวมงาน โรค/ติดตาม จำนวนผล Harvest/Sales ต้นทุนวัสดุจาก Inventory Issue ค่าแรง ค่าใช้จ่ายดำเนินงาน และยอดขายเทียบต้นทุน; แยก Capital และระบุว่า Management Margin ไม่ใช่กำไรบัญชี; บันทึกต้นทุนแบบ Append-only/Audit/Idempotency พร้อม Drill-down/CSV | Project Owner ตอบ `อนุมัติ` ต่อข้อเสนอ, 2026-09-01; ใช้ `Owner-Review-Addendum_Management-Reporting-and-Cost_2026-09-01.md`; อนุมัติเฉพาะ Mock-first Local/Firebase Emulator ไม่อนุมัติ Production cost write/rules, ข้อมูลจริง, Payroll/บัญชี/ภาษี, scheduler/distribution, deployment, PA-2, Controlled Pilot หรือ Production rollout |
 | DEC-050 | Owner-only Financial Data Access | Approved | เฉพาะผู้ที่มี Organization membership แบบ Active และ trusted `isOwner=true` เท่านั้นที่อ่าน บันทึก แก้ไข สรุป Drill-down หรือ Export ข้อมูลการเงินได้; ผู้ใช้อื่นทุก Role รวม `FARM_MANAGER`, `SALES_INVENTORY`, `VIEWER`, `AUDITOR` และผู้ที่มีชื่อ Role `ORG_OWNER` แต่ไม่มี trusted Owner flag เห็นเฉพาะข้อมูลปฏิบัติการที่ไม่มีราคา ยอดขาย ยอดรับ/ค้าง ต้นทุน ค่าแรง ค่าใช้จ่าย แผนต้นทุน หรือ Financial Audit; legacy mixed document ต้อง Fail closed | Project Owner exact instruction, 2026-09-01; supersedes เฉพาะส่วนสิทธิ์ข้อมูลการเงินของ DEC-049/Role Matrix เดิม; อนุมัติ implementation/test แบบ Local/Mock/Firebase Emulator และเอกสารเท่านั้น ไม่อนุมัติ Deploy, migration Production, ข้อมูลจริง, PA-2, Controlled Pilot หรือ Production rollout |
+| DEC-051 | Firebase Live Operational Go-Live | Approved | Browser runtime ใช้ Firebase project `durian-smartfarm` เท่านั้น; อนุมัติ Admin Google/Phone sign-in, trusted System Admin, Operational bootstrap, Firestore/Hosting deployment และข้อมูลจริงในโมดูล Web App ปัจจุบันทั้งหมด; ยกเลิก runtime/scripts/tests ที่เรียก local Firebase test services; deterministic Mock seed ยังใช้ใน Firebase Live ได้เฉพาะ DEMO Farm และต้องคง `SIMULATED/TEST ONLY` | Project Owner exact instructions, 2026-09-04; `Owner-Review-Decision_Firebase-Live-Operational-Go-Live_2026-09-04.md`; supersede ข้อห้าม Production/deployment เดิมเฉพาะขอบเขต Web App แต่คง Multi-Farm, Audit, Owner-only Financial, Human Review, no automatic chemical advice และไม่เปลี่ยน Deferred physical evidence เป็น Passed |
+| DEC-052 | Orchard Layout Direction Selector และ Tree Circle/TAG | Approved | หน้า `แปลนต้น` ต้องเลือกแสดง Row เป็นแนวตั้งหรือแนวนอนได้; ตำแหน่งต้นแสดงเป็นวงกลมพร้อม Human-readable TAG/หมายเลขใต้ต้น; การสลับทิศทางเป็น presentation เท่านั้นและต้องไม่เปลี่ยนลำดับ `treeSequence`, opaque Position ID หรือ selection | Project Owner exact instruction และภาพตัวอย่าง, 2026-09-04; คงหลาย Zone แบบ data-driven, checklist view, Farm/Workflow eligibility, Cross-Farm denial และ QR confirmation ตาม DEC-045/047 |
+| DEC-053 | Orchard Layout Back Navigation | Approved | ปุ่ม `กลับ` จากหน้า `แปลนสวนและเลือกตำแหน่ง` ต้องเปิดเมนู `ต้นไม้` ที่ `/trees` ไม่ย้อนกลับไปหน้า `เพิ่มเติม` | Project Owner exact instruction, 2026-09-04; เป็นการแก้ navigation ภายใน Web App ไม่มีผลต่อ Farm scope, selection หรือข้อมูล |
 
 ## สถานะมาตรฐาน
 
@@ -271,3 +277,8 @@
   สวน 4 รอบและ Management Cost แบบ Mock-first; ค่าแรงถูกบันทึกเป็นต้นทุนบริหาร
   ไม่ใช่ Payroll และผลต่างยอดขาย–ต้นทุนไม่ใช่กำไรบัญชี; ไม่ขยายขอบเขตข้อมูลจริง,
   Firebase Production write/rules, deployment, PA-2, Pilot หรือ Production
+- DEC-052 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner สำหรับการสลับการแสดง
+  Row แนวตั้ง/แนวนอนและวงกลมต้นไม้พร้อม TAG; เป็นการเปลี่ยน presentation ที่ต้อง
+  คง selection, Position identity, Multi-Farm และ Workflow eligibility เดิม
+- DEC-053 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner ให้ปุ่มกลับของหน้า
+  Orchard Layout ไป `/trees`; ไม่เปลี่ยนขอบเขตข้อมูลหรือ Gate

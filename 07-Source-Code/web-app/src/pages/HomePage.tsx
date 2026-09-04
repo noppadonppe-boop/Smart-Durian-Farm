@@ -4,6 +4,7 @@ import { Link, useOutletContext } from 'react-router-dom'
 import { usePhase2 } from '../app/usePhase2'
 import { roleLabels, type FarmContext, type FarmPermissions, type SyncState } from '../domain/farm'
 import type { FarmDashboardView } from '../domain/operationalHardening'
+import { useAuth } from '../security/AuthContext'
 import { PageHeader } from './PageHeader'
 
 interface LayoutContext {
@@ -15,6 +16,7 @@ interface LayoutContext {
 export function HomePage() {
   const { farm, syncState } = useOutletContext<LayoutContext>()
   const { getFarmDashboard, mode, authMode } = usePhase2()
+  const { isSystemAdmin } = useAuth()
   const [dashboard, setDashboard] = useState<FarmDashboardView>()
   const [error, setError] = useState<string>()
 
@@ -87,15 +89,17 @@ export function HomePage() {
         <ul>
           <li>Dashboard, Queue, Conflict, Audit และ Export อ่าน/เขียนผ่าน Firebase ตามสิทธิ์</li>
           <li>Portfolio รวมเฉพาะสวนที่ Owner มี Farm access</li>
-          <li>ข้อมูลตั้งต้นให้รันผ่านสคริปต์ Seed ในโฟลเดอร์ scripts</li>
+          <li>
+            {isSystemAdmin
+              ? <Link to="/firebase-admin">เปิดเมนู Firebase Live / Seed</Link>
+              : 'ข้อมูลตั้งต้นจัดการโดยผู้ดูแล Firebase Live'}
+          </li>
           <li>
             {mode === 'firebase-live'
               ? 'Authentication, Firestore และ Storage เชื่อม Firebase project durian-smartfarm'
-              : authMode === 'firebase-live'
-              ? 'Authentication เชื่อม Firebase จริงเพื่อส่ง OTP; Dashboard และข้อมูลสวนยังเป็น Mock ในเครื่อง'
-              : mode === 'firebase-emulator'
-              ? 'ใช้งานข้อมูลจำลองและไม่เชื่อม Production'
-              : 'ไม่มีการส่งข้อมูลออกไปยัง Firebase หรือบริการภายนอก'}
+              : authMode === 'mock'
+                ? 'Unit test ใช้ Mock adapter โดยไม่เชื่อม Firebase'
+                : 'Firebase Live'}
           </li>
         </ul>
       </section>

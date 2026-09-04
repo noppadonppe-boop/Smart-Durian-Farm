@@ -2,22 +2,17 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
-import {
-  createTreeCycleFormValue,
-  treeCycleInputFromForm,
-  TreeCycleFormFields,
-  type TreeCycleFormValue,
-} from '../components/TreeCycleFormFields'
+import { todayInBangkok } from '../components/TreeCycleFormFields'
 import {
   canManageTreeRegister,
+  emptyTreeBaselineMeasurements,
   generateTagCode,
-  rowCountingDirectionLabels,
-  type RowCountingDirection,
+  normalizeRowCode,
+  normalizeTreeSequence,
+  normalizeZoneCode,
   type TreePositionSummary,
 } from '../domain/treeRegister'
 import { PageHeader } from './PageHeader'
-
-type LocationMode = 'EXISTING' | 'NEW'
 
 function compareCodes(left: string, right: string): number {
   return left.localeCompare(right, 'th', { numeric: true, sensitivity: 'base' })
@@ -28,13 +23,11 @@ export function TreeCreatePage() {
   const { currentFarm, createTreePosition, listTreePositions, mode } = usePhase2()
   const [positions, setPositions] = useState<readonly TreePositionSummary[]>([])
   const [locationsLoading, setLocationsLoading] = useState(true)
-  const [locationMode, setLocationMode] = useState<LocationMode>('EXISTING')
   const [zoneCode, setZoneCode] = useState('')
   const [rowCode, setRowCode] = useState('')
-  const [rowCountingDirection, setRowCountingDirection] = useState<RowCountingDirection>('TBD')
   const [treeSequence, setTreeSequence] = useState('')
-  const [cycleForm, setCycleForm] = useState<TreeCycleFormValue>(() => createTreeCycleFormValue())
-  const [confirmNewLocation, setConfirmNewLocation] = useState(false)
+  const [variety, setVariety] = useState('')
+  const [plantingYear, setPlantingYear] = useState('')
   const [confirmPermanentIdentity, setConfirmPermanentIdentity] = useState(false)
   const [error, setError] = useState<string>()
   const [saving, setSaving] = useState(false)
@@ -48,16 +41,8 @@ export function TreeCreatePage() {
         const first = [...items].sort((left, right) => (
           compareCodes(left.zoneCode, right.zoneCode) || compareCodes(left.rowCode, right.rowCode)
         ))[0]
-        if (first) {
-          setZoneCode(first.zoneCode)
-          setRowCode(first.rowCode)
-          setRowCountingDirection(first.rowCountingDirection ?? 'TBD')
-          setLocationMode('EXISTING')
-        } else {
-          setZoneCode('Z01')
-          setRowCode('R01')
-          setLocationMode('NEW')
-        }
+        setZoneCode(first?.zoneCode ?? 'Z01')
+        setRowCode(first ? normalizeRowCode(first.rowCode) : 'R01')
       })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : 'อ่านรายการโซนและแถวไม่สำเร็จ')
@@ -68,44 +53,62 @@ export function TreeCreatePage() {
     return () => { active = false }
   }, [currentFarm?.farmId, listTreePositions])
 
-  const zones = useMemo(() => [...new Set(positions.map((item) => item.zoneCode))].sort(compareCodes), [positions])
-  const rows = useMemo(() => [...new Set(
-    positions.filter((item) => item.zoneCode === zoneCode).map((item) => item.rowCode),
-  )].sort(compareCodes), [positions, zoneCode])
-
-  const selectExistingZone = (nextZone: string) => {
-    const first = positions.find((item) => item.zoneCode === nextZone)
-    setZoneCode(nextZone)
-    setRowCode(first?.rowCode ?? '')
-    setRowCountingDirection(first?.rowCountingDirection ?? 'TBD')
-  }
-
-  const selectExistingRow = (nextRow: string) => {
-    const reference = positions.find((item) => item.zoneCode === zoneCode && item.rowCode === nextRow)
-    setRowCode(nextRow)
-    setRowCountingDirection(reference?.rowCountingDirection ?? 'TBD')
-  }
+  const zones = useMemo(
+    () => [...new Set(positions.map((item) => normalizeZoneCode(item.zoneCode)))].sort(compareCodes),
+    [positions],
+  )
+  const rows = useMemo(() => {
+    let normalizedZone = ''
+    try {
+      normalizedZone = normalizeZoneCode(zoneCode)
+    } catch {
+      return []
+    }
+    return [...new Set(
+      positions
+        .filter((item) => normalizeZoneCode(item.zoneCode) === normalizedZone)
+        .map((item) => normalizeRowCode(item.rowCode)),
+    )].sort(compareCodes)
+  }, [positions, zoneCode])
 
   const tagPreview = useMemo(() => {
-    if (!currentFarm || !treeSequence) return 'กรอกลำดับตำแหน่งเพื่อสร้างรหัสป้าย'
+    if (!currentFarm || !zoneCode || !rowCode || !treeSequence) {
+      return 'ระบุโซน แถว และลำดับตำแหน่ง'
+    }
     try {
       return generateTagCode({
         organizationCode: currentFarm.organizationCode,
         farmSequence: currentFarm.farmSequence,
         zoneCode,
         rowCode,
-        treeSequence: Number(treeSequence),
+        treeSequence: normalizeTreeSequence(treeSequence),
       })
     } catch (reason) {
       return reason instanceof Error ? reason.message : 'รหัสป้ายไม่ถูกต้อง'
     }
   }, [currentFarm, rowCode, treeSequence, zoneCode])
 
+  const duplicatePosition = useMemo(() => {
+    if (!zoneCode || !rowCode || !treeSequence) return undefined
+    try {
+      const normalizedZone = normalizeZoneCode(zoneCode)
+      const normalizedRow = normalizeRowCode(rowCode)
+      const sequence = normalizeTreeSequence(treeSequence)
+      return positions.find((position) => (
+        normalizeZoneCode(position.zoneCode) === normalizedZone &&
+        normalizeRowCode(position.rowCode) === normalizedRow &&
+        position.treeSequence === sequence
+      ))
+    } catch {
+      return undefined
+    }
+  }, [positions, rowCode, treeSequence, zoneCode])
+
   if (!currentFarm) return null
   if (!canManageTreeRegister(currentFarm)) {
     return (
       <section className="page-stack">
-        <PageHeader eyebrow="อ่านอย่างเดียว" title="ไม่มีสิทธิ์เพิ่มตำแหน่ง" description="เฉพาะเจ้าขององค์กรหรือผู้จัดการสวนที่ใช้งานอยู่เท่านั้น" />
+        <PageHeader eyebrow="อ่านอย่างเดียว" title="ไม่มีสิทธิ์ลงทะเบียนตำแหน่ง" description="เฉพาะเจ้าขององค์กรหรือผู้จัดการสวนที่ใช้งานอยู่เท่านั้น" />
         <Link className="secondary-action" to="/trees">กลับทะเบียนต้น</Link>
       </section>
     )
@@ -116,32 +119,46 @@ export function TreeCreatePage() {
     setError(undefined)
     setSaving(true)
     try {
-      const normalizedZone = zoneCode.trim().toUpperCase()
-      const normalizedRow = rowCode.trim().toUpperCase()
-      if (locationMode === 'EXISTING' && !positions.some(
-        (item) => item.zoneCode === normalizedZone && item.rowCode === normalizedRow,
-      )) {
-        throw new Error('โซนและแถวที่เลือกไม่อยู่ในทะเบียนของสวนปัจจุบัน')
-      }
-      if (locationMode === 'NEW' && !confirmNewLocation) {
-        throw new Error('กรุณายืนยันการลงทะเบียนโซนและแถวใหม่')
+      const normalizedZone = normalizeZoneCode(zoneCode)
+      const normalizedRow = normalizeRowCode(rowCode)
+      const sequence = normalizeTreeSequence(treeSequence)
+      if (duplicatePosition) {
+        throw new Error(`ตำแหน่ง ${tagPreview} ถูกลงทะเบียนแล้วและห้ามใช้รหัสซ้ำ`)
       }
       if (!confirmPermanentIdentity) {
-        throw new Error('กรุณาตรวจรหัสป้ายและยืนยันว่าตำแหน่งถูกต้องก่อนบันทึก')
+        throw new Error('กรุณาตรวจโซน แถว ลำดับตำแหน่ง และรหัสป้ายก่อนลงทะเบียน')
       }
-      const cycleInput = treeCycleInputFromForm(cycleForm)
+
+      const year = plantingYear.trim() ? Number(plantingYear) : null
+      if (year !== null && (!Number.isSafeInteger(year) || year <= 0)) {
+        throw new Error('ปีปลูกต้องเป็นจำนวนเต็มบวก')
+      }
+      const hasTreeData = Boolean(variety.trim() || year !== null)
+      const rowReference = positions.find((position) => (
+        normalizeZoneCode(position.zoneCode) === normalizedZone &&
+        normalizeRowCode(position.rowCode) === normalizedRow
+      ))
       const created = await createTreePosition({
         organizationCode: currentFarm.organizationCode,
         farmSequence: currentFarm.farmSequence,
         zoneCode: normalizedZone,
         rowCode: normalizedRow,
-        treeSequence: Number(treeSequence),
-        rowCountingDirection,
-        ...cycleInput,
+        treeSequence: sequence,
+        rowCountingDirection: rowReference?.rowCountingDirection ?? 'TBD',
+        variety: variety.trim() || null,
+        varietyConfidence: 'unknown',
+        plantingYear: year,
+        plantingYearCalendar: year === null ? null : (year >= 2400 ? 'BE' : 'CE'),
+        plantingYearConfidence: 'unknown',
+        plantSource: null,
+        treeStatus: hasTreeData ? 'normal' : 'empty',
+        baselineDate: todayInBangkok(),
+        baselineMeasurements: emptyTreeBaselineMeasurements(),
+        notes: '',
       })
       await navigate(`/trees/${created.positionId}`)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'เพิ่มตำแหน่งไม่สำเร็จ')
+      setError(reason instanceof Error ? reason.message : 'ลงทะเบียนตำแหน่งไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -150,59 +167,47 @@ export function TreeCreatePage() {
   return (
     <section className="page-stack">
       <PageHeader
-        eyebrow="ทะเบียนตำแหน่งปลูก"
-        title="เพิ่มตำแหน่งปลูก"
-        description={`บันทึกในสวน ${currentFarm.farmName} (${currentFarm.farmCode})`}
+        eyebrow="ทะเบียนตำแหน่งต้น"
+        title="ลงทะเบียน"
+        description={`กรอกข้อมูล 10 ช่องตามแม่แบบ Excel สำหรับ ${currentFarm.farmName} (${currentFarm.farmCode})`}
       />
       {mode === 'firebase-live' && !currentFarm.isMock
-        ? <aside className="operational-data-banner"><strong>ข้อมูลภาคสนาม</strong><span>ข้อมูลที่บันทึกจะอยู่ใน Firebase ของสวนปัจจุบัน กรุณาตรวจรหัสตำแหน่งก่อนยืนยัน</span></aside>
-        : <aside className="field-validation-banner"><strong>โหมดทดสอบระบบ</strong><span>หน้าจอเหมือนการใช้งานจริง แต่ข้อมูลจากโหมดนี้ยังถูกจัดเป็นข้อมูลทดสอบ</span></aside>}
+        ? <aside className="operational-data-banner"><strong>ข้อมูลภาคสนาม</strong><span>ข้อมูลจะบันทึกใน Firebase ของสวนปัจจุบัน รหัสป้ายห้ามซ้ำภายในสวน</span></aside>
+        : <aside className="field-validation-banner"><strong>โหมดทดสอบระบบ</strong><span>ข้อมูลจากโหมดนี้ยังถูกจัดเป็น SIMULATED/TEST ONLY</span></aside>}
 
       <form className="tree-form tree-register-form" onSubmit={(event) => void submit(event)}>
-        <section className="tree-form-section" aria-labelledby="position-identity-title">
+        <section className="tree-form-section" aria-labelledby="registration-fields-title">
           <div className="tree-form-section__heading">
-            <div><span>ส่วนที่ 1 · ต้องกรอก</span><h2 id="position-identity-title">ตัวตนของตำแหน่งปลูก</h2></div>
-            <small>รหัสนี้อ้างตำแหน่งถาวร ไม่ใช่ต้นทุเรียนเพียงรุ่นเดียว</small>
+            <div><span>ต้องกรอกโซน แถว และลำดับตำแหน่ง</span><h2 id="registration-fields-title">ข้อมูลลงทะเบียนตำแหน่งต้น</h2></div>
+            <small>รหัสป้ายสร้างอัตโนมัติในรูปแบบ Z01-R03-T05</small>
           </div>
 
-          <div className="farm-context-card">
-            <span>สวนปัจจุบัน</span><strong>{currentFarm.farmName}</strong><code>{currentFarm.farmCode}</code>
+          {locationsLoading ? <div className="loading-inline" role="status">กำลังอ่านทะเบียนเพื่อป้องกันรหัสซ้ำ…</div> : null}
+
+          <div className="form-grid tree-register-form__grid">
+            <label><span className="tree-register-field__label">ประเภทข้อมูล</span><input readOnly type="text" value="ข้อมูลภาคสนาม" /></label>
+            <label><span className="tree-register-field__label">รหัสองค์กร</span><input readOnly type="text" value={currentFarm.organizationCode} /></label>
+            <label><span className="tree-register-field__label">ลำดับสวน</span><input readOnly type="text" value={currentFarm.farmSequence} /></label>
+            <label><span className="tree-register-field__label">รหัสโซน <strong aria-hidden="true">*</strong></span><input list="tree-zone-options" onBlur={() => { try { setZoneCode(normalizeZoneCode(zoneCode)) } catch { /* submit จะรายงานค่าที่ไม่ถูกต้อง */ } }} onChange={(event) => { setZoneCode(event.target.value.toUpperCase()); setConfirmPermanentIdentity(false) }} placeholder="เช่น Z01 หรือ 1" required type="text" value={zoneCode} /></label>
+            <label><span className="tree-register-field__label">รหัสแถว <strong aria-hidden="true">*</strong></span><input list="tree-row-options" onBlur={() => { try { setRowCode(normalizeRowCode(rowCode)) } catch { /* submit จะรายงานค่าที่ไม่ถูกต้อง */ } }} onChange={(event) => { setRowCode(event.target.value.toUpperCase()); setConfirmPermanentIdentity(false) }} placeholder="เช่น R01 หรือ 1" required type="text" value={rowCode} /></label>
+            <label><span className="tree-register-field__label">ลำดับตำแหน่ง <strong aria-hidden="true">*</strong></span><input inputMode="numeric" min="1" onBlur={() => { try { setTreeSequence(String(normalizeTreeSequence(treeSequence)).padStart(2, '0')) } catch { /* submit จะรายงานค่าที่ไม่ถูกต้อง */ } }} onChange={(event) => { setTreeSequence(event.target.value.toUpperCase()); setConfirmPermanentIdentity(false) }} placeholder="เช่น 5 หรือ T05" required type="text" value={treeSequence} /></label>
+            <label><span className="tree-register-field__label">รหัสป้าย</span><input aria-describedby="tag-code-help" readOnly type="text" value={tagPreview} /></label>
+            <label><span className="tree-register-field__label">รอบปลูก</span><input readOnly type="text" value="1" /></label>
+            <label><span className="tree-register-field__label">พันธุ์</span><input onChange={(event) => setVariety(event.target.value)} placeholder="ไม่ทราบให้เว้นว่าง" type="text" value={variety} /></label>
+            <label><span className="tree-register-field__label">ปีปลูก</span><input inputMode="numeric" min="1" onChange={(event) => setPlantingYear(event.target.value)} placeholder="เช่น 2568" type="number" value={plantingYear} /></label>
           </div>
+          <datalist id="tree-zone-options">{zones.map((zone) => <option key={zone} value={zone} />)}</datalist>
+          <datalist id="tree-row-options">{rows.map((row) => <option key={row} value={row} />)}</datalist>
 
-          {locationsLoading ? <div className="loading-inline" role="status">กำลังอ่านรายการโซนและแถว…</div> : <>
-            {positions.length > 0 ? <fieldset className="segmented-choice">
-              <legend>เลือกวิธีระบุตำแหน่ง</legend>
-              <label><input checked={locationMode === 'EXISTING'} onChange={() => { setLocationMode('EXISTING'); selectExistingZone(zones[0] ?? '') }} type="radio" />ใช้โซนและแถวที่มีอยู่</label>
-              <label><input checked={locationMode === 'NEW'} onChange={() => { setLocationMode('NEW'); setZoneCode(''); setRowCode(''); setRowCountingDirection('TBD') }} type="radio" />ลงทะเบียนโซนหรือแถวใหม่</label>
-            </fieldset> : <p className="form-guidance">สวนนี้ยังไม่มีตำแหน่ง ระบบจะลงทะเบียนโซนและแถวแรกพร้อมตำแหน่งนี้</p>}
-
-            <div className="form-grid">
-              {locationMode === 'EXISTING' ? <>
-                <label>โซน <strong aria-hidden="true">*</strong><select onChange={(event) => selectExistingZone(event.target.value)} required value={zoneCode}>{zones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}</select></label>
-                <label>แถว <strong aria-hidden="true">*</strong><select onChange={(event) => selectExistingRow(event.target.value)} required value={rowCode}>{rows.map((row) => <option key={row} value={row}>{row}</option>)}</select></label>
-              </> : <>
-                <label>รหัสโซนใหม่ <strong aria-hidden="true">*</strong><input onChange={(event) => setZoneCode(event.target.value.toUpperCase())} placeholder="เช่น Z01" required value={zoneCode} /></label>
-                <label>รหัสแถวใหม่ <strong aria-hidden="true">*</strong><input onChange={(event) => setRowCode(event.target.value.toUpperCase())} placeholder="เช่น R01" required value={rowCode} /></label>
-              </>}
-              <label>ลำดับตำแหน่ง <strong aria-hidden="true">*</strong><input inputMode="numeric" min="1" onChange={(event) => setTreeSequence(event.target.value)} required type="number" value={treeSequence} /></label>
-              <label>ทิศทางการนับในแถว<select disabled={locationMode === 'EXISTING'} onChange={(event) => setRowCountingDirection(event.target.value as RowCountingDirection)} value={rowCountingDirection}>{Object.entries(rowCountingDirectionLabels).map(([direction, label]) => <option key={direction} value={direction}>{label}</option>)}</select></label>
-            </div>
-
-            {locationMode === 'NEW' ? <label className="checkbox-control confirmation-control"><input checked={confirmNewLocation} onChange={(event) => setConfirmNewLocation(event.target.checked)} required type="checkbox" />ยืนยันว่าได้ตรวจรหัสโซน แถว และทิศทางการนับสำหรับสวนนี้แล้ว</label> : null}
-          </>}
-
-          <div className="tag-preview"><span>ตัวอย่างรหัสป้าย</span><code>{tagPreview}</code><small>หลังบันทึก ระบบจะสงวนรหัสนี้และไม่นำกลับไปใช้กับตำแหน่งอื่น</small></div>
-          <label className="checkbox-control confirmation-control"><input checked={confirmPermanentIdentity} onChange={(event) => setConfirmPermanentIdentity(event.target.checked)} required type="checkbox" />ตรวจแล้วว่าสวน โซน แถว ลำดับตำแหน่ง และรหัสป้ายถูกต้อง</label>
+          <p className="form-guidance" id="tag-code-help">ปี 2400 ขึ้นไปบันทึกเป็น พ.ศ. หากเว้นทั้งพันธุ์และปีปลูก ระบบจะลงทะเบียนเป็นตำแหน่ง “ไม่มีต้น”</p>
+          <div className="tag-preview"><span>รหัสป้ายที่จะสงวน</span><code>{tagPreview}</code><small>ตรวจซ้ำจากโซน + แถว + ลำดับต้นภายในสวนปัจจุบัน</small></div>
+          {duplicatePosition ? <div className="form-error" role="alert">รหัสนี้ถูกใช้แล้วโดย {duplicatePosition.tagCode} กรุณาเปลี่ยนโซน แถว หรือลำดับตำแหน่ง</div> : null}
+          <label className="checkbox-control confirmation-control"><input checked={confirmPermanentIdentity} disabled={Boolean(duplicatePosition)} onChange={(event) => setConfirmPermanentIdentity(event.target.checked)} required type="checkbox" />ตรวจแล้วว่าโซน แถว ลำดับตำแหน่ง และรหัสป้ายถูกต้อง</label>
         </section>
-
-        <TreeCycleFormFields
-          onChange={(patch) => setCycleForm((current) => ({ ...current, ...patch }))}
-          value={cycleForm}
-        />
 
         {error ? <div className="form-error" role="alert">{error}</div> : null}
         <div className="form-actions sticky-form-actions">
-          <button className="primary-action" disabled={saving || locationsLoading} type="submit">{saving ? 'กำลังบันทึก…' : 'บันทึกตำแหน่งปลูก'}</button>
+          <button className="primary-action" disabled={saving || locationsLoading || Boolean(duplicatePosition)} type="submit">{saving ? 'กำลังลงทะเบียน…' : 'ลงทะเบียน'}</button>
           <Link className="secondary-action" to="/trees">ยกเลิก</Link>
         </div>
       </form>

@@ -29,7 +29,7 @@ export interface AuthenticatedIdentity {
   userId: string
   displayName: string
   maskedPhone: string
-  source: 'mock' | 'firebase-emulator' | 'firebase-live'
+  source: 'mock' | 'firebase-live'
 }
 
 export interface FarmAccess {

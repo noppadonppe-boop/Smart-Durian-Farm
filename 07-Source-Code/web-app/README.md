@@ -1,256 +1,108 @@
-# Smart Durian Farm Web App — Firebase Production
+# Smart Durian Farm Web App — Firebase Live
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 1.3.0 |
-| สถานะ | Firebase Production Adapter + Production Seed Script Ready |
-| เจ้าของเอกสาร | Project Owner |
+| เวอร์ชัน | 2.0.0 |
+| สถานะ | Production Go-Live ตาม DEC-051 |
+| Firebase project | `durian-smartfarm` |
+| Data root | `durian-smartfarm/root` |
 | วันที่ปรับปรุง | 2026-09-04 |
-| Source of Truth | `../../AGENTS.md` v3.6, Development/Mock Data/Pilot Knowledge v1.0.4, DEC-027, DEC-038, DEC-040 และ DEC-041 |
 
-Web App สำหรับ Smart Durian Farm / KDOMS โดย runtime Production เชื่อม Firebase
-Authentication, Cloud Firestore และ Storage ของ project `durian-smartfarm`
-โดยตรง ข้อมูลที่เขียนผ่าน Production Seed จะถูกบันทึกเป็น
-`classification=OPERATIONAL` และ `exampleData=false` ใต้ shared document
-`durian-smartfarm/root`
+Web App ใช้ Firebase Authentication, Cloud Firestore และ Firebase Storage ของ
+project `durian-smartfarm` โดยตรงทุก browser build ไม่มี data runtime สำรองในเครื่อง
+ส่วน Mock adapter คงอยู่เฉพาะ unit/component test และไม่สามารถถูกเลือกใน build ที่
+นำไปใช้งานได้
 
-## เปิดแอปด้วย Firebase Production
-
-runtime ปกติไม่ต้องเปิด Firebase Emulator และอ่านค่า Web config จาก `.env` ที่ Git
-ignore อยู่แล้ว
+## เริ่มระบบ
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-เปิด URL ที่ Vite แสดงและยืนยัน Phone OTP ด้วยบัญชี Firebase ที่มีสิทธิ์ใน
-Organization/Farm ข้อมูลเริ่มต้นให้รัน [Production Seed Script](scripts/PRODUCTION-SEED.md)
-จากเครื่องที่มี Firebase Admin credential; ไม่มีปุ่ม Seed ข้อมูล Production ในหน้าเว็บ
+ค่าจริงของ Firebase Web App อยู่ในไฟล์ `.env` ที่ถูก Git ignore โดยใช้
+`.env.example` เป็นแม่แบบ Production build จะบังคับ `firebase-live` แม้มีค่า
+`VITE_DATA_ADAPTER` เก่าค้างอยู่
 
-Dry run:
+## เข้าสู่ระบบโดยผู้ดูแล
+
+หน้า Login มีปุ่ม **เข้าสู่ระบบโดยผู้ดูแล (Firebase Live)** ซึ่งใช้ Google Sign-In
+ของ Firebase จริง ปุ่มนี้แสดงใน hosted build ด้วย ไม่ได้จำกัดเฉพาะเครื่องพัฒนา
+
+สิทธิ์ Seed/System Admin เชื่อถือได้จากอย่างใดอย่างหนึ่งเท่านั้น:
+
+- UID ตรงกับ `seedOwnerUid` ที่ root; หรือ
+- Firebase custom claim `masterAdmin=true`
+
+ข้อความ Role จาก client ไม่สามารถยกระดับสิทธิ์ได้ หากต้องอนุมัติ UID ใหม่ ให้ตรวจ
+UID จากหน้า Firebase Live / Seed แล้วใช้ Admin credential รันแบบ Dry run ก่อน:
+
+```powershell
+pnpm admin:grant -- --uid <firebase-auth-uid>
+pnpm admin:grant -- --uid <firebase-auth-uid> --confirm-production-admin
+```
+
+ผู้ใช้ต้องออกจากระบบแล้วเข้าใหม่เพื่อรับ ID token ที่มี claim ล่าสุด
+
+## ปุ่ม Seed อยู่ที่ไหน
+
+ผู้ดูแลเปิดได้จากเมนูด้านซ้าย **Firebase Live / Seed**, เมนูเพิ่มเติม หรือ URL
+`/firebase-admin` มีสองการทำงานที่แยกกันชัดเจน:
+
+1. **Seed พื้นที่ใช้งานจริงเข้า Firebase Live** — สร้าง root, Organization,
+   Organization Owner, Farm, Farm Owner membership และ Audit แบบ `OPERATIONAL`
+   จากค่าที่ผู้ดูแลกรอก ไม่สร้างจำนวนต้น งาน โรค ผลผลิต ยอดขาย หรือต้นทุนปลอม
+2. **Seed Mock 8 โมดูลเข้า Firebase Live** — นำ deterministic test pack ไปไว้ใน
+   สวน DEMO เพื่อทดสอบทุกโมดูล ข้อมูลนี้อยู่ใน Firebase Live จริงแต่ยังเป็น
+   `SIMULATED/TEST ONLY` และไม่ปะปนกับสวนจริง
+
+เมื่อสร้างสวนจริงสำเร็จ ระบบเลือกสวนนั้นเป็นสวนปัจจุบันและแสดงแถบ
+`Firebase Live · ข้อมูล Operational` โดยไม่มีป้ายข้อมูลจำลอง
+
+## โมดูลที่เขียน Firebase Live
+
+- Farm/Profile/Membership และ Owner-only financial access
+- Tree Register, Planting Cycle, Tag route และการเลือกตำแหน่ง
+- Work Order, Care Event, Disease Incident และ Human Review
+- Crop/Fruit/Harvest/Sales/Inventory
+- Annual Farm Management Cycle และ Management Reporting/Cost
+- Dashboard, Portfolio, Queue/Conflict, Audit และ Export
+- Disease Analysis candidate finding ซึ่งยังต้องผ่าน Agronomist review และไม่สร้าง
+  diagnosis/treatment/คำแนะนำสารเคมีอัตโนมัติ
+
+ทุกข้อมูลเชิงปฏิบัติการอยู่ภายใต้ `Organization → Farm` และ Firestore Rules ยัง
+บังคับ Cross-Farm denial ข้อมูลการเงินเปิดเฉพาะ trusted Organization Owner
+
+## Storage
+
+`VITE_FIREBASE_STORAGE_READY=true` ใช้ได้เมื่อ Storage bucket ถูก provision และ
+Storage Rules ถูก deploy แล้วเท่านั้น หากยังเป็น `false` ชุด Seed ทดสอบจะข้ามรูป
+placeholder และหน้าผู้ดูแลจะแสดงสถานะตรงไปตรงมา
+
+## Seed ผ่าน Admin SDK
+
+ไฟล์ Mock Data แยกจาก `src/` อยู่ใน `scripts/seed-data/` และยังรันผ่าน CLI ได้:
 
 ```powershell
 pnpm seed:production -- --owner-uid <firebase-owner-uid>
-```
-
-เมื่อยืนยัน project, Owner UID, backup/rollback และสิทธิ์ของ service account แล้ว
-จึงใช้ confirmation สองชั้นเพื่อเขียนจริง:
-
-```powershell
 pnpm seed:production -- --owner-uid <firebase-owner-uid> --confirm-production --confirm-production-seed
 ```
 
-โหมด Local/Emulator และ Mock adapter ยังคงอยู่สำหรับ automated regression เท่านั้น
-และแยกจาก Production adapter; Production build ไม่ใช้บัญชีทางลัดหรือข้อมูล Mock
-เป็นข้อมูล Production
+รายละเอียดอยู่ที่ [scripts/PRODUCTION-SEED.md](scripts/PRODUCTION-SEED.md)
 
-## ขอบเขตที่ทำเสร็จ
-
-- Phase 1–3: local foundation, Phone OTP Emulator, Multi-Farm access,
-  Tree Register, planting cycle, Tag/QR route และ scan/manual confirmation
-- Tree Register ดาวน์โหลด Excel Template ที่เปิดใน Microsoft Excel/Google Sheets,
-  นำกลับเข้าเป็น `.xlsx`/`.csv`, Preview 49 คอลัมน์ และเขียนแบบ atomic/idempotent
-- Work Order: Draft, Assigned, Accepted, In Progress, pause/resume, Submitted,
-  Verified, Rejected, Rework และ Closed
-- target แบบ Tree, Tree Set, Row และ Zone โดย snapshot opaque Position IDs
-- Worker flow: accept/start/confirm tree/report/submit พร้อมผลสำเร็จหรือ exception
-  รายต้น
-- ผู้สร้าง Work Order แนบรูปประกอบได้ 0–3 รูปขณะ Draft ก่อน Assign
-- Worker Report ต้องมี before/after evidence รวมไม่เกิน 6 รูป โดยทุกไฟล์ต้อง
-  อัปโหลดสำเร็จใน Mock adapter หรือ Firebase Storage Emulator ก่อน Submit
-- Manager/Agronomist verification, reject/rework reason, immutable audit event และ
-  idempotency key
-- Care Event: fertilizer, chemical, water, pruning และ inspection
-- Disease Incident: observed symptom, severity, suspected/confirmed diagnosis,
-  treatment, follow-up และ outcome
-- Worker ห้ามวินิจฉัย; chemical/treatment คง `PENDING_SPECIALIST` จน Agronomist
-  อนุมัติ
-- in-app urgent/rework/follow-up queue; ไม่มี SMS หรือ push ภายนอก
-- Firestore/Storage Rules แบบ deny-by-default พร้อม Cross-Farm, wrong-tree,
-  role และ evidence tests
-- Crop Cycle และ Fruit Observation ที่ระบุ method, count, confidence, unit,
-  actor และเวลา พร้อมแยก measured/estimated/unknown
-- Fruit Observation เลือกที่มาของจำนวนเป็น `MANUAL` หรือ `AI_ASSISTED` ได้
-  โดย Production ใช้ deterministic rules และให้คนแก้จำนวนก่อนบันทึก
-- Harvest Lot และ Sales Lot แบบ partial พร้อม customer reference ขั้นต่ำ,
-  ยอดมัดจำ/รับแล้ว/ค้าง, correction, archive และ idempotency
-- Trace Tree/Zone → Crop Cycle → Harvest → Sales
-- Inventory receipt/issue/signed adjustment, lot/unit/expiry, low-stock/expiry alert
-  และ direct cost ที่เชื่อม Work/Care reference
-- negative stock และ Cross-Farm ถูกปฏิเสธ; `SALES_INVENTORY` ใช้สิทธิ์ตาม Farm
-- Farm Dashboard ปรับตามบทบาท และ Portfolio เฉพาะ Organization Owner ซึ่งรวม
-  เฉพาะสวนที่ได้รับสิทธิ์
-- Offline queue แสดง Pending/Syncing/Synced/Conflict พร้อม retry/idempotency และ
-  ตรวจ role ใหม่เมื่อ reconnect
-- Master conflict ใช้ Owner/Manager review พร้อม reason/before-after audit
-- partial photo retry และ orphan cleanup แบบจำกัดสิทธิ์/มี audit
-- Operational Audit และ Farm-scoped minimal CSV Export พร้อม formula protection
-- route/Firebase adapter code splitting, PWA performance budget และ Light/Dark theme
-
-## Seed Data และ Firebase Emulator
-
-ไฟล์ Seed Pack สำหรับการทดสอบและการนำเข้าครั้งแรกอยู่ใน `scripts/seed-data/`
-แยกออกจาก `src/` แล้ว โดย Seeder รวมแต่ละแพ็กตาม dependency และ Production
-Script จะแปลง mode/classification เป็นค่า Production ก่อนเขียน Firebase
-
-- เวอร์ชัน `1.0.0`
-- ป้ายกำกับ `SIMULATED/TEST ONLY`
-- deterministic และ resettable
-- ครอบคลุม authorized/hidden Farm Dashboard, pending/retry/duplicate/conflict,
-  role downgrade/revocation, partial/orphan photo, correction audit และ export
-- ไม่มีข้อมูลสวน/ลูกค้า/บุคคลจริง เบอร์/อีเมลจริง พิกัดจริง หรือ Production identifier
-
-รีเซ็ต Firebase Emulator และ Seed ครบทุกโมดูล:
-
-```powershell
-pnpm seed:emulator
-```
-
-หากต้องการทดสอบเป็นช่วง สามารถ Seed แยกตามฟังก์ชันได้ แต่ละคำสั่งจะรีเซ็ตข้อมูล
-ก่อน แล้ว Seed dependency ที่จำเป็นให้อัตโนมัติ:
-
-```powershell
-pnpm seed:emulator:foundation
-pnpm seed:emulator:trees
-pnpm seed:emulator:work
-pnpm seed:emulator:commercial
-pnpm seed:emulator:operations
-pnpm seed:emulator:disease-analysis
-```
-
-ตรวจ Seeder แบบครบวงจรโดยให้คำสั่งเปิดและปิด Emulator เอง:
-
-```powershell
-pnpm test:seed:emulator
-```
-
-Emulator Full Seed ประกอบด้วย Auth test accounts, Organization/Farm/Membership,
-Tree/Planting Cycle/Tag/QR route, Work/Care/Disease/รูป Placeholder, Crop/Fruit/
-Harvest/Sales/Inventory, Dashboard/Offline/Conflict/Recovery/Audit และ Disease
-Analysis Session/Human Review และ Management Reporting/Cost สำหรับ regression
-
-Production Script ไม่สร้าง Firebase Auth user; ต้องเตรียม Owner Auth account และ
-ส่ง UID จริงผ่าน `--owner-uid` ก่อนเขียนข้อมูล
-
-Mock adapter ในเบราว์เซอร์จะรีเซ็ตเมื่อสร้าง runtime ใหม่ และใช้ ID ที่สร้างซ้ำได้
-สำหรับ mutation จำลอง
-
-## หน้าจอสำคัญ
-
-- `/` — Dashboard และ trusted Farm context
-- `/work`, `/work/new`, `/work/:workOrderId` — Work workflow
-- `/care` — Care Event และ specialist approval
-- `/disease`, `/disease/:incidentId` — symptom/diagnosis/follow-up
-- `/production` — Crop Cycle, Fruit Observation, Harvest/Sales และ traceability
-- `/inventory` — stock balance, alerts, receipt/issue/adjustment และ direct cost
-- `/portfolio` — Owner-only authorized Farm portfolio
-- `/sync` — Offline queue, Conflict และ Photo recovery
-- `/notifications` — คิวในแอป
-- `/scan` — QR/manual confirmation และ mismatch stop
-- `/trees`, `/trees/:positionId` — Tree Register และ history
-- `/trees/import` — ดาวน์โหลด Template และ Preview/Import Excel หรือ CSV จาก Google Sheets
-- `/members`, `/audit` — Access และ Audit
-
-## Firebase Emulator — Phone OTP และ Rules แบบ Local
-
-Firebase Project จริงไม่จำเป็นสำหรับขั้นตอนนี้ Local Emulator รองรับ Phone OTP,
-Firestore/Storage Rules และ adapter integration โดยต้องมี Java 21 การเปิด Phone
-provider หรือกำหนด test phone ใน Firebase Console ไม่มีผลต่อ Auth Emulator
-เพราะ Emulator สร้างรหัสใหม่และแสดงในหน้าต่างที่รัน Emulator เอง
-
-```powershell
-pnpm emulators
-```
-
-อีกหน้าต่างหนึ่ง ให้ reset บัญชี/ข้อมูลจำลองแล้วเปิดแอปในโหมด Emulator:
-
-```powershell
-pnpm seed:emulator
-pnpm dev:emulator
-```
-
-หน้า Login ใช้หมายเลขทดสอบที่แสดงในแอป กดขอรหัส แล้วนำ OTP 6 หลักจาก
-หน้าต่าง `pnpm emulators` มากรอก รหัสจะเปลี่ยนทุกครั้งและไม่มี SMS จริงถูกส่ง
-
-ถ้าต้องการใช้ Mock OTP แบบไม่เปิด Emulator ให้ override เฉพาะ process ปัจจุบัน:
-
-```powershell
-$env:VITE_DATA_ADAPTER='mock'
-$env:VITE_AUTH_ADAPTER='mock'
-pnpm dev
-```
-
-`pnpm dev:emulator` โหลด `.env.emulator` ซึ่งบังคับ project จำลองและ loopback
-เท่านั้น ส่วน `.env.example` ยังคงเริ่มที่ `mock`; ทั้งสองไฟล์ไม่มี credential จริง
-
-## Firebase Production — DEC-041 Shared Root
-
-คำสั่ง `pnpm dev` ใช้ Firebase Phone Authentication และ Firestore Production จริง
-จาก `.env` ที่ถูก ignore โดย Git ไม่มีการเชื่อม Local Emulator ใน runtime ปกติ
-ผู้ใช้คนแรกยืนยัน Phone OTP แล้วกดปุ่ม Seed ในหน้า No-Farm/หน้าหลักเพื่อสร้าง
-deterministic Mock Data ใต้ `durian-smartfarm/root`
-
-ค่าของ Web App อยู่ใน `.env` ซึ่งถูก ignore โดย Git ต้องกำหนด
-`FIREBASE_LIVE_AUTH_ALLOWED_PHONE_NUMBERS` เฉพาะหมายเลขที่ Owner อนุญาต โดยห้าม
-ใช้ prefix `VITE_` กับหมายเลขจริง จากนั้นรันคำสั่งเตรียม allowlist เพื่อสร้างเฉพาะ
-PBKDF2 digest + random salt สำหรับ browser bundle
-
-```powershell
-pnpm prepare:firebase-auth-allowlist
-pnpm dev
-```
-
-Limited Hosting build ตาม DEC-042 ใช้ `VITE_DATA_ADAPTER=mock` จากไฟล์
-`.env.firebase-live.local` และ Deploy เฉพาะ Hosting:
-
-```powershell
-npm run deploy:firebase-auth-hosting
-```
-
-คำสั่งนี้ build Firebase Phone Auth จริง + Mock Data แล้วเรียก Firebase CLI ด้วย
-`--only hosting --project durian-smartfarm`; ไม่ Deploy Firestore/Storage
-
-ก่อนส่ง OTP ผู้ใช้ต้องรับทราบว่าหมายเลขจะถูกส่งให้ Google Firebase ปุ่ม Seed ต้อง
-พิมพ์ชื่อ project และยืนยันป้าย `SIMULATED/TEST ONLY` ทุกครั้ง Firestore Rules และ
-Indexes Deploy แล้ว แต่ Firebase Storage ยังไม่ผ่าน Get Started จึงตั้ง
-`VITE_FIREBASE_STORAGE_READY=false` และข้าม placeholder 3 ไฟล์ชั่วคราว
-
-## การตรวจสอบ
+## ตรวจสอบและ Deploy
 
 ```powershell
 pnpm validate
+pnpm deploy:firebase-live
 ```
 
-ชุดนี้รัน lint, TypeScript strict, unit/component tests, production build,
-performance budget, offline runtime scan และ Firebase Auth/Firestore/Storage
-Emulator tests
+`deploy:firebase-live` build แล้ว deploy Firestore Rules/Indexes และ Hosting ไปยัง
+`durian-smartfarm.web.app` ส่วน Storage แยกคำสั่งเพื่อไม่ให้ deploy ก่อน bucket พร้อม:
 
-ผลตรวจเฉพาะ Full Mock Seed ล่าสุด:
+```powershell
+pnpm deploy:firebase-storage
+```
 
-- unit/component: 171/171 ใน 20 test files
-- emulator/security/integration: 49/49 ใน 8 test files
-- Seeder verification: 127 records ใน 6 โมดูล พร้อม root document, Auth 6 บัญชีและ Storage 3 objects
-- lint และ TypeScript strict: ผ่าน
-- production/PWA build: ผ่าน
-- deterministic reset และ Cross-Farm reference validation: ผ่าน
-
-รายงานอยู่ที่
-`../../08-Testing/Phase-6-Validation-Report_v1.0.md` และส่วนเพิ่มรูป Work Order อยู่ที่
-`../../08-Testing/Phase-4-Work-Photo-Enhancement-Validation_v1.0.md`; ผล AIFC อยู่ที่
-`../../08-Testing/AI-Fruit-Counting-WP1-Partial-Validation-Report_v0.1.md`; ผล Full
-Mock Seed อยู่ที่ `../../08-Testing/Firebase-Emulator-Full-Mock-Seed-Validation_v1.0.md`
-
-## ข้อห้ามและความเสี่ยงคงค้าง
-
-- Firebase Production Firestore อนุมัติเฉพาะ deterministic Mock Data ตาม DEC-041;
-  ห้ามข้อมูล/ภาพจริง, public deployment, production domain และ service-account key
-- QR base URL ยัง `TBD`; ห้าม encode/พิมพ์ URL ที่ไม่ได้อนุมัติและห้ามผลิตป้ายถาวร
-- Physical Device/Field Validation ถูกเลื่อนไป Controlled Pilot หลัง Owner
-  อนุมัติ Pilot Candidate และไม่ block Gate ทางวิศวกรรม Phase 5
-- Physical/Field evidence ยังต้องผ่านก่อน Production, ป้ายถาวร หรือขยายใช้งาน
-- dependency audit มี moderate 2 รายการเฉพาะ dev-only transitive ของ
-  `firebase-tools`; high/critical = 0 และต้องติดตาม upstream ก่อน Pilot Candidate
-- Backup/Restore/Monitoring/Incident เป็น Draft; destination, RPO/RTO และ contacts ยัง `TBD`
-- Phase 7 อนุญาตเฉพาะ planning/readiness; External Pilot Action/Deploy ยังต้องขอแยก
-- AIFC-G1 ยังไม่ผ่าน; ห้ามภาพจริง external AI/API/model และ commercial use
+การทดสอบใน `pnpm test` ใช้ deterministic fixtures ในหน่วยความจำเท่านั้นและไม่เขียน
+Firebase project จริง

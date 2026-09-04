@@ -1,6 +1,8 @@
 import {
+  GoogleAuthProvider,
   onAuthStateChanged,
   RecaptchaVerifier,
+  signInWithPopup,
   signInWithPhoneNumber,
   signOut,
   type Auth,
@@ -13,13 +15,6 @@ import type {
   PhoneOtpGateway,
 } from '../../adapters/contracts'
 import type { AuthenticatedIdentity } from '../../domain/farm'
-let allowedTestPhones: Promise<ReadonlySet<string>> | undefined
-
-function localTestPhones(): Promise<ReadonlySet<string>> {
-  allowedTestPhones ??= import('../../../scripts/seed-data/phase2-demo-seed.json').then(({ default: seed }) =>
-    new Set(seed.users.map((user) => user.phoneNumber)))
-  return allowedTestPhones
-}
 
 function errorCode(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null || !('code' in error)) {
@@ -30,7 +25,6 @@ function errorCode(error: unknown): string | undefined {
 
 export function phoneOtpErrorMessage(
   error: unknown,
-  target: 'emulator' | 'live' = 'emulator',
 ): string {
   const code = errorCode(error)
   switch (code) {
@@ -45,9 +39,7 @@ export function phoneOtpErrorMessage(
       return 'ขอรหัสบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่'
     case 'auth/network-request-failed':
     case 'auth/operation-not-supported-in-this-environment':
-      return target === 'live'
-        ? 'ติดต่อ Firebase Authentication ไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่'
-        : 'ติดต่อระบบยืนยันตัวตนสำหรับข้อมูลทดสอบไม่ได้ กรุณาลองใหม่'
+      return 'ติดต่อ Firebase Authentication ไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่'
     case 'auth/operation-not-allowed':
       return 'Phone Authentication ยังไม่พร้อมใช้งานในสภาพแวดล้อมนี้'
     case 'auth/app-not-authorized':
@@ -62,9 +54,28 @@ export function phoneOtpErrorMessage(
     case 'auth/quota-exceeded':
       return 'โควตาการส่ง SMS ของ Firebase หมดแล้ว กรุณาตรวจ Usage/Billing ก่อนลองใหม่'
     default:
-      return target === 'live'
-        ? `ไม่สามารถส่งหรือยืนยัน OTP ผ่าน Firebase ได้ กรุณาตรวจการตั้งค่า Phone Auth แล้วลองใหม่${code ? ` (รหัส: ${code})` : ''}`
-        : 'ไม่สามารถดำเนินการ Phone OTP ได้ กรุณาลองใหม่'
+      return `ไม่สามารถส่งหรือยืนยัน OTP ผ่าน Firebase ได้ กรุณาตรวจการตั้งค่า Phone Auth แล้วลองใหม่${code ? ` (รหัส: ${code})` : ''}`
+  }
+}
+
+function googleAuthErrorMessage(error: unknown): string {
+  const code = errorCode(error)
+  switch (code) {
+    case 'auth/popup-closed-by-user':
+      return 'หน้าต่าง Google Sign-In ถูกปิดก่อนเข้าสู่ระบบ'
+    case 'auth/popup-blocked':
+      return 'เบราว์เซอร์บล็อกหน้าต่าง Google Sign-In กรุณาอนุญาต Popup แล้วลองใหม่'
+    case 'auth/operation-not-allowed':
+      return 'ยังไม่ได้เปิด Google Sign-In ใน Firebase Authentication ของ Production project'
+    case 'auth/unauthorized-domain':
+    case 'auth/app-not-authorized':
+      return 'โดเมนที่เปิดแอปยังไม่ได้รับอนุญาตสำหรับ Google Sign-In ใน Firebase Authentication'
+    case 'auth/account-exists-with-different-credential':
+      return 'บัญชี Google นี้มีวิธีเข้าสู่ระบบอื่นอยู่แล้ว กรุณาใช้วิธีที่ผูกไว้กับ Firebase'
+    case 'auth/network-request-failed':
+      return 'ติดต่อ Firebase Authentication ไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่'
+    default:
+      return `ไม่สามารถเข้าสู่ Firebase Production ด้วย Google ได้${code ? ` (รหัส: ${code})` : ''}`
   }
 }
 
@@ -102,16 +113,13 @@ function identityFromUser(
     userId: mappedUserId ?? user.uid,
     displayName:
       user.displayName ??
-      (source === 'firebase-live'
-        ? 'ผู้ใช้ยืนยันผ่าน Firebase'
-        : 'ผู้ใช้ทดสอบ'),
+      'ผู้ใช้ยืนยันผ่าน Firebase',
     maskedPhone: maskPhone(phone),
     source,
   }
 }
 
 interface FirebasePhoneOtpGatewayOptions {
-  runtime: 'emulator' | 'live'
   allowedPhoneHashes?: readonly string[]
   phoneAllowlistSalt?: string
   phoneAllowlistIterations?: number
@@ -196,7 +204,7 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
         user
           ? identityFromUser(
               user,
-              this.options.runtime === 'live' ? 'firebase-live' : 'firebase-emulator',
+              'firebase-live',
               this.options.mappedUserId,
             )
           : null,
@@ -212,26 +220,20 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
     if (!/^\+[1-9]\d{7,14}$/u.test(normalized)) {
       throw new Error('รูปแบบหมายเลขโทรศัพท์ไม่ถูกต้อง กรุณากรอกเบอร์ไทย 10 หลักหรือรูปแบบ +66')
     }
-    if (this.options.runtime === 'live') {
-      if (!this.allowedPhoneHashes?.size || !this.options.phoneAllowlistSalt) {
-        throw new Error('ยังไม่ได้เตรียมชุดอนุญาตหมายเลขสำหรับการทดสอบ Firebase Auth จริง')
-      }
-      const digest = await phoneAllowlistDigest(
-        normalized,
-        this.options.phoneAllowlistSalt,
-        this.options.phoneAllowlistIterations,
-      )
-      if (!this.allowedPhoneHashes.has(digest)) {
-        throw new Error('หมายเลขนี้ไม่ได้รับอนุญาตสำหรับการทดสอบ Firebase Auth จริง')
-      }
-    } else if (!(await localTestPhones()).has(normalized)) {
-      throw new Error(
-        'โหมดทดสอบอนุญาตเฉพาะหมายเลขทดสอบจำลองที่กำหนดไว้',
-      )
+    if (!this.allowedPhoneHashes?.size || !this.options.phoneAllowlistSalt) {
+      throw new Error('ยังไม่ได้เตรียมชุดอนุญาตหมายเลขสำหรับ Firebase Phone Auth')
+    }
+    const digest = await phoneAllowlistDigest(
+      normalized,
+      this.options.phoneAllowlistSalt,
+      this.options.phoneAllowlistIterations,
+    )
+    if (!this.allowedPhoneHashes.has(digest)) {
+      throw new Error('หมายเลขนี้ไม่ได้รับอนุญาตให้เข้าสู่ระบบ')
     }
 
     const hostError =
-      this.options.runtime === 'live' && typeof window !== 'undefined'
+      typeof window !== 'undefined'
         ? livePhoneAuthHostError(window.location.hostname)
         : undefined
     if (hostError) throw new Error(hostError)
@@ -250,7 +252,7 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
       return { challengeId: this.challengeId, phoneNumber: normalized }
     } catch (error) {
       this.clearChallenge()
-      throw new Error(phoneOtpErrorMessage(error, this.options.runtime), { cause: error })
+      throw new Error(phoneOtpErrorMessage(error), { cause: error })
     }
   }
 
@@ -268,7 +270,7 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
       this.clearChallenge()
       return identityFromUser(
         credential.user,
-        this.options.runtime === 'live' ? 'firebase-live' : 'firebase-emulator',
+        'firebase-live',
         this.options.mappedUserId,
       )
     } catch (error) {
@@ -276,7 +278,16 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
       if (code === 'auth/code-expired' || code === 'auth/session-expired') {
         this.clearChallenge()
       }
-      throw new Error(phoneOtpErrorMessage(error, this.options.runtime), { cause: error })
+      throw new Error(phoneOtpErrorMessage(error), { cause: error })
+    }
+  }
+
+  async signInWithGoogle(): Promise<AuthenticatedIdentity> {
+    try {
+      const result = await signInWithPopup(this.auth, new GoogleAuthProvider())
+      return identityFromUser(result.user, 'firebase-live', this.options.mappedUserId)
+    } catch (error) {
+      throw new Error(googleAuthErrorMessage(error), { cause: error })
     }
   }
 
@@ -290,12 +301,6 @@ class FirebasePhoneOtpGateway implements PhoneOtpGateway {
   }
 }
 
-export class FirebaseEmulatorPhoneOtpGateway extends FirebasePhoneOtpGateway {
-  constructor(auth: Auth) {
-    super(auth, { runtime: 'emulator' })
-  }
-}
-
 export class FirebaseLivePhoneOtpGateway extends FirebasePhoneOtpGateway {
   constructor(
     auth: Auth,
@@ -305,7 +310,6 @@ export class FirebaseLivePhoneOtpGateway extends FirebasePhoneOtpGateway {
     mappedUserId?: string,
   ) {
     super(auth, {
-      runtime: 'live',
       allowedPhoneHashes,
       phoneAllowlistSalt,
       phoneAllowlistIterations,

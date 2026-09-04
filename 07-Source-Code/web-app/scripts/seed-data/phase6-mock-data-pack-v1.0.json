@@ -1,0 +1,182 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "classification": "SIMULATED/TEST ONLY",
+    "deterministic": true,
+    "resettable": true,
+    "fixedClock": "2026-08-31T09:00:00+07:00"
+  },
+  "farmDashboards": [
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "farmCode": "DEMO-F01",
+      "farmName": "สวนสาธิตเหนือ — ข้อมูลจำลอง",
+      "treeHealth": { "normal": 24, "watch": 3, "sick": 2, "recovering": 1, "dead": 0, "empty": 0 },
+      "urgentDiseaseCount": 2,
+      "overdueWorkCount": 1,
+      "upcomingWorkCount": 3,
+      "fruitEstimate": { "count": 1240, "unit": "fruit", "quality": "ESTIMATED" },
+      "harvestAvailableKg": 245.5,
+      "inventoryWarningCount": 2,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_south_02",
+      "farmCode": "DEMO-F02",
+      "farmName": "สวนสาธิตใต้ — ข้อมูลจำลอง",
+      "treeHealth": { "normal": 18, "watch": 2, "sick": 1, "recovering": 0, "dead": 1, "empty": 2 },
+      "urgentDiseaseCount": 1,
+      "overdueWorkCount": 0,
+      "upcomingWorkCount": 2,
+      "fruitEstimate": { "count": null, "unit": "fruit", "quality": "UNKNOWN" },
+      "harvestAvailableKg": 90,
+      "inventoryWarningCount": 1,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_hidden_99",
+      "farmCode": "DEMO-F99",
+      "farmName": "สวนซ่อนสำหรับทดสอบสิทธิ์ — ข้อมูลจำลอง",
+      "treeHealth": { "normal": 99, "watch": 9, "sick": 9, "recovering": 9, "dead": 9, "empty": 9 },
+      "urgentDiseaseCount": 99,
+      "overdueWorkCount": 99,
+      "upcomingWorkCount": 99,
+      "fruitEstimate": { "count": 9999, "unit": "fruit", "quality": "ESTIMATED" },
+      "harvestAvailableKg": 9999,
+      "inventoryWarningCount": 99,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · SECURITY FIXTURE",
+      "exampleData": true
+    }
+  ],
+  "farmDashboardFinancials": [
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "salesGrossBaht": 51000,
+      "salesOutstandingBaht": 12000,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_south_02",
+      "salesGrossBaht": 18000,
+      "salesOutstandingBaht": 0,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_hidden_99",
+      "salesGrossBaht": 999999,
+      "salesOutstandingBaht": 999999,
+      "lastCalculatedAtLabel": "31 ส.ค. 2569 09:00 · SECURITY FIXTURE",
+      "exampleData": true
+    }
+  ],
+  "offlineOperations": [
+    {
+      "operationId": "offline_demo_pending_north_01",
+      "idempotencyKey": "phase6-seed-pending-north-01",
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "actorUserId": "user_demo_owner_01",
+      "capturedRole": "ORG_OWNER",
+      "kind": "WORK_REPORT",
+      "label": "รายงานงานจำลองที่รอซิงก์",
+      "targetId": "work_demo_tree_000001",
+      "payloadFingerprint": "a1b2c3d4e5f60708",
+      "requiredRoles": ["ORG_OWNER", "FARM_MANAGER", "WORKER"],
+      "status": "PENDING",
+      "attemptCount": 0,
+      "createdAtLabel": "31 ส.ค. 2569 08:50 · เวลาจำลองคงที่",
+      "updatedAtLabel": "31 ส.ค. 2569 08:50 · เวลาจำลองคงที่",
+      "exampleData": true
+    }
+  ],
+  "masterConflicts": [
+    {
+      "conflictId": "conflict_demo_tree_north_01",
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "entityType": "TREE_MASTER",
+      "entityId": "pos_demo_a01f783bc219",
+      "fieldName": "status",
+      "serverValue": "WATCH",
+      "deviceValue": "NORMAL",
+      "status": "OPEN",
+      "detectedAtLabel": "31 ส.ค. 2569 08:45 · เวลาจำลองคงที่",
+      "version": 1,
+      "exampleData": true
+    },
+    {
+      "conflictId": "conflict_demo_inventory_south_01",
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_south_02",
+      "entityType": "INVENTORY_ITEM",
+      "entityId": "inventory_item_demo_south_001",
+      "fieldName": "reorderLevel",
+      "serverValue": "10 kg",
+      "deviceValue": "8 kg",
+      "status": "OPEN",
+      "detectedAtLabel": "31 ส.ค. 2569 08:40 · เวลาจำลองคงที่",
+      "version": 1,
+      "exampleData": true
+    }
+  ],
+  "photoRecoveries": [
+    {
+      "recoveryId": "photo_recovery_demo_partial_01",
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "workOrderId": "work_demo_tree_000001",
+        "photoId": "photo_demo_partial_01",
+        "phase": "BEFORE",
+        "actorUserId": "user_demo_worker_02",
+      "storagePath": "mock://organizations/org_demo_kdoms_01/farms/farm_demo_north_01/workEvidence/work_demo_tree_000001/photo_demo_partial_01",
+      "status": "FAILED",
+      "failureMode": "PARTIAL_ONCE",
+      "retryCount": 0,
+      "lastError": "SIMULATED partial upload interruption",
+      "updatedAtLabel": "31 ส.ค. 2569 08:35 · เวลาจำลองคงที่",
+      "exampleData": true
+    },
+    {
+      "recoveryId": "photo_recovery_demo_orphan_01",
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "workOrderId": "work_demo_tree_000001",
+        "photoId": "photo_demo_orphan_01",
+        "phase": "AFTER",
+        "actorUserId": "user_demo_worker_02",
+      "storagePath": "mock://organizations/org_demo_kdoms_01/farms/farm_demo_north_01/workEvidence/work_demo_tree_000001/photo_demo_orphan_01",
+      "status": "ORPHANED",
+      "failureMode": "ORPHANED_OBJECT",
+      "retryCount": 0,
+      "lastError": "SIMULATED object exists without committed report",
+      "updatedAtLabel": "31 ส.ค. 2569 08:30 · เวลาจำลองคงที่",
+      "exampleData": true
+    }
+  ],
+  "auditEvents": [
+    {
+      "eventId": "operational_audit_demo_conflict_01",
+      "organizationId": "org_demo_kdoms_01",
+      "farmId": "farm_demo_north_01",
+      "actorUserId": "system_demo_phase6",
+      "eventType": "OFFLINE_CONFLICT",
+      "targetType": "MASTER_CONFLICT",
+      "targetId": "conflict_demo_tree_north_01",
+      "reason": "SIMULATED/TEST ONLY — server และ device value ต่างกัน",
+      "beforeSummary": "server=WATCH",
+      "afterSummary": "device=NORMAL; status=OPEN",
+      "createdAtLabel": "31 ส.ค. 2569 08:45 · เวลาจำลองคงที่",
+      "exampleData": true
+    }
+  ]
+}

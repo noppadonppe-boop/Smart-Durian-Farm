@@ -14,6 +14,7 @@ import {
 } from '../domain/treeRegister'
 
 export type OrchardSelectorView = 'PLAN' | 'CHECKLIST'
+export type OrchardPlanDirection = 'VERTICAL' | 'HORIZONTAL'
 
 interface OrchardTargetSelectorProps {
   farm: FarmAccess
@@ -22,6 +23,7 @@ interface OrchardTargetSelectorProps {
   selectionMode: OrchardSelectionMode
   onChange: (positionIds: readonly string[]) => void
   defaultView?: OrchardSelectorView
+  defaultPlanDirection?: OrchardPlanDirection
   disabledReason?: (position: TreePositionSummary) => string | undefined
   orientationLabel?: string
   title?: string
@@ -68,11 +70,13 @@ export function OrchardTargetSelector({
   selectionMode,
   onChange,
   defaultView = 'PLAN',
+  defaultPlanDirection = 'VERTICAL',
   disabledReason,
   orientationLabel,
   title = 'เลือกตำแหน่งจากแปลนสวน',
 }: OrchardTargetSelectorProps) {
   const [view, setView] = useState<OrchardSelectorView>(defaultView)
+  const [planDirection, setPlanDirection] = useState<OrchardPlanDirection>(defaultPlanDirection)
   const hasCrossFarmPosition = positions.some((position) => (
     position.organizationId !== farm.organizationId || position.farmId !== farm.farmId
   ))
@@ -144,25 +148,61 @@ export function OrchardTargetSelector({
 
   return <section className="orchard-selector" aria-label={title}>
     <header className="orchard-selector__header">
-      <div>
-        <span className="status-pill">{modeLabel(selectionMode)}</span>
-        <h3>{title}</h3>
-        <p><strong>{farm.farmName}</strong> · <code>{farm.farmCode}</code></p>
+      <div className="orchard-selector__title-group">
+        <div className="orchard-selector__title-main">
+          <span className="status-pill">{modeLabel(selectionMode)}</span>
+          <h3>{title}</h3>
+          <span className="orchard-selector__farm-code">
+            <strong>{farm.farmName}</strong> · <code>{farm.farmCode}</code>
+          </span>
+        </div>
+        {layout?.orientationLabel ? (
+          <div className="orchard-orientation" role="note">
+            <span aria-hidden="true">↑</span>
+            <span>ด้านบนของแปลน: {layout.orientationLabel}</span>
+          </div>
+        ) : null}
       </div>
-      <div className="orchard-selector__view-toggle" aria-label="รูปแบบแสดงตัวเลือก">
-        <button aria-pressed={view === 'PLAN'} onClick={() => setView('PLAN')} type="button">
-          <strong>แปลนต้น</strong><small>ดูตำแหน่งและสถานะ</small>
-        </button>
-        <button aria-pressed={view === 'CHECKLIST'} onClick={() => setView('CHECKLIST')} type="button">
-          <strong>ตารางติ๊กเลือก</strong><small>เลือกหลายต้นได้เร็ว</small>
-        </button>
+
+      <div className="orchard-selector__controls">
+        {view === 'PLAN' ? (
+          <div className="orchard-plan-direction" role="group" aria-label="ทิศทางแถวในแปลน">
+            <span className="orchard-plan-direction__label">ทิศทางแถวในแปลน:</span>
+            <div className="orchard-plan-direction__toggle">
+              <button
+                aria-pressed={planDirection === 'VERTICAL'}
+                className="orchard-direction-btn"
+                onClick={() => setPlanDirection('VERTICAL')}
+                title="แถวแนวตั้ง (ต้นบน → ล่าง)"
+                type="button"
+              >
+                <span aria-hidden="true">↕</span>
+                <span><strong>แถวแนวตั้ง</strong></span>
+              </button>
+              <button
+                aria-pressed={planDirection === 'HORIZONTAL'}
+                className="orchard-direction-btn"
+                onClick={() => setPlanDirection('HORIZONTAL')}
+                title="แถวแนวนอน (ต้นซ้าย → ขวา)"
+                type="button"
+              >
+                <span aria-hidden="true">↔</span>
+                <span><strong>แถวแนวนอน</strong></span>
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="orchard-selector__view-toggle" aria-label="รูปแบบแสดงตัวเลือก">
+          <button aria-pressed={view === 'PLAN'} onClick={() => setView('PLAN')} type="button">
+            <strong>แปลนต้น</strong>
+          </button>
+          <button aria-pressed={view === 'CHECKLIST'} onClick={() => setView('CHECKLIST')} type="button">
+            <strong>ตารางติ๊กเลือก</strong>
+          </button>
+        </div>
       </div>
     </header>
-
-    <div className="orchard-orientation" role="note">
-      <span aria-hidden="true">↑</span>
-      <span>ด้านบนของแปลน: {layout?.orientationLabel}</span>
-    </div>
 
     {positions.length === 0 ? <div className="empty-state"><h3>ไม่มีตำแหน่งในสวนนี้</h3><p>เพิ่มหรือนำเข้าทะเบียนตำแหน่งก่อนเลือกเป้าหมาย</p></div> : null}
 
@@ -170,12 +210,15 @@ export function OrchardTargetSelector({
       {layout.zones.map((zone) => {
         const zoneIds = selectableZoneIds(zone.zoneCode)
         const zoneIsSelected = zoneIds.length > 0 && zoneIds.every((positionId) => selected.has(positionId))
-        return <section className="orchard-zone" key={zone.zoneCode} aria-labelledby={`plan-zone-${zone.zoneCode}`}>
+        return <section className={`orchard-zone orchard-zone--${planDirection.toLowerCase()}`} key={zone.zoneCode} aria-labelledby={`plan-zone-${zone.zoneCode}`}>
           <div className="orchard-zone__heading">
             <div><small>โซน</small><h4 id={`plan-zone-${zone.zoneCode}`}>{zone.zoneCode}</h4><span>{zone.rows.length} แถว · {zoneIds.length} ตำแหน่งที่เลือกได้</span></div>
             {selectionMode === 'ZONE' || selectionMode === 'MULTIPLE' ? <button onClick={() => selectZone(zone.zoneCode)} type="button">{zoneIsSelected ? 'ยกเลิกทั้งโซน' : 'เลือกทั้งโซน'}</button> : null}
           </div>
-          <div className="orchard-rows" aria-label={`${zone.zoneCode} แถวเรียงจากซ้ายไปขวา`}>
+          <div
+            className={`orchard-rows orchard-rows--${planDirection.toLowerCase()}`}
+            aria-label={`${zone.zoneCode} ${planDirection === 'VERTICAL' ? 'แถวแนวตั้ง ต้นเรียงจากบนลงล่าง' : 'แถวแนวนอน ต้นเรียงจากซ้ายไปขวา'}`}
+          >
             {zone.rows.map((row) => <section className="orchard-row" key={`${zone.zoneCode}:${row.rowCode}`}>
               <button
                 className="orchard-row__heading"
@@ -183,7 +226,7 @@ export function OrchardTargetSelector({
                 onClick={() => selectRow(zone.zoneCode, row.rowCode)}
                 type="button"
               >
-                <small>แถว</small><strong>{row.rowCode}</strong><span>บน ↓ ล่าง</span>
+                <small>แถว</small><strong>{row.rowCode}</strong><span>{planDirection === 'VERTICAL' ? 'ต้นบน ↓ ล่าง' : 'ต้นซ้าย → ขวา'}</span>
               </button>
               <div className="orchard-tree-stack">
                 {row.positions.map((position) => {
@@ -198,9 +241,9 @@ export function OrchardTargetSelector({
                     title={disabled ?? position.tagCode}
                     type="button"
                   >
-                    <span aria-hidden="true">{position.currentCycle.treeStatus === 'empty' ? '◇' : '●'}</span>
-                    <strong>T{String(position.treeSequence).padStart(3, '0')}</strong>
-                    <small>{treeStatusLabels[position.currentCycle.treeStatus]}</small>
+                    <span className="orchard-tree__marker" aria-hidden="true">{position.currentCycle.treeStatus === 'empty' ? '—' : '●'}</span>
+                    <strong className="orchard-tree__tag">T{String(position.treeSequence).padStart(3, '0')}</strong>
+                    {position.currentCycle.treeStatus !== 'empty' ? <small>{treeStatusLabels[position.currentCycle.treeStatus]}</small> : null}
                   </button>
                 })}
               </div>

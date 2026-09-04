@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 interface PageHeaderProps {
-  eyebrow: string
+  eyebrow?: string
   title: string
   description: string
   action?: ReactNode
@@ -19,7 +19,7 @@ export function PageHeader({ eyebrow, title, description, action, backTo }: Page
           </Link>
         )}
         <div className="page-header__content">
-          <span>{eyebrow}</span>
+          {eyebrow ? <span>{eyebrow}</span> : null}
           <h1>{title}</h1>
           <p>{description}</p>
         </div>

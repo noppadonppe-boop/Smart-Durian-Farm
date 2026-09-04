@@ -19,34 +19,12 @@ let activeSdk = browserSdk
 function productionValue(value) {
   if (!activeSdk.production) return value
   if (Array.isArray(value)) return value.map(productionValue)
-  if (!value || typeof value !== 'object') {
-    return typeof value === 'string'
-      ? value.replaceAll('SIMULATED/TEST ONLY', 'Production seed').replaceAll('EXAMPLE DATA ONLY', 'Firebase data')
-      : value
-  }
+  if (!value || typeof value !== 'object') return value
   const prototype = Object.getPrototypeOf(value)
   if (prototype !== Object.prototype && prototype !== null) return value
   return Object.fromEntries(Object.entries(value).map(([key, item]) => {
-    if (key === 'exampleData') return [key, false]
-    if (key === 'createdAtLabel' || key === 'updatedAtLabel' || key === 'submittedAtLabel' || key === 'lastCalculatedAtLabel') {
-      return [key, 'Firebase']
-    }
-    if (key === 'classification' && (item === 'SIMULATED/TEST ONLY' || item === 'OPERATIONAL')) {
-      return [key, 'OPERATIONAL']
-    }
-    if (key === 'analysisSource' && item === 'MOCK_DETERMINISTIC_V1') {
-      return [key, 'DETERMINISTIC_RULES_V1']
-    }
-    if (key === 'findingCode' && item === 'MOCK_SYMPTOM_PATTERN_A') {
-      return [key, 'SYMPTOM_PATTERN_A']
-    }
-    if (key === 'eventType' && item === 'MOCK_ANALYSIS_COMPLETED') {
-      return [key, 'ANALYSIS_COMPLETED']
-    }
-    if (key === 'eventType' && item === 'MOCK_ANALYSIS_ABSTAINED') {
-      return [key, 'ANALYSIS_ABSTAINED']
-    }
-    if (key === 'syncState' && item === 'EMULATOR_SYNCED') return [key, 'FIREBASE_SYNCED']
+    // Firebase Live is the transport, not a data-classification upgrade.
+    // Keep deterministic Mock records marked as SIMULATED/TEST ONLY.
     return [key, productionValue(item)]
   }))
 }
@@ -69,7 +47,11 @@ function uploadBytes(...args) {
 }
 
 function setDoc(reference, data, options) {
-  const seededData = productionValue({ ...data, seedBatchId: seedBatchId() })
+  const seededData = productionValue({
+    ...data,
+    ...(data.exampleData === undefined ? { exampleData: true } : {}),
+    seedBatchId: seedBatchId(),
+  })
   return options
     ? activeSdk.setDoc(reference, seededData, options)
     : activeSdk.setDoc(reference, seededData)
@@ -149,10 +131,16 @@ async function uploadPlaceholder(storage, storagePath, metadata) {
   })
 }
 
-export async function seedFoundation({ firestore, packs, rootSegments = [], userMappings }) {
+export async function seedFoundation({
+  firestore,
+  packs,
+  rootSegments = [],
+  userMappings,
+  skipRootDocument = false,
+}) {
   const seed = packs.foundation
   const organizationId = seed.organization.organizationId
-  if (rootSegments.length > 0) {
+  if (rootSegments.length > 0 && !skipRootDocument) {
     const owner = userMappings.get('user_demo_owner_01')
     if (!owner) throw new Error('Canonical Owner mock account is missing')
     await setDoc(doc(firestore, ...rootSegments), {
@@ -345,7 +333,7 @@ export async function seedFoundation({ firestore, packs, rootSegments = [], user
   })
 
   return {
-    rootDocuments: rootSegments.length > 0 ? 1 : 0,
+    rootDocuments: rootSegments.length > 0 && !skipRootDocument ? 1 : 0,
     organizations: 1,
     organizationMembers: userMappings.size,
     farms: seed.farms.length,
@@ -1137,7 +1125,7 @@ export async function seedDiseaseAnalysis({ firestore, packs, rootSegments = [],
       reviewedFindingLabel: session.reviewedFindingLabel,
       reviewNote: session.reviewNote,
       diagnosisWritebackStatus: 'NOT_WRITTEN',
-      syncState: 'EMULATOR_SYNCED',
+      syncState: 'FIREBASE_SYNCED',
       version: session.version,
       lastEventId: lastEvent.eventId,
       createdBy: uidFor(userMappings, session.createdBy),

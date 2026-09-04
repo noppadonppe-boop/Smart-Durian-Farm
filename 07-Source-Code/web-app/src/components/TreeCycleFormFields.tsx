@@ -2,6 +2,8 @@
 import {
   identityConfidenceLabels,
   measurementConfidenceLabels,
+  treeHealthStatuses,
+  treePresenceLabels,
   treeStatusLabels,
   validateTreeCycleInput,
   type IdentityConfidence,
@@ -266,12 +268,13 @@ interface TreeCycleFormFieldsProps {
 
 const identityOptions = Object.entries(identityConfidenceLabels) as [IdentityConfidence, string][]
 const measurementOptions = Object.entries(measurementConfidenceLabels) as [MeasurementConfidence, string][]
+const healthOptions = treeHealthStatuses.map((status) => [status, treeStatusLabels[status]] as const)
 
 export function TreeCycleFormFields({ value, onChange }: TreeCycleFormFieldsProps) {
-  const updateStatus = (treeStatus: TreeStatus) => {
-    if (treeStatus === 'empty') {
+  const updatePresence = (presence: 'present' | 'empty') => {
+    if (presence === 'empty') {
       onChange({
-        treeStatus,
+        treeStatus: 'empty',
         variety: '',
         varietyConfidence: 'unknown',
         plantingYear: '',
@@ -284,7 +287,7 @@ export function TreeCycleFormFields({ value, onChange }: TreeCycleFormFieldsProp
       })
       return
     }
-    onChange({ treeStatus })
+    onChange({ treeStatus: value.treeStatus === 'empty' ? 'normal' : value.treeStatus })
   }
 
   return <>
@@ -294,7 +297,8 @@ export function TreeCycleFormFields({ value, onChange }: TreeCycleFormFieldsProp
         <small>กรอกเท่าที่ทราบ และกลับมาแก้ไขภายหลังได้</small>
       </div>
       <div className="form-grid">
-        <label>สถานะต้น <strong aria-hidden="true">*</strong><select onChange={(event) => updateStatus(event.target.value as TreeStatus)} value={value.treeStatus}>{Object.entries(treeStatusLabels).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>
+        <label>สถานะการมีต้น <strong aria-hidden="true">*</strong><select onChange={(event) => updatePresence(event.target.value as 'present' | 'empty')} value={value.treeStatus === 'empty' ? 'empty' : 'present'}>{Object.entries(treePresenceLabels).map(([presence, label]) => <option key={presence} value={presence}>{label}</option>)}</select></label>
+        {value.treeStatus !== 'empty' ? <label>สถานะสุขภาพต้น <strong aria-hidden="true">*</strong><select onChange={(event) => onChange({ treeStatus: event.target.value as TreeStatus })} value={value.treeStatus}>{healthOptions.map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label> : null}
         <label>วันที่ข้อมูลตั้งต้น <strong aria-hidden="true">*</strong><input onChange={(event) => onChange({ baselineDate: event.target.value })} required type="date" value={value.baselineDate} /></label>
         <label>พันธุ์<input disabled={value.treeStatus === 'empty'} onChange={(event) => onChange({ variety: event.target.value })} placeholder="ไม่ทราบให้เว้นว่าง" value={value.variety} /></label>
         <label>ความมั่นใจของพันธุ์<select disabled={value.treeStatus === 'empty' || !value.variety.trim()} onChange={(event) => onChange({ varietyConfidence: event.target.value as IdentityConfidence })} value={value.varietyConfidence}>{identityOptions.map(([option, label]) => <option key={option} value={option}>{label}</option>)}</select></label>

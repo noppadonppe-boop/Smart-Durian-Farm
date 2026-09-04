@@ -107,6 +107,8 @@ export interface PhoneOtpGateway {
   subscribe(listener: (identity: AuthenticatedIdentity | null) => void): () => void
   requestOtp(phoneNumber: string, verifierContainerId: string): Promise<PhoneOtpChallenge>
   verifyOtp(challenge: PhoneOtpChallenge, code: string): Promise<AuthenticatedIdentity>
+  /** Optional development shortcut backed by a real Firebase OAuth provider. */
+  signInWithGoogle?: () => Promise<AuthenticatedIdentity>
   cancelOtp(): void
   signOut(): Promise<void>
 }

@@ -101,22 +101,14 @@ export function SignInPage() {
         </div>
         <span className="status-pill">
           {authMode === 'firebase-live'
-            ? mode === 'firebase-live'
-              ? 'Firebase Production · Shared Data Root'
-              : 'Firebase Phone Auth จริง · Mock Data'
-            : authMode === 'firebase-emulator'
-              ? 'โหมดพัฒนา · ข้อมูลจำลอง'
-              : 'โหมดพัฒนา · Mock Data'}
+            ? 'Firebase Live · Shared Data Root'
+            : 'Unit test · Mock Data'}
         </span>
         <h1 id="sign-in-title">เข้าสู่ Smart Durian Farm</h1>
         <p>
           {authMode === 'firebase-live'
-            ? mode === 'firebase-live'
-              ? 'ยืนยันตัวตนด้วย OTP ทาง SMS แล้วอ่านและเขียนข้อมูลจาก Firebase Production โดยตรง'
-              : 'ยืนยันตัวตนด้วย OTP ทาง SMS จาก Firebase จริง แล้วเปิดข้อมูลจำลองในเครื่องเท่านั้น'
-            : authMode === 'firebase-emulator'
-              ? 'เข้าสู่ระบบด้วยหมายเลขทดสอบ โดยไม่มีการส่ง SMS จริง'
-              : 'เปิดแอปด้วยข้อมูลจำลองได้ทันที ไม่ต้องมี Firebase และไม่มีการส่ง SMS จริง'}
+            ? 'เข้าสู่ระบบแล้วอ่านและเขียนข้อมูลจาก Firebase project durian-smartfarm โดยตรง'
+            : 'เปิดชุดทดสอบในหน่วยความจำโดยไม่เชื่อม Firebase'}
         </p>
 
         {developmentAdminSignInAvailable ? (
@@ -127,11 +119,16 @@ export function SignInPage() {
               onClick={() => void openDevelopmentAdmin()}
               type="button"
             >
-              {submitting ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบโดยผู้ดูแล'}
+              {submitting
+                ? 'กำลังเข้าสู่ระบบ…'
+                : mode === 'firebase-live' && authMode === 'firebase-live'
+                  ? 'เข้าสู่ระบบโดยผู้ดูแล (Firebase Live)'
+                  : 'เข้าสู่ระบบโดยผู้ดูแล'}
             </button>
             <small>
-              เฉพาะเครื่องพัฒนา · ไม่ใช้ OTP · สิทธิ์ ORG_OWNER กับข้อมูล{' '}
-              SIMULATED/TEST ONLY ทุกโมดูล และไม่เข้าถึง Firebase Production
+              {mode === 'firebase-live' && authMode === 'firebase-live'
+                ? 'เปิด Google Sign-In จริง · เมนูผู้ดูแลเปิดเฉพาะ seed owner หรือบัญชีที่มี masterAdmin claim'
+                : 'เฉพาะเครื่องพัฒนา · ไม่ใช้ OTP · สิทธิ์ ORG_OWNER กับข้อมูล SIMULATED/TEST ONLY ทุกโมดูล และไม่เข้าถึง Firebase Production'}
             </small>
           </section>
         ) : null}
@@ -172,9 +169,7 @@ export function SignInPage() {
             <small>
               {authMode === 'firebase-live'
                 ? 'กรอกรหัส 6 หลักจาก SMS ที่ Firebase ส่งให้หมายเลขนี้'
-                : authMode === 'firebase-emulator'
-                  ? 'กรอกรหัส OTP ทดสอบที่ระบบแสดงให้ แล้วนำมากรอกด้านล่าง'
-                  : 'ใช้รหัส OTP จำลองของบัญชีทดสอบที่เลือก'}
+                : 'ใช้รหัส OTP จำลองของบัญชีทดสอบที่เลือก'}
             </small>
             <label htmlFor="otp-code">รหัส OTP 6 หลัก</label>
             <input
@@ -238,12 +233,8 @@ export function SignInPage() {
         <small className="auth-boundary">
           โหมดปัจจุบัน:{' '}
           {authMode === 'firebase-live'
-            ? mode === 'firebase-live'
-              ? 'Firebase Authentication + Firestore Production · durian-smartfarm/root'
-              : 'Firebase Authentication จริง · ข้อมูลแอปยังเป็น Mock'
-            : authMode === 'firebase-emulator'
-              ? 'ข้อมูลจำลองสำหรับทดสอบ'
-              : 'Mock สำหรับทดสอบออฟไลน์'}
+            ? 'Firebase Authentication + Firestore Live · durian-smartfarm/root'
+            : 'Mock สำหรับ unit test'}
         </small>
       </section>
     </main>

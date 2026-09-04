@@ -1,13 +1,18 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 
 import { AppLayout } from './AppLayout'
-import { Phase2Provider } from './Phase2Context'
+import { LazyPhase2Provider } from './LazyPhase2Provider'
 import { RouteLoading } from './RouteLoading'
+import { AuthProvider } from '../security/AuthContext'
 
 export const routes: RouteObject[] = [
   {
     path: '/',
-    element: <Phase2Provider />,
+    element: (
+      <AuthProvider>
+        <LazyPhase2Provider />
+      </AuthProvider>
+    ),
     HydrateFallback: RouteLoading,
     children: [
       {
@@ -41,6 +46,8 @@ export const routes: RouteObject[] = [
           { path: 'manual', lazy: async () => ({ Component: (await import('../pages/UserManualPage')).UserManualPage }) },
           { path: 'members', lazy: async () => ({ Component: (await import('../pages/MembersPage')).MembersPage }) },
           { path: 'audit', lazy: async () => ({ Component: (await import('../pages/AuditPage')).AuditPage }) },
+          { path: 'firebase-admin', lazy: async () => ({ Component: (await import('../pages/FirebaseAdminPage')).FirebaseAdminPage }) },
+          { path: 'user-management', lazy: async () => ({ Component: (await import('../pages/UserManagementPage')).UserManagementPage }) },
           { path: 'farms/:farmId', lazy: async () => ({ Component: (await import('../pages/FarmAccessPage')).FarmAccessPage }) },
           { path: 't/:positionId', lazy: async () => ({ Component: (await import('../pages/QrRoutePage')).QrRoutePage }) },
           ...(import.meta.env.DEV ? [{

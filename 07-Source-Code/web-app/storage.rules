@@ -10,11 +10,18 @@ service firebase.storage {
       return /databases/(default)/documents/durian-smartfarm/root;
     }
 
+    function hasMasterAdminClaim() {
+      return signedIn() && request.auth.token.masterAdmin == true;
+    }
+
     function isSeedOperator() {
       return signedIn()
-        && request.auth.token.firebase.sign_in_provider == 'phone'
         && firestore.exists(dataRootPath())
         && firestore.get(dataRootPath()).data.seedOwnerUid == request.auth.uid;
+    }
+
+    function isSystemAdmin() {
+      return hasMasterAdminClaim() || isSeedOperator();
     }
 
     function organizationMemberPath(organizationId) {
@@ -134,8 +141,8 @@ service firebase.storage {
     }
 
     match /{allPaths=**} {
-      allow read: if isSeedOperator();
-      allow create: if isSeedOperator()
+      allow read: if isSystemAdmin();
+      allow create: if isSystemAdmin()
         && request.resource != null
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp']

@@ -14,6 +14,7 @@ import type {
   TreeRouteResolution,
 } from '../adapters/contracts'
 import { createRuntimeAdapters } from '../adapters/runtimeAdapters'
+import { appEnvironment } from '../config/environment'
 import { Phase2Context } from './usePhase2'
 import type {
   AuthenticatedIdentity,
@@ -569,12 +570,21 @@ function ResolvedPhase2Provider({
     setAuthError(undefined)
     setOtpChallenge(undefined)
     try {
+      if (adapters.mode === 'firebase-live' && adapters.authMode === 'firebase-live') {
+        if (!adapters.auth.signInWithGoogle) {
+          throw new Error('Firebase Production ยังไม่พร้อมสำหรับ Google Sign-In')
+        }
+        const nextIdentity = await adapters.auth.signInWithGoogle()
+        setIdentity(nextIdentity)
+        await loadFarmAccess(nextIdentity)
+        return
+      }
       await activateDevelopmentAdmin()
     } catch (error) {
       setAuthError(readableError(error))
       throw error
     }
-  }, [activateDevelopmentAdmin])
+  }, [activateDevelopmentAdmin, adapters.auth, adapters.authMode, adapters.mode, loadFarmAccess])
 
   const signInWithMockAccount = useCallback(
     async (phoneNumber: string, code: string) => {
@@ -1509,7 +1519,9 @@ function ResolvedPhase2Provider({
     () => ({
       mode: adapters.mode,
       authMode: adapters.authMode,
-      developmentAdminSignInAvailable: import.meta.env.DEV,
+      developmentAdminSignInAvailable:
+        adapters.mode === 'firebase-live' ||
+        (import.meta.env.DEV && appEnvironment.dataAdapter === 'mock'),
       identity,
       farms,
       currentFarm,
@@ -1744,11 +1756,20 @@ export function Phase2Provider({ children }: { children?: ReactNode }) {
     if (!import.meta.env.DEV) {
       throw new Error('ปุ่มผู้ดูแลแบบไม่ใช้ OTP เปิดได้เฉพาะเครื่องพัฒนา')
     }
+    if (appEnvironment.dataAdapter === 'firebase-live') {
+      throw new Error('Firebase Production ต้องเข้าสู่ระบบด้วย OTP จริงเท่านั้น')
+    }
 
+    const mockModulePath = '../adapters/mock/mockFoundationAdapters.ts'
+    const demoAccountModulePath = '../../scripts/seed-data/demoAccounts.ts'
     const [{ createMockPhase2Adapters }, { developmentAdminAccount }] =
       await Promise.all([
-        import('../adapters/mock/mockFoundationAdapters'),
-        import('../../scripts/seed-data/demoAccounts'),
+        import(/* @vite-ignore */ mockModulePath) as Promise<
+          typeof import('../adapters/mock/mockFoundationAdapters')
+        >,
+        import(/* @vite-ignore */ demoAccountModulePath) as Promise<
+          typeof import('../../scripts/seed-data/demoAccounts')
+        >,
       ])
     if (!developmentAdminAccount) {
       throw new Error('ไม่พบบัญชีผู้ดูแลในชุดข้อมูลจำลอง')

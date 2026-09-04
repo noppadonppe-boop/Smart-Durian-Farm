@@ -5,7 +5,6 @@ import { usePhase2 } from '../app/usePhase2'
 import {
   canManageTreeRegister,
   previewTreeRegisterCsv,
-  treeRegisterThaiCsvHeaders,
   type TreeImportPreview,
   type TreeImportResult,
 } from '../domain/treeRegister'
@@ -119,7 +118,10 @@ export function TreeImportPage() {
           ดาวน์โหลดแม่แบบ Excel ภาษาไทย
         </button>
         <ol>
-          <li>กรอกชีต “ทะเบียนตำแหน่ง” โดยคงชื่อภาษาไทยและลำดับ 49 คอลัมน์</li>
+          <li>กรอกชีต “ทะเบียนตำแหน่ง” โดยคงชื่อภาษาไทยและลำดับ 7 คอลัมน์ เริ่มจากรหัสโซน</li>
+          <li>โซน/แถว/ต้นรับค่าแบบมีหรือไม่มีตัวอักษรนำหน้า เช่น Z01, Z1, 01, 1 แล้วระบบบันทึกเป็น Z01-R01-T01</li>
+          <li>หากลงทะเบียนเฉพาะตำแหน่ง ให้กรอกเพียง 3 คอลัมน์แรกได้; รหัสป้ายจะสร้างอัตโนมัติและรอบปลูกเริ่มที่ 1</li>
+          <li>ข้อมูลจะลงสวนปัจจุบันอัตโนมัติ จึงไม่ต้องกรอกประเภทข้อมูล รหัสองค์กร หรือลำดับสวน</li>
           <li>ถ้าใช้ Google Sheets ให้ดาวน์โหลดกลับเป็น Microsoft Excel (.xlsx) หรือ CSV</li>
           <li>อัปโหลดด้านล่างเพื่อตรวจตัวอย่างก่อนยืนยันทุกครั้ง; ไฟล์ภาษาอังกฤษรุ่นเดิมยังรองรับ</li>
         </ol>
@@ -144,7 +146,7 @@ export function TreeImportPage() {
         {reading ? <small role="status">กำลังอ่านไฟล์…</small> : null}
         {fileName ? <small>ไฟล์ที่เลือก: {fileName} · {fileDetail}</small> : null}
         <label>
-          ข้อมูลที่อ่านได้ ({treeRegisterThaiCsvHeaders.length} คอลัมน์)
+          ข้อมูลที่อ่านได้ (หัวคอลัมน์ตามแม่แบบ)
           <textarea onChange={(event) => { setCsv(event.target.value); setFileName(''); setFileDetail('วาง CSV'); setPreview(undefined); setResult(undefined) }} placeholder="วางหัวคอลัมน์ CSV และแถวข้อมูลภาคสนามที่นี่" rows={10} value={csv} />
         </label>
         <button className="primary-action" disabled={!csv.trim()} onClick={runPreview} type="button">ตรวจตัวอย่างและข้อมูลซ้ำ</button>

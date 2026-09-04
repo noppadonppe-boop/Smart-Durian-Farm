@@ -1,13 +1,13 @@
-# KDOMS Orchard Layout and Target Selection Knowledge v0.2.0
+# KDOMS Orchard Layout and Target Selection Knowledge v0.3.1
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.2.0 |
-| สถานะ | Approved Development Baseline — Two Views and Complete Target Actions (DEC-045/047) + Operational Tree Register Boundary (DEC-046) |
+| เวอร์ชัน | 0.3.1 |
+| สถานะ | Approved Baseline — Direction Selector and Tree Circle/TAG (DEC-052), Two Views/Target Actions (DEC-045/047), Operational Tree Register Boundary (DEC-046) |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-09-01 |
+| วันที่ปรับปรุง | 2026-09-04 |
 | ขอบเขต | แปลนสวนเชิงโครงสร้างและตัวเลือกเป้าหมายกลางสำหรับ Mock/Emulator พร้อมอ่าน topology ทะเบียนต้นจริงตาม DEC-046 |
-| Source of Truth | คำสั่งล่าสุดของ Project Owner, `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-045, DEC-046, DEC-047) |
+| Source of Truth | คำสั่งล่าสุดของ Project Owner, `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `04-Tag-and-QR/Tag-and-QR-Standard_v0.1.md`, `05-UX-UI/KDOMS_UX_UI_Knowledge_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-045, DEC-046, DEC-047, DEC-052, DEC-053) |
 
 ## 1. คำตัดสิน
 
@@ -21,6 +21,11 @@
   Harvest source และ Workflow อื่นที่ต้องอ้างต้น/พื้นที่
 - ต้องเก็บทั้งมุมมอง `แปลนต้น` และ `ตารางติ๊กเลือก`; การสลับมุมมองไม่ล้าง
   selection และทั้งสองมุมมองต้องใช้ eligibility/Position ID ชุดเดียวกัน
+- ภายในมุมมอง `แปลนต้น` ต้องเลือกแสดง Row แบบแนวตั้งหรือแนวนอนได้ การสลับ
+  ทิศทางไม่ล้าง selection และไม่เปลี่ยนลำดับ `treeSequence` หรือ Position ID
+- ตำแหน่งต้นแสดงเป็นวงกลมและมี Human-readable TAG/หมายเลขใต้ต้น พร้อมข้อความ
+  สถานะที่ไม่พึ่งสีเพียงอย่างเดียว
+- ปุ่ม `กลับ` ของหน้าแปลนต้องไปเมนู `ต้นไม้` (`/trees`) เพื่อคงบริบททะเบียนต้น
 - Zone เป็นข้อมูลแบบ data-driven และต้องแสดงแยกทุก Zone ที่มีใน Farm เช่น
   `Z01`, `Z02`, `Z03` โดยไม่กำหนดจำนวน Zone ตายตัวใน UI
 - หน้าแปลนต้องมีเมนูจาก selection ครบ 5 ปลายทางที่อนุมัติ: Work ทั่วไป,
@@ -43,6 +48,13 @@ Farm
     └── Row (คอลัมน์ซ้าย → ขวา)
         └── Planting Position (บน → ล่างตาม treeSequence)
 ```
+
+projection สำหรับแสดงผลมี 2 แบบ โดยไม่อ้างว่าเป็นแนวจริงทางภูมิศาสตร์:
+
+- `แถวแนวตั้ง`: Row เรียงซ้าย→ขวา และ Position ใน Row เรียงบน→ล่าง
+- `แถวแนวนอน`: Row เรียงบน→ล่าง และ Position ใน Row เรียงซ้าย→ขวา
+- ค่าเริ่มต้นใช้ `แถวแนวตั้ง` เพื่อคงพฤติกรรมเดิม แต่ผู้ใช้สลับได้ตลอด
+- การเลื่อนที่จำเป็นต้องอยู่ภายในกรอบ Zone และไม่ทำให้ทั้งหน้าเลื่อนแนวนอน
 
 - แปลนเชิงโครงสร้างไม่อ้างว่าเป็นระยะ สเกล พิกัด หรือแนวเหนือจริง
 - `layoutX/layoutY`, รูปร่างโซน ทางเดิน คูน้ำ และ Landmark เป็นส่วนขยายภายหลัง
@@ -96,7 +108,11 @@ Archived Position แสดงได้ในแปลนเพื่อรั�
 
 ## 6. Acceptance criteria
 
-- หน้าแปลนแสดง Farm name/code, Zone, Row ซ้าย→ขวา และ Tree บน→ล่าง
+- หน้าแปลนแสดง Farm name/code และ Zone โดยค่าเริ่มต้นวาง Row ซ้าย→ขวาและ Tree
+  บน→ล่างเพื่อคงพฤติกรรมเดิม
+- หน้าแปลนสลับ Row แนวตั้ง/แนวนอนได้ แสดงวงกลมต้นพร้อม TAG ใต้ต้น และ selection
+  เดิมยังอยู่หลังสลับทิศทาง
+- ปุ่ม `กลับ` เปิด `/trees` และไม่ส่งผู้ใช้ไปหน้า `เพิ่มเติม`
 - Position ที่ไม่มีต้นหรือ Archived ยังมองเห็นพร้อมข้อความสถานะ ไม่พึ่งสีอย่างเดียว
 - ผู้ใช้เลือกต้นเดียว หลายต้น ทั้งแถว และทั้งโซนได้ตาม Workflow
 - Work แบบชุดต้นเลือกข้ามโซนใน Farm เดียวกันได้และเก็บ Position snapshot ครบ

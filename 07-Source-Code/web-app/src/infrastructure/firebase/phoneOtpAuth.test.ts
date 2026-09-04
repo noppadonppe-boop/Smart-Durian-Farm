@@ -11,7 +11,7 @@ describe('phoneOtpErrorMessage', () => {
     ['auth/invalid-verification-code', 'รหัส OTP ไม่ถูกต้อง'],
     ['auth/code-expired', 'รหัส OTP หมดอายุแล้ว'],
     ['auth/too-many-requests', 'ขอรหัสบ่อยเกินไป'],
-    ['auth/network-request-failed', 'ติดต่อระบบยืนยันตัวตนสำหรับข้อมูลทดสอบไม่ได้'],
+    ['auth/network-request-failed', 'ติดต่อ Firebase Authentication ไม่ได้'],
     ['auth/app-not-authorized', 'HTTPS บนโดเมน Hosting'],
     ['auth/invalid-app-credential', 'HTTPS บนโดเมน Hosting'],
     ['auth/billing-not-enabled', 'ตรวจ Billing และโควตา'],
@@ -23,7 +23,7 @@ describe('phoneOtpErrorMessage', () => {
     const message = phoneOtpErrorMessage({
         code: 'auth/internal-error',
         message: 'sensitive implementation detail',
-      }, 'live')
+      })
     expect(message).not.toContain('sensitive implementation detail')
     expect(message).toContain('รหัส: auth/internal-error')
   })
@@ -36,8 +36,8 @@ describe('phoneOtpErrorMessage', () => {
     expect(normalizePhoneNumber(input)).toBe(expected)
   })
 
-  it('uses a live Firebase message without mentioning Emulator', () => {
-    expect(phoneOtpErrorMessage({ code: 'auth/network-request-failed' }, 'live')).toBe(
+  it('uses the Firebase Live network message', () => {
+    expect(phoneOtpErrorMessage({ code: 'auth/network-request-failed' })).toBe(
       'ติดต่อ Firebase Authentication ไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่',
     )
   })

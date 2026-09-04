@@ -4,9 +4,11 @@ import { usePhase2 } from '../app/usePhase2'
 import { permissionsFor, roleLabels } from '../domain/farm'
 import { canReadCommercial } from '../domain/commercialTraceability'
 import { canViewManagementReports } from '../domain/managementReporting'
+import { useAuth } from '../security/AuthContext'
 import { PageHeader } from './PageHeader'
 
 export function MorePage() {
+  const { isSystemAdmin } = useAuth()
   const {
     mode,
     authMode,
@@ -26,12 +28,8 @@ export function MorePage() {
     [
       'Authentication',
       authMode === 'firebase-live'
-        ? mode === 'firebase-live'
-          ? 'Phone OTP และข้อมูลสวนผ่าน Firebase Production'
-          : 'Phone OTP ผ่าน Firebase จริง · ข้อมูลสวนยังเป็น Mock ในเครื่อง'
-        : mode === 'firebase-emulator'
-          ? 'Phone OTP สำหรับการทดสอบ · ไม่ส่ง SMS จริง'
-          : 'OTP สำหรับการทดสอบ · ไม่ส่ง SMS จริง',
+        ? 'Google/Phone Authentication และข้อมูลสวนผ่าน Firebase Live'
+        : 'Unit test ใช้ Mock authentication',
     ],
     ['บทบาทปัจจุบัน', `${roleLabels[currentFarm.role]} · ${currentFarm.farmCode}`],
     ['ข้อมูล', mode === 'firebase-live' ? 'ข้อมูล Production แยกตาม Organization/Farm' : 'ข้อมูลจำลองเท่านั้น · แยกตาม Organization/Farm'],
@@ -194,6 +192,16 @@ export function MorePage() {
                 <div>
                   <strong>สมาชิกและสิทธิ์</strong>
                   <small>Owner only · มี Audit ทุกการเปลี่ยน</small>
+                </div>
+                <span aria-hidden="true">›</span>
+              </Link>
+            ) : null}
+            {isSystemAdmin ? (
+              <Link className="admin-link-card--system" to="/firebase-admin">
+                <span aria-hidden="true">◆</span>
+                <div>
+                  <strong>Firebase Live / Seed</strong>
+                  <small>MasterAdmin · สร้างพื้นที่จริงหรือ Seed ชุดทดสอบ</small>
                 </div>
                 <span aria-hidden="true">›</span>
               </Link>

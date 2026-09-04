@@ -2,12 +2,17 @@ import {
   buildQrPayload,
   emptyTreeBaselineMeasurements,
   generateTagCode,
+  normalizeRowCode,
+  normalizeTreeSequence,
+  normalizeZoneCode,
   parseTagCode,
   positionIdFromQrInput,
   previewTreeRegisterCsv,
   treeRegisterCsvHeaders,
   treeRegisterImportLimit,
+  treeRegisterRegistrationCsvHeaders,
   treeRegisterThaiCsvHeaders,
+  treeRegisterThaiRegistrationCsvHeaders,
   validateTreeCycleInput,
 } from './treeRegister'
 
@@ -65,8 +70,49 @@ function thaiCsv(...rows: string[]): string {
   return `${treeRegisterThaiCsvHeaders.join(',')}\n${rows.join('\n')}`
 }
 
+function registrationCsvRow(overrides: Record<string, string> = {}): string {
+  const values: Record<string, string> = {
+    zoneCode: '1',
+    rowCode: '1',
+    treeSequence: '1',
+    tagCode: 'Z1-R1-T1',
+    plantingCycle: '1',
+    variety: 'หมอนทอง',
+    plantingYear: '2568',
+    ...overrides,
+  }
+  return treeRegisterRegistrationCsvHeaders.map((field) => values[field] ?? '').join(',')
+}
+
 describe('Tree Tag and QR invariants', () => {
-  it('generates and parses an approved human-readable tag', () => {
+  it.each([
+    ['Z01', 'Z01'],
+    ['Z1', 'Z01'],
+    ['01', 'Z01'],
+    ['1', 'Z01'],
+  ])('normalizes zone input %s to %s', (input, expected) => {
+    expect(normalizeZoneCode(input)).toBe(expected)
+  })
+
+  it.each([
+    ['R01', 'R01'],
+    ['R1', 'R01'],
+    ['01', 'R01'],
+    ['1', 'R01'],
+  ])('normalizes row input %s to %s', (input, expected) => {
+    expect(normalizeRowCode(input)).toBe(expected)
+  })
+
+  it.each([
+    ['T01', 1],
+    ['T1', 1],
+    ['01', 1],
+    ['1', 1],
+  ])('normalizes tree input %s to sequence %s', (input, expected) => {
+    expect(normalizeTreeSequence(input)).toBe(expected)
+  })
+
+  it('generates a farm-local tag and still parses it with trusted Farm context', () => {
     const tag = generateTagCode({
       organizationCode: 'demo',
       farmSequence: 'f01',
@@ -74,8 +120,8 @@ describe('Tree Tag and QR invariants', () => {
       rowCode: 'r03',
       treeSequence: 17,
     })
-    expect(tag).toBe('DEMO-F01-Z02-R03-T017')
-    expect(parseTagCode(tag)).toEqual({
+    expect(tag).toBe('Z02-R03-T17')
+    expect(parseTagCode(tag, { organizationCode: 'DEMO', farmSequence: 'F01' })).toEqual({
       organizationCode: 'DEMO',
       farmSequence: 'F01',
       zoneCode: 'Z02',
@@ -107,7 +153,7 @@ describe('Tree Register CSV validation', () => {
     expect(preview.headerValid).toBe(true)
     expect(preview.candidates).toHaveLength(1)
     expect(preview.rejects).toHaveLength(0)
-    expect(preview.candidates.at(0)?.tagCode).toBe('DEMO-F01-Z01-R01-T001')
+    expect(preview.candidates.at(0)?.tagCode).toBe('Z01-R01-T01')
   })
 
   it('keeps typed GPS evidence from a valid import candidate', () => {
@@ -156,6 +202,69 @@ describe('Tree Register CSV validation', () => {
       plantingYearConfidence: 'estimated',
       treeStatus: 'normal',
     })
+  })
+
+  it('accepts the compact Thai registration template without farm context columns', () => {
+    const preview = previewTreeRegisterCsv(
+      `${treeRegisterThaiRegistrationCsvHeaders.join(',')}\n${registrationCsvRow()}`,
+      'DEMO',
+      'F01',
+    )
+    expect(preview.headerValid).toBe(true)
+    expect(preview.rejects).toHaveLength(0)
+    expect(preview.candidates[0]).toMatchObject({
+      zoneCode: 'Z01',
+      rowCode: 'R01',
+      treeSequence: 1,
+      tagCode: 'Z01-R01-T01',
+      plantingCycle: 1,
+      plantingYear: 2568,
+      plantingYearCalendar: 'BE',
+    })
+  })
+
+  it('keeps the previous compact Thai template importable', () => {
+    const legacyHeaders = [
+      'ประเภทข้อมูล',
+      'รหัสองค์กร',
+      'ลำดับสวน',
+      ...treeRegisterThaiRegistrationCsvHeaders,
+    ]
+    const legacyRow = [
+      'ข้อมูลภาคสนาม',
+      'DEMO',
+      'F01',
+      registrationCsvRow(),
+    ].join(',')
+    const preview = previewTreeRegisterCsv(
+      `${legacyHeaders.join(',')}\n${legacyRow}`,
+      'DEMO',
+      'F01',
+    )
+    expect(preview.headerValid).toBe(true)
+    expect(preview.rejects).toHaveLength(0)
+    expect(preview.candidates[0]?.tagCode).toBe('Z01-R01-T01')
+  })
+
+  it('accepts position-only compact rows and fills the canonical tag and first cycle', () => {
+    const preview = previewTreeRegisterCsv(
+      `${treeRegisterThaiRegistrationCsvHeaders.join(',')}\n1,1,1\nZ1,R1,T2\n01,01,3`,
+      'DEMO',
+      'F01',
+    )
+    expect(preview.rejects).toHaveLength(0)
+    expect(preview.candidates.map((candidate) => ({
+      zoneCode: candidate.zoneCode,
+      rowCode: candidate.rowCode,
+      treeSequence: candidate.treeSequence,
+      tagCode: candidate.tagCode,
+      plantingCycle: candidate.plantingCycle,
+      treeStatus: candidate.treeStatus,
+    }))).toEqual([
+      { zoneCode: 'Z01', rowCode: 'R01', treeSequence: 1, tagCode: 'Z01-R01-T01', plantingCycle: 1, treeStatus: 'empty' },
+      { zoneCode: 'Z01', rowCode: 'R01', treeSequence: 2, tagCode: 'Z01-R01-T02', plantingCycle: 1, treeStatus: 'empty' },
+      { zoneCode: 'Z01', rowCode: 'R01', treeSequence: 3, tagCode: 'Z01-R01-T03', plantingCycle: 1, treeStatus: 'empty' },
+    ])
   })
 
   it('rejects a file that mixes Thai and legacy English headers', () => {

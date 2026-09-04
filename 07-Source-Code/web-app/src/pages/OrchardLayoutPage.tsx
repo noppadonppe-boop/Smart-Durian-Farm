@@ -78,10 +78,10 @@ export function OrchardLayoutPage() {
   const productionTargetReady = selectedPositions.length > 0 && selectedPositions.every((position) => position.currentCycle.treeStatus !== 'empty')
 
   return <section className="page-stack">
-    <PageHeader eyebrow="DEC-045 · Orchard Layout" title="แปลนสวนและเลือกตำแหน่ง" description="แถวเรียงซ้ายไปขวา ต้นเรียงบนลงล่าง และใช้ Position ID ถาวรเป็นเป้าหมาย" backTo="/more" />
+    <PageHeader eyebrow="DEC-045/047/052 · Orchard Layout" title="แปลนสวนและเลือกตำแหน่ง" description="เลือกแสดงแถวแนวตั้งหรือแนวนอน ดู TAG ใต้ต้น และใช้ Position ID ถาวรเป็นเป้าหมาย" backTo="/trees" />
     {isProduction
-      ? <aside className="operational-data-banner"><strong>Firebase Production · แปลนสวน</strong><span>แสดงตำแหน่งที่บันทึกใน Farm ปัจจุบัน; ทิศทาง จุดอ้างอิง และ topology ที่ยังไม่ยืนยันจะแสดงเป็น TBD</span></aside>
-      : <aside className="field-validation-banner"><strong>SIMULATED/TEST ONLY · แปลนเชิงโครงสร้าง</strong><span>ทิศทาง จุดอ้างอิง และ topology จริงยังเป็น TBD จนกว่าจะยืนยันระหว่าง Controlled Pilot</span></aside>}
+      ? <aside className="operational-data-banner operational-data-banner--compact"><strong>Firebase Production · แปลนสวน:</strong> <span>แสดงตำแหน่งที่บันทึกใน Farm ปัจจุบัน; ทิศทาง จุดอ้างอิง และ topology ที่ยังไม่ยืนยันจะแสดงเป็น TBD</span></aside>
+      : <aside className="field-validation-banner field-validation-banner--compact"><strong>SIMULATED/TEST ONLY · แปลนเชิงโครงสร้าง:</strong> <span>ทิศทาง จุดอ้างอิง และ topology จริงยังเป็น TBD จนกว่าจะยืนยันระหว่าง Controlled Pilot</span></aside>}
     {loading ? <div className="loading-inline" role="status">กำลังอ่านตำแหน่งในสวน…</div> : null}
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {!loading && !error ? <OrchardTargetSelector

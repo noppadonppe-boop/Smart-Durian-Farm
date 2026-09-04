@@ -70,8 +70,9 @@
 .annual-metrics article,
 .commercial-metrics article,
 .portfolio-totals article {
-  background: var(--color-background);
-  padding: var(--space-3);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   display: flex;
@@ -121,7 +122,8 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-3);
-  background: var(--color-background);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   text-align: left;

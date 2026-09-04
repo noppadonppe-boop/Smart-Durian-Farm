@@ -1,15 +1,15 @@
-# KDOMS UX/UI Knowledge v0.1.8
+# KDOMS UX/UI Knowledge v0.2.1
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 0.1.9 |
-| สถานะ | Approved Development Baseline — Owner-only Financial Data (DEC-050), Annual Cycle and Management Reporting/Cost, Orchard Target Actions and Limited Operational Tree Register; Field Usability Deferred |
+| เวอร์ชัน | 0.2.1 |
+| สถานะ | Approved Baseline — Orchard Direction Selector/Tree Circle-TAG (DEC-052), Owner-only Financial, Annual Cycle, Reporting/Cost and Limited Operational Tree Register; Field Usability Deferred |
 | เจ้าของเอกสาร | Project Owner |
 | Primary platform | Mobile web / PWA |
 | Secondary platform | Tablet and desktop management |
 | ภาษา | ไทยเป็นหลัก |
-| วันที่ปรับปรุง | 2026-09-01 |
-| Source of Truth | `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047, DEC-048, DEC-049) |
+| วันที่ปรับปรุง | 2026-09-04 |
+| Source of Truth | `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Orchard_Layout_and_Target_Selection_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Role_Access_Matrix_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `00-Project-Management/Decision-Log.md` (DEC-030, DEC-043, DEC-045, DEC-046, DEC-047, DEC-048, DEC-049, DEC-052, DEC-053) |
 
 ## 1. UX goal
 
@@ -83,7 +83,11 @@ Year Switcher อยู่ถัดจาก Farm context และแสดง�
 ### 4.5 Orchard Layout & Shared Target Selector
 
 - แสดง Farm name/code, Zone และจุดอ้างอิงด้านบนของแปลนตลอดเวลา
-- Row เป็นคอลัมน์ซ้ายไปขวา; Tree/Position เรียงบนลงล่างตาม sequence
+- ค่าเริ่มต้นให้ Row เป็นคอลัมน์ซ้ายไปขวาและ Tree/Position เรียงบนลงล่างตาม sequence
+- ในมุมมอง `แปลนต้น` มีตัวเลือก `แถวแนวตั้ง` และ `แถวแนวนอน`; แบบแนวตั้งวาง
+  Tree บน→ล่าง ส่วนแบบแนวนอนวาง Tree ซ้าย→ขวา โดยคง sequence/selection เดิม
+- แต่ละ Tree/Position แสดงเป็นวงกลมพร้อม TAG/หมายเลขใต้ต้นและข้อความสถานะ;
+  selected/empty/archived ต้องมีข้อความหรือสัญลักษณ์ร่วม ไม่พึ่งสีอย่างเดียว
 - แตะต้นเพื่อเลือก, แตะหัว Row เพื่อเลือกทั้งแถว และแตะ Zone เพื่อเลือกทั้งโซน
 - รองรับ Single, Tree Set, Row และ Zone พร้อมสรุปจำนวน/Tag ที่เลือกก่อนบันทึก
 - มีมุมมอง `แปลนต้น` และ `ตารางติ๊กเลือก` ที่ใช้ selection เดียวกัน; สลับแล้ว
@@ -97,6 +101,7 @@ Year Switcher อยู่ถัดจาก Farm context และแสดง�
   `รายงานอาการ/โรค`, `บันทึกจำนวนผล` และ `สร้าง Harvest Lot`; action ที่ยังไม่ผ่าน
   eligibility แสดง disabled reason โดยไม่ใช้สีอย่างเดียว
 - หน้าปลายทางกรอง navigation selection กับ Farm ปัจจุบันอีกครั้ง
+- ปุ่ม `กลับ` จากหน้าแปลนเปิดเมนู `ต้นไม้` (`/trees`) ไม่ย้อนกลับหน้า `เพิ่มเติม`
 
 ### 4.6 เพิ่ม/แก้ไขตำแหน่งปลูก
 
@@ -289,6 +294,8 @@ UX Preview ต้องสาธิตอย่างน้อย:
 - Shared Target Selector ใช้คำและพฤติกรรมเดียวกันใน Work, Disease, Fruit และ Harvest
 - แปลนเรียง Row ซ้าย→ขวาและ Position บน→ล่าง พร้อม list fallback และไม่มี
   horizontal scroll ทั้งหน้าที่ 320px
+- สลับ Row แนวตั้ง/แนวนอนแล้ว selection ไม่หาย, TAG ยังอ่านได้ใต้ต้น และถ้าต้อง
+  เลื่อนแนวนอนให้เลื่อนเฉพาะภายในกรอบ Zone
 - หน้าเพิ่ม/แก้ตำแหน่งปลูกแสดง Farm/classification, แบ่ง 3 ส่วน, ยืนยันตัวตนตำแหน่ง
   ก่อนบันทึก และไม่ยอมให้ `ไม่มีต้น` มีข้อมูลต้นปัจจุบันที่ขัดแย้งกัน
 - runtime/Farm ที่ไม่ผ่านเงื่อนไข DEC-046 ต้องยังแสดง `SIMULATED/TEST ONLY` และ

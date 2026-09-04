@@ -50,6 +50,22 @@ function SelectorHarness() {
 }
 
 describe('OrchardTargetSelector', () => {
+  it('switches row direction without changing the selected position and shows its number below the tree marker', async () => {
+    const user = userEvent.setup()
+    render(<SelectorHarness />)
+
+    const positionButton = screen.getByRole('button', { name: /DEMO-F01-Z01-R01-T001/u })
+    expect(positionButton.querySelector('.orchard-tree__marker')).toBeInTheDocument()
+    expect(positionButton.querySelector('.orchard-tree__tag')).toHaveTextContent('T001')
+
+    await user.click(positionButton)
+    await user.click(screen.getByRole('button', { name: /แถวแนวนอน/u }))
+
+    expect(screen.getByRole('button', { name: /แถวแนวนอน/u })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Z01 แถวแนวนอน ต้นเรียงจากซ้ายไปขวา')).toHaveClass('orchard-rows--horizontal')
+    expect(positionButton).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('keeps one selection across plan and checklist views for multiple zones', async () => {
     const user = userEvent.setup()
     render(<SelectorHarness />)

@@ -157,3 +157,57 @@
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(10px);
 }
+
+/* Keep the compact registration form visually distinct from longer cycle forms. */
+.tree-register-form .tree-form-section {
+  padding: clamp(var(--space-4), 3vw, var(--space-5));
+  border-color: color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+  border-radius: 1.5rem;
+}
+
+.tree-register-form__grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-4);
+}
+
+.tree-register-form__grid label {
+  align-content: start;
+  gap: 0.5rem;
+}
+
+.tree-register-field__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding-inline: 0.15rem;
+}
+
+.tree-register-field__label strong {
+  color: var(--color-danger);
+}
+
+.tree-register-form__grid input:not([type="checkbox"]) {
+  min-height: 3.25rem;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--color-surface-soft) 88%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgb(19 51 35 / 4%);
+}
+
+.tree-register-form__grid input:not([readonly]):hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.tree-register-form__grid input[readonly] {
+  color: var(--color-primary-strong);
+  background: color-mix(in srgb, var(--color-primary-soft) 68%, var(--color-surface));
+  border-color: transparent;
+  font-weight: 750;
+}
+
+.tree-register-form .tag-preview,
+.tree-register-form .confirmation-control,
+.tree-register-form .sticky-form-actions {
+  border-radius: 1rem;
+}

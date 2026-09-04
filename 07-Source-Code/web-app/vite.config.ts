@@ -64,7 +64,6 @@ export default defineConfig(({ mode }) => ({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
-    exclude: ['src/security/**/*.emulator.test.ts', 'node_modules/**', 'dist/**'],
     css: true,
     coverage: {
       provider: 'v8',

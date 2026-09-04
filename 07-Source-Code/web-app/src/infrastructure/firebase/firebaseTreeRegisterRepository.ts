@@ -23,10 +23,14 @@ import {
   canManageTreeRegister,
   createOpaquePositionId,
   generateTagCode,
+  generateLegacyTagCode,
   identityConfidences,
   isOpaquePositionId,
   measurementConfidences,
+  normalizeRowCode,
   normalizeTagCode,
+  normalizeTreeSequence,
+  normalizeZoneCode,
   positionStatuses,
   rowCountingDirections,
   treeStatuses,
@@ -437,7 +441,12 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     validateTreeCycleInput(draft)
     const tagCode = generateTagCode(draft)
     const tagReference = this.tagReference(context, tagCode)
-    if ((await getDoc(tagReference)).exists()) {
+    const legacyTagReference = this.tagReference(context, generateLegacyTagCode(draft))
+    const [tagDocument, legacyTagDocument] = await Promise.all([
+      getDoc(tagReference),
+      getDoc(legacyTagReference),
+    ])
+    if (tagDocument.exists() || legacyTagDocument.exists()) {
       throw new Error('Tag นี้เคยถูกใช้แล้วและห้ามนำกลับมาใช้ แม้ตำแหน่งจะเก็บถาวร')
     }
     const positionId = createOpaquePositionId()
@@ -670,12 +679,17 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       }
     }
 
+    const tagCodes = [...new Set(candidates.flatMap((candidate) => [
+      candidate.tagCode,
+      generateTagCode(candidate),
+      generateLegacyTagCode(candidate),
+    ]))]
     const tagDocuments = await Promise.all(
-      candidates.map((candidate) => getDoc(this.tagReference(context, candidate.tagCode))),
+      tagCodes.map((tagCode) => getDoc(this.tagReference(context, tagCode))),
     )
     const duplicateIndex = tagDocuments.findIndex((document) => document.exists())
     if (duplicateIndex >= 0) {
-      throw new Error(`Import ถูกยกเลิกทั้งชุด: Tag ${candidates[duplicateIndex]?.tagCode ?? ''} เคยถูกใช้แล้ว`)
+      throw new Error(`Import ถูกยกเลิกทั้งชุด: Tag ${tagCodes[duplicateIndex] ?? ''} เคยถูกใช้แล้ว`)
     }
 
     const batch = writeBatch(this.firestore)
@@ -812,6 +826,9 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     const positionReference = treePositionReference(this.firestore, context, positionId)
     const cycleId = `cycle_${String(cycleNumber).padStart(3, '0')}`
     const exampleData = this.exampleData
+    const zoneCode = normalizeZoneCode(draft.zoneCode)
+    const rowCode = normalizeRowCode(draft.rowCode)
+    const treeSequence = normalizeTreeSequence(draft.treeSequence)
     batch.set(positionReference, {
       recordType: 'TREE_POSITION',
       organizationId: context.farm.organizationId,
@@ -819,9 +836,9 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       positionId,
       organizationCode: context.farm.organizationCode,
       farmSequence: context.farm.farmSequence,
-      zoneCode: draft.zoneCode,
-      rowCode: draft.rowCode,
-      treeSequence: draft.treeSequence,
+      zoneCode,
+      rowCode,
+      treeSequence,
       tagCode,
       rowCountingDirection: draft.rowCountingDirection,
       positionStatus: 'ACTIVE',

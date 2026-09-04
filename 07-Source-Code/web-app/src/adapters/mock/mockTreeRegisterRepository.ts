@@ -7,7 +7,10 @@ import {
   canManageTreeRegister,
   createOpaquePositionId,
   generateTagCode,
+  normalizeRowCode,
   normalizeTagCode,
+  normalizeTreeSequence,
+  normalizeZoneCode,
   validateTreeCycleInput,
   type PlantingCycleRecord,
   type ReplacePlantingCycleInput,
@@ -172,29 +175,42 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
     draft: TreePositionDraft,
   ): Promise<TreePositionDetail> {
     requireManager(context)
-    validateTreeCycleInput(draft)
-    const tagCode = generateTagCode(draft)
+    const normalizedDraft = {
+      ...draft,
+      zoneCode: normalizeZoneCode(draft.zoneCode),
+      rowCode: normalizeRowCode(draft.rowCode),
+      treeSequence: normalizeTreeSequence(draft.treeSequence),
+    }
+    validateTreeCycleInput(normalizedDraft)
+    const tagCode = generateTagCode(normalizedDraft)
     if (
       this.positions.some(
         (position) =>
           position.organizationId === context.farm.organizationId &&
           position.farmId === context.farm.farmId &&
-          position.tagCode === tagCode,
+          (
+            position.tagCode === tagCode ||
+            (
+              normalizeZoneCode(position.zoneCode) === normalizedDraft.zoneCode &&
+              normalizeRowCode(position.rowCode) === normalizedDraft.rowCode &&
+              position.treeSequence === normalizedDraft.treeSequence
+            )
+          ),
       )
     ) {
       throw new Error('Tag นี้เคยถูกใช้แล้วและห้ามนำกลับมาใช้ แม้ตำแหน่งจะเก็บถาวร')
     }
     const positionId = createOpaquePositionId()
-    const currentCycle = cycleFromDraft(draft, 1)
+    const currentCycle = cycleFromDraft(normalizedDraft, 1)
     const position: TreePositionDetail = {
       organizationId: context.farm.organizationId,
       farmId: context.farm.farmId,
       positionId,
       organizationCode: context.farm.organizationCode,
       farmSequence: context.farm.farmSequence,
-      zoneCode: draft.zoneCode,
-      rowCode: draft.rowCode,
-      treeSequence: draft.treeSequence,
+      zoneCode: normalizedDraft.zoneCode,
+      rowCode: normalizedDraft.rowCode,
+      treeSequence: normalizedDraft.treeSequence,
       tagCode,
       rowCountingDirection: draft.rowCountingDirection,
       positionStatus: 'ACTIVE',
@@ -333,7 +349,15 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
         .filter((position) => position.farmId === context.farm.farmId)
         .map((position) => position.tagCode),
     )
-    const duplicate = candidates.find((candidate) => existingTags.has(candidate.tagCode))
+    const existingCoordinates = new Set(
+      this.positions
+        .filter((position) => position.farmId === context.farm.farmId)
+        .map((position) => `${normalizeZoneCode(position.zoneCode)}:${normalizeRowCode(position.rowCode)}:${position.treeSequence}`),
+    )
+    const duplicate = candidates.find((candidate) => (
+      existingTags.has(candidate.tagCode) ||
+      existingCoordinates.has(`${normalizeZoneCode(candidate.zoneCode)}:${normalizeRowCode(candidate.rowCode)}:${candidate.treeSequence}`)
+    ))
     if (duplicate) {
       throw new Error(`Import ถูกยกเลิกทั้งชุด: Tag ${duplicate.tagCode} เคยถูกใช้แล้ว`)
     }

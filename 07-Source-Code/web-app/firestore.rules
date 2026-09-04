@@ -10,16 +10,22 @@ service cloud.firestore {
       return /databases/$(database)/documents/durian-smartfarm/root;
     }
 
-    function signedInWithPhone() {
-      return signedIn()
-        && request.auth.token.firebase.sign_in_provider == 'phone';
+    function hasMasterAdminClaim() {
+      return signedIn() && request.auth.token.masterAdmin == true;
     }
 
     function isSeedOperator() {
-      // The root can only be bootstrapped by Phone Auth, so its immutable owner
-      // UID is the least expensive trusted check for later deterministic reseeds.
       return signedIn()
+        && exists(dataRootPath())
         && get(dataRootPath()).data.seedOwnerUid == request.auth.uid;
+    }
+
+    function isSystemAdmin() {
+      return hasMasterAdminClaim() || isSeedOperator();
+    }
+
+    function userProfilePath(userKey) {
+      return /databases/$(database)/documents/durian-smartfarm/root/users/$(userKey);
     }
 
     function organizationMemberPath(organizationId, userId) {
@@ -122,7 +128,10 @@ service cloud.firestore {
 
     function hasFarmRole(organizationId, farmId, allowedRoles) {
       return hasFarmMembership(organizationId, farmId)
-        && get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.role in allowedRoles;
+        && (
+          isSystemAdmin()
+          || get(farmMemberPath(organizationId, farmId, request.auth.uid)).data.role in allowedRoles
+        );
     }
 
     function currentFarmRole(organizationId, farmId) {
@@ -305,6 +314,114 @@ service cloud.firestore {
 
     function isMembershipStatus(status) {
       return status in ['ACTIVE', 'REVOKED'];
+    }
+
+    function validUserProfile(data, userKey) {
+      return data.keys().hasAll([
+          'uid', 'email', 'firstName', 'lastName', 'position', 'role',
+          'status', 'assignedProjects', 'createdAt', 'isFirstUser'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'email', 'firstName', 'lastName', 'position', 'role',
+          'status', 'assignedProjects', 'createdAt', 'updatedAt', 'photoURL',
+          'isFirstUser'
+        ])
+        && data.uid == userKey
+        && data.uid is string
+        && data.email is string
+        && data.firstName is string
+        && data.lastName is string
+        && data.position is string
+        && data.role is list
+        && data.role.size() > 0
+        && data.role.hasOnly([
+          'MasterAdmin', 'ORG_OWNER', 'FARM_MANAGER', 'AGRONOMIST', 'WORKER',
+          'SALES_INVENTORY', 'VIEWER', 'AUDITOR'
+        ])
+        && data.status in ['pending', 'approved', 'rejected']
+        && data.assignedProjects is list
+        && data.createdAt is timestamp
+        && (!('updatedAt' in data) || data.updatedAt is timestamp)
+        && (!('photoURL' in data) || data.photoURL is string)
+        && data.isFirstUser is bool;
+    }
+
+    function validSelfPendingProfile(data, userKey) {
+      return userKey == request.auth.uid
+        && validUserProfile(data, userKey)
+        && data.status == 'pending'
+        && data.role.size() == 1
+        && data.role[0] == 'WORKER'
+        && data.assignedProjects.size() == 0
+        && data.isFirstUser == false
+        && data.createdAt == request.time;
+    }
+
+    function validOperationalOrganization(data, organizationId) {
+      return data.keys().hasAll([
+          'organizationId', 'organizationName', 'organizationCode', 'status',
+          'classification', 'exampleData', 'createdBy', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'organizationId', 'organizationName', 'organizationCode', 'status',
+          'classification', 'exampleData', 'createdBy', 'createdAt', 'updatedAt',
+          'seedBatchId'
+        ])
+        && data.organizationId == organizationId
+        && data.organizationName is string
+        && data.organizationName.size() >= 2
+        && data.organizationName.size() <= 100
+        && data.organizationCode.matches('^[A-Z0-9]{2,10}$')
+        && data.status == 'ACTIVE'
+        && data.classification == 'OPERATIONAL'
+        && data.exampleData == false
+        && data.createdBy == request.auth.uid
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function validOperationalOrganizationOwner(data, organizationId, userId) {
+      return data.keys().hasAll([
+          'organizationId', 'userId', 'status', 'isOwner', 'classification',
+          'exampleData', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'organizationId', 'userId', 'status', 'isOwner', 'classification',
+          'exampleData', 'createdAt', 'updatedAt', 'seedBatchId'
+        ])
+        && data.organizationId == organizationId
+        && data.userId == userId
+        && data.status == 'ACTIVE'
+        && data.isOwner == true
+        && data.classification == 'OPERATIONAL'
+        && data.exampleData == false
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function validDataRoot(data) {
+      return data.keys().hasAll([
+          'projectId', 'documentName', 'schemaVersion', 'layout',
+          'menuCategories', 'seedOwnerUid', 'classification', 'exampleData',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'projectId', 'documentName', 'schemaVersion', 'layout',
+          'menuCategories', 'seedOwnerUid', 'classification', 'exampleData',
+          'operationalEnabled', 'updatedAt', 'seedBatchId'
+        ])
+        && data.projectId == 'durian-smartfarm'
+        && data.documentName == 'root'
+        && data.schemaVersion is string
+        && data.layout == 'ROOT_ORGANIZATION_FARM_MENU'
+        && data.menuCategories is list
+        && data.seedOwnerUid is string
+        && (
+          (data.classification == 'SIMULATED/TEST ONLY' && data.exampleData == true)
+          || (data.classification == 'OPERATIONAL' && data.exampleData == false)
+        )
+        && (!('operationalEnabled' in data) || data.operationalEnabled is bool)
+        && data.updatedAt == request.time;
     }
 
     function validFarmMembership(data, organizationId, farmId, userId) {
@@ -728,11 +845,11 @@ service cloud.firestore {
         && data.positionId.matches('^pos_[A-Za-z0-9_-]{12,}$')
         && data.organizationCode.matches('^[A-Z0-9]{2,10}$')
         && data.farmSequence.matches('^F[0-9]{2,}$')
-        && data.zoneCode.matches('^Z[0-9]{2,}$')
-        && data.rowCode.matches('^R[0-9]{2,}$')
+        && data.zoneCode.matches('^Z0*[1-9][0-9]*$')
+        && data.rowCode.matches('^R0*[1-9][0-9]*$')
         && data.treeSequence is int
         && data.treeSequence > 0
-        && data.tagCode.matches('^[A-Z0-9]{2,10}-F[0-9]{2,}-Z[0-9]{2,}-R[0-9]{2,}-T[0-9]{3,}$')
+        && data.tagCode.matches('^(Z[0-9]{2,}-R[0-9]+-T[0-9]{2,}|[A-Z0-9]{2,10}-F[0-9]{2,}-Z[0-9]{2,}-R[0-9]{2,}-T[0-9]{3,})$')
         && data.rowCountingDirection in ['ASCENDING', 'DESCENDING', 'TBD']
         && data.positionStatus in ['ACTIVE', 'ARCHIVED']
         && data.currentCycleNumber is int
@@ -1018,7 +1135,7 @@ service cloud.firestore {
       return target is map
         && target.kind in ['TREE', 'ROW', 'ZONE', 'TREE_SET']
         && target.zoneCode.matches('^Z[0-9]{2,}$')
-        && (target.rowCode == null || target.rowCode.matches('^R[0-9]{2,}$'))
+        && (target.rowCode == null || target.rowCode.matches('^R0*[1-9][0-9]*$'))
         && target.positionIds is list
         && target.positionIds.size() > 0
         && (target.kind != 'TREE' || target.positionIds.size() == 1)
@@ -1495,10 +1612,45 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /durian-smartfarm/root/users/{userKey} {
+      allow get: if signedIn()
+        && (resource.data.uid == request.auth.uid || isSystemAdmin());
+      allow list: if isSystemAdmin();
+      allow create: if validSelfPendingProfile(request.resource.data, userKey)
+        || (isSystemAdmin() && validUserProfile(request.resource.data, userKey));
+      allow update: if isSystemAdmin()
+        && validUserProfile(request.resource.data, userKey)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    match /durian-smartfarm/root/appMeta/{metaId} {
+      allow read: if signedIn();
+      allow create, update: if isSystemAdmin();
+      allow delete: if false;
+    }
+
+    match /durian-smartfarm/root/activityLogs/{logId} {
+      allow read: if isSystemAdmin();
+      allow create: if signedIn()
+        && request.resource.data.actorUserId == request.auth.uid
+        && request.resource.data.timestamp == request.time;
+      allow update, delete: if false;
+    }
+
+    match /durian-smartfarm/root/projects/{projectId} {
+      allow read: if signedIn();
+      allow create, update: if isSystemAdmin();
+      allow delete: if false;
+    }
+
     match /durian-smartfarm/root/organizations/{organizationId} {
-      allow get: if hasOrganizationMembership(organizationId);
-      allow list: if false;
-      allow create, delete: if false;
+      allow get: if hasOrganizationMembership(organizationId) || isSystemAdmin();
+      allow list: if isSystemAdmin();
+      allow create: if isSystemAdmin()
+        && validOperationalOrganization(request.resource.data, organizationId);
+      allow delete: if false;
       allow update: if isOrganizationOwner(organizationId)
         && request.resource.data.organizationId == organizationId
         && request.resource.data.organizationId == resource.data.organizationId;
@@ -1508,8 +1660,23 @@ service cloud.firestore {
           && resource.data.organizationId == organizationId
           && resource.data.userId == userId
           && (request.auth.uid == userId || isOrganizationOwner(organizationId));
-        // Organization bootstrap and owner assignment require a future trusted backend.
-        allow create, update, delete: if false;
+        allow create: if isSystemAdmin()
+          && userId == request.auth.uid
+          && validOperationalOrganizationOwner(
+            request.resource.data,
+            organizationId,
+            userId
+          );
+        allow update: if isSystemAdmin()
+          && request.resource.data.organizationId == resource.data.organizationId
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.status == 'ACTIVE'
+          && request.resource.data.isOwner == true
+          && request.resource.data.classification == 'OPERATIONAL'
+          && request.resource.data.exampleData == false
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
       }
 
       match /farmSequenceGuards/{farmSequence} {
@@ -3201,32 +3368,23 @@ service cloud.firestore {
     match /durian-smartfarm/root {
       allow get: if signedIn();
       allow list, delete: if false;
-      allow create: if signedInWithPhone()
+      allow create: if hasMasterAdminClaim()
         && !exists(dataRootPath())
-        && request.resource.data.keys().hasAll([
-          'projectId', 'documentName', 'schemaVersion', 'layout',
-          'menuCategories', 'seedOwnerUid', 'classification', 'exampleData',
-          'updatedAt'
-        ])
-        && request.resource.data.projectId == 'durian-smartfarm'
-        && request.resource.data.documentName == 'root'
+        && validDataRoot(request.resource.data)
         && request.resource.data.seedOwnerUid == request.auth.uid
-        && request.resource.data.classification == 'SIMULATED/TEST ONLY'
-        && request.resource.data.exampleData == true
-        && request.resource.data.updatedAt == request.time;
-      allow update: if isSeedOperator()
-        && request.resource.data.projectId == 'durian-smartfarm'
-        && request.resource.data.documentName == 'root'
+        && request.resource.data.classification == 'OPERATIONAL'
+        && request.resource.data.exampleData == false;
+      allow update: if isSystemAdmin()
+        && validDataRoot(request.resource.data)
         && request.resource.data.seedOwnerUid == resource.data.seedOwnerUid
-        && request.resource.data.classification == 'SIMULATED/TEST ONLY'
-        && request.resource.data.exampleData == true
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.classification == 'OPERATIONAL'
+        && request.resource.data.exampleData == false;
     }
 
     match /durian-smartfarm/root/{seedDocument=**} {
       allow create, update: if request.resource.data.keys().hasAll(['seedBatchId'])
         && request.resource.data.seedBatchId == 'KDOMS-PRODUCTION-MOCK-V1'
-        && isSeedOperator()
+        && isSystemAdmin()
         && request.resource.data.exampleData == true;
     }
   }

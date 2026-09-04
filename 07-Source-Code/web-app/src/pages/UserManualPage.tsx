@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { usePhase2 } from '../app/usePhase2'
 import { roleLabels } from '../domain/farm'
 import { PageHeader } from './PageHeader'
+import { WorkflowDependencyMap } from '../components/WorkflowDependencyMap'
 
 const roleGuides = [
   {
@@ -195,6 +196,7 @@ export function UserManualPage() {
       <nav className="manual-index" aria-label="สารบัญคู่มือผู้ใช้">
         <a href="#manual-start">เริ่มต้นใช้งาน</a>
         <a href="#manual-roles">7 บทบาท</a>
+        <a href="#manual-dependencies">แผนผังระบบ (Dependency)</a>
         <a href="#manual-workflows">Workflow</a>
         <a href="#manual-data">การกรอกข้อมูล</a>
         <a href="#manual-sync">Offline/Sync</a>
@@ -239,9 +241,21 @@ export function UserManualPage() {
         </div>
       </section>
 
+      <section className="manual-section" id="manual-dependencies" aria-labelledby="manual-dependencies-title">
+        <div className="manual-section__heading">
+          <span className="status-pill">03 · System Dependencies</span>
+          <h2 id="manual-dependencies-title">แผนผังการเชื่อมโยงระบบและ Workflow Dependency</h2>
+          <p>
+            แสดงความสัมพันธ์ของทุกเมนูและฟังก์ชันใน KDOMS: เลือกเมนูเพื่อดูสิ่งที่ต้องทำก่อน (Pre-requisites)
+            และสิ่งที่ระบบจะส่งผลต่อไปยังฟังก์ชันถัดไป (Next Steps / Downstream)
+          </p>
+        </div>
+        <WorkflowDependencyMap />
+      </section>
+
       <section className="manual-section" id="manual-workflows" aria-labelledby="manual-workflows-title">
         <div className="manual-section__heading">
-          <span className="status-pill">03 · End-to-end</span>
+          <span className="status-pill">04 · End-to-end</span>
           <h2 id="manual-workflows-title">Workflow ตั้งแต่สร้างข้อมูลจนตรวจรับหรือปิดรายการ</h2>
           <p>เปิดแต่ละหัวข้อเพื่อดูขั้นตอนตามลำดับ</p>
         </div>
@@ -262,7 +276,7 @@ export function UserManualPage() {
 
       <section className="manual-section" id="manual-data" aria-labelledby="manual-data-title">
         <div className="manual-section__heading">
-          <span className="status-pill">04 · Data quality</span>
+          <span className="status-pill">05 · Data quality</span>
           <h2 id="manual-data-title">คำแนะนำการกรอกข้อมูล</h2>
         </div>
         <div className="manual-table-wrap">
@@ -283,7 +297,7 @@ export function UserManualPage() {
 
       <section className="manual-section" id="manual-sync" aria-labelledby="manual-sync-title">
         <div className="manual-section__heading">
-          <span className="status-pill">05 · Offline & evidence</span>
+          <span className="status-pill">06 · Offline & evidence</span>
           <h2 id="manual-sync-title">QR รูปภาพ Offline/Sync และ Conflict</h2>
         </div>
         <div className="manual-state-grid">
@@ -300,7 +314,7 @@ export function UserManualPage() {
 
       <section className="manual-section" id="manual-help" aria-labelledby="manual-help-title">
         <div className="manual-section__heading">
-          <span className="status-pill">06 · Troubleshooting</span>
+          <span className="status-pill">07 · Troubleshooting</span>
           <h2 id="manual-help-title">แนวทางแก้ปัญหาเบื้องต้น</h2>
         </div>
         <div className="manual-table-wrap">

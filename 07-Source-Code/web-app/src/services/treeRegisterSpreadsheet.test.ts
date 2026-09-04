@@ -3,7 +3,9 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import {
   previewTreeRegisterCsv,
   treeRegisterCsvHeaders,
+  treeRegisterRegistrationCsvHeaders,
   treeRegisterThaiCsvHeaders,
+  treeRegisterThaiRegistrationCsvHeaders,
 } from '../domain/treeRegister'
 import {
   createTreeRegisterTemplateFile,
@@ -25,19 +27,13 @@ async function xlsxWithValidRow(): Promise<File> {
   const template = await templateAsFile()
   const archive = unzipSync(new Uint8Array(await template.arrayBuffer()))
   const values: Record<string, string> = {
-    recordType: 'ข้อมูลภาคสนาม',
-    organizationCode: 'DEMO',
-    farmSequence: 'F01',
-    zoneCode: 'Z02',
-    rowCode: 'R03',
-    treeSequence: '17',
-    tagCode: 'DEMO-F01-Z02-R03-T017',
+    zoneCode: '1',
+    rowCode: '1',
+    treeSequence: '1',
+    tagCode: 'Z1-R1-T1',
     plantingCycle: '1',
-    varietyConfidence: 'ไม่ทราบ',
-    plantingYearConfidence: 'ไม่ทราบ',
-    treeStatus: 'ปกติ',
-    baselineDate: '2026-09-01',
-    notes: 'SIMULATED/TEST ONLY',
+    variety: 'หมอนทอง',
+    plantingYear: '2568',
   }
   const letters = (index: number) => {
     let value = index + 1
@@ -48,12 +44,8 @@ async function xlsxWithValidRow(): Promise<File> {
     }
     return result
   }
-  const excelSerial = (
-    Date.UTC(2026, 8, 1) - Date.UTC(1899, 11, 30)
-  ) / 86_400_000
-  const cells = treeRegisterCsvHeaders.map((header, index) => header === 'baselineDate'
-    ? `<c r="${letters(index)}2"><v>${excelSerial}</v></c>`
-    : `<c r="${letters(index)}2" t="inlineStr"><is><t>${values[header] ?? ''}</t></is></c>`
+  const cells = treeRegisterRegistrationCsvHeaders.map((header, index) =>
+    `<c r="${letters(index)}2" t="inlineStr"><is><t>${values[header] ?? ''}</t></is></c>`
   ).join('')
   const sheetPath = 'xl/worksheets/sheet1.xml'
   const sheet = strFromU8(archive[sheetPath]!)
@@ -65,7 +57,7 @@ async function xlsxWithValidRow(): Promise<File> {
 }
 
 describe('Tree Register Excel/Google Sheets files', () => {
-  it('creates a scoped Thai Excel template with the exact import header', async () => {
+  it('creates a Thai Excel template that starts with farm-local position fields', async () => {
     const template = createTreeRegisterTemplateFile({
       farmCode: 'DEMO-F01',
       organizationCode: 'DEMO',
@@ -76,7 +68,10 @@ describe('Tree Register Excel/Google Sheets files', () => {
     const content = await readTreeRegisterSpreadsheet(await templateAsFile())
     const preview = previewTreeRegisterCsv(content.csvText, 'DEMO', 'F01')
     expect(content).toMatchObject({ format: 'XLSX', sheetName: 'ทะเบียนตำแหน่ง' })
-    expect(content.csvText.split('\n')[0]).toBe(treeRegisterThaiCsvHeaders.join(','))
+    expect(content.csvText.split('\n')[0]).toBe(treeRegisterThaiRegistrationCsvHeaders.join(','))
+    expect(content.csvText).not.toContain('ประเภทข้อมูล')
+    expect(content.csvText).not.toContain('รหัสองค์กร')
+    expect(content.csvText).not.toContain('ลำดับสวน')
     expect(preview.headerValid).toBe(true)
     expect(preview.totalRows).toBe(0)
   })
@@ -86,8 +81,13 @@ describe('Tree Register Excel/Google Sheets files', () => {
     const preview = previewTreeRegisterCsv(content.csvText, 'DEMO', 'F01')
     expect(preview.rejects).toHaveLength(0)
     expect(preview.candidates).toHaveLength(1)
-    expect(preview.candidates[0]?.tagCode).toBe('DEMO-F01-Z02-R03-T017')
-    expect(preview.candidates[0]?.baselineDate).toBe('2026-09-01')
+    expect(preview.candidates[0]).toMatchObject({
+      zoneCode: 'Z01',
+      rowCode: 'R01',
+      treeSequence: 1,
+      tagCode: 'Z01-R01-T01',
+      plantingYear: 2568,
+    })
   })
 
   it('accepts Thai CSV and legacy English CSV, and explains that .xls must be converted', async () => {
@@ -95,6 +95,9 @@ describe('Tree Register Excel/Google Sheets files', () => {
     const thaiContent = await readTreeRegisterSpreadsheet(new File([thaiCsv], 'thai-template.csv', { type: 'text/csv' }))
     expect(thaiContent).toEqual({ csvText: thaiCsv, format: 'CSV', sheetName: 'CSV' })
     expect(previewTreeRegisterCsv(thaiContent.csvText, 'DEMO', 'F01').headerValid).toBe(true)
+
+    const compactThaiCsv = `${treeRegisterThaiRegistrationCsvHeaders.join(',')}\n`
+    expect(previewTreeRegisterCsv(compactThaiCsv, 'DEMO', 'F01').headerValid).toBe(true)
 
     const englishCsv = `${treeRegisterCsvHeaders.join(',')}\n`
     const englishContent = await readTreeRegisterSpreadsheet(new File([englishCsv], 'legacy-template.csv', { type: 'text/csv' }))
