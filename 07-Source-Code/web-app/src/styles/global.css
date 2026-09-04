@@ -2076,6 +2076,11 @@ textarea {
   }
 }
 @media (max-width: 48rem) {
+  .app-header__bar {
+    flex-wrap: wrap;
+    padding-bottom: var(--space-2);
+  }
+
   .context-row {
     flex-wrap: wrap;
   }

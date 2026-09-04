@@ -379,7 +379,7 @@ describe('Smart Durian local mock app', () => {
 
     expect(await screen.findByRole('heading', { name: 'ศูนย์วิเคราะห์โรคจำลอง', level: 1 })).toBeInTheDocument()
     expect(screen.getByText(/P1 — Approved/u)).toBeInTheDocument()
-    expect(screen.getByText(/SIMULATED\/TEST ONLY/u)).toBeInTheDocument()
+    expect(screen.getByText('SIMULATED/TEST ONLY', { selector: 'strong' })).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/Local|Emulator/u)
     expect((await screen.findAllByText(/candidate finding/u)).length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: 'เปิดติดตามโรคปัจจุบัน' })).toHaveAttribute('href', '/disease')
