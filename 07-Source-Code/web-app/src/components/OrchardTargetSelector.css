@@ -3,8 +3,8 @@
 .orchard-action-panel {
   min-width: 0;
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -18,7 +18,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .orchard-selector__header h3,
@@ -36,7 +36,7 @@
 .orchard-selector__view-toggle {
   display: flex;
   gap: var(--space-1);
-  padding: 0.2rem;
+  padding: 0.15rem;
   background: var(--color-surface-soft);
   border-radius: 999px;
 }
@@ -45,7 +45,7 @@
 .orchard-zone__heading button,
 .orchard-row__heading,
 .orchard-selection-summary button {
-  min-height: var(--touch-target);
+  min-height: 2.2rem;
 }
 
 .orchard-selector__view-toggle button {
@@ -73,14 +73,15 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   color: var(--color-warning);
   background: var(--color-warning-soft);
   border-radius: var(--radius-sm);
+  font-size: 0.85rem;
 }
 
 .orchard-orientation > span:first-child {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 900;
 }
 
@@ -89,18 +90,18 @@
 .orchard-checklist {
   min-width: 0;
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .orchard-zone__heading span,
 .orchard-checklist__zone-heading span {
   display: block;
   color: var(--color-muted);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
 }
 
 .orchard-zone {
-  padding: var(--space-3);
+  padding: var(--space-2);
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -110,25 +111,25 @@
   min-width: 0;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(7.5rem, 1fr);
-  gap: var(--space-3);
+  grid-auto-columns: minmax(6rem, 1fr);
+  gap: var(--space-2);
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  padding-block-end: var(--space-2);
+  padding-block-end: var(--space-1);
 }
 
 .orchard-row {
-  min-width: 7.5rem;
+  min-width: 6rem;
   display: grid;
   align-content: start;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .orchard-row__heading {
   display: grid;
   gap: 0.1rem;
   justify-items: center;
-  padding: var(--space-2);
+  padding: var(--space-1);
   color: var(--color-primary-strong);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -138,41 +139,42 @@
 .orchard-row__heading span,
 .orchard-row__heading small {
   color: var(--color-muted);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
 }
 
 .orchard-tree-stack {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .orchard-tree {
-  min-height: 4.75rem;
+  min-height: 3.5rem;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.1rem var(--space-2);
-  padding: var(--space-2);
+  gap: 0.1rem var(--space-1);
+  padding: var(--space-1);
   color: var(--color-text);
   text-align: start;
   background: var(--color-surface);
-  border: 2px solid var(--color-border);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
 .orchard-tree > span {
   grid-row: 1 / span 2;
   color: var(--color-primary);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
 }
 
 .orchard-tree small {
   color: var(--color-muted);
+  font-size: 0.7rem;
 }
 
 .orchard-tree[aria-pressed='true'] {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
 }
 
 .orchard-tree--watch,
@@ -194,8 +196,8 @@
 .orchard-checklist__zone {
   min-width: 0;
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: var(--space-2);
+  padding: var(--space-2);
   background: var(--color-surface-soft);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -206,34 +208,34 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .orchard-checklist__zone-heading h4 {
-  margin: var(--space-1) 0;
+  margin: 0;
 }
 
 .orchard-checklist__scroll {
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
-  padding-block-end: var(--space-2);
+  padding-block-end: var(--space-1);
 }
 
 .orchard-checklist__rows {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(7.5rem, 1fr);
+  grid-auto-columns: minmax(6.5rem, 1fr);
   gap: var(--space-2);
   min-width: max-content;
 }
 
 .orchard-checklist__row {
-  width: 7.5rem;
+  width: 6.5rem;
   display: grid;
   align-content: start;
-  gap: var(--space-2);
-  padding: var(--space-2);
+  gap: var(--space-1);
+  padding: var(--space-1);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -241,48 +243,50 @@
 
 .orchard-checklist__row > header {
   display: grid;
-  gap: var(--space-1);
-  min-height: var(--touch-target);
+  gap: 0;
+  min-height: 2rem;
 }
 
 .orchard-checklist__row > header > strong,
 .orchard-group-check {
   color: var(--color-primary-strong);
   font-weight: 800;
+  font-size: 0.85rem;
 }
 
 .orchard-group-check {
-  min-height: var(--touch-target);
+  min-height: 2rem;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   cursor: pointer;
 }
 
 .orchard-group-check input,
 .orchard-checklist__tree input {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1rem;
+  height: 1rem;
   margin: 0;
   accent-color: var(--color-primary);
 }
 
 .orchard-checklist__trees {
   display: grid;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
 .orchard-checklist__tree {
-  min-height: var(--touch-target);
+  min-height: 2.2rem;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0 var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  gap: 0 var(--space-1);
+  padding: 0.15rem var(--space-1);
   cursor: pointer;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  font-size: 0.85rem;
 }
 
 .orchard-checklist__tree:has(input:checked) {
