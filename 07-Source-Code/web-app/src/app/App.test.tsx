@@ -364,11 +364,15 @@ describe('Smart Durian local mock app', () => {
     expect(screen.queryByRole('link', { name: /ประวัติ Audit/u })).not.toBeInTheDocument()
   })
 
-  it('shows More → Farm Management only to ORG_OWNER and lists four deterministic profiles', async () => {
+  it('shows Sidebar → Farm Management only to MasterAdmin and lists four deterministic profiles', async () => {
     renderApp('/more')
     const owner = await signIn()
 
-    await owner.click(screen.getByRole('link', { name: /จัดการสวน/u }))
+    const sidebar = screen.getByRole('complementary', { name: 'เมนูหลักบนจอใหญ่' })
+    expect(within(sidebar).getByRole('link', { name: /จัดการสวน/u })).toBeInTheDocument()
+    expect(within(screen.getByRole('main')).queryByRole('link', { name: /จัดการสวน/u })).not.toBeInTheDocument()
+
+    await owner.click(within(sidebar).getByRole('link', { name: /จัดการสวน/u }))
     expect(await screen.findByRole('heading', { name: 'จัดการสวน' })).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: /DEMO-F01/u })).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: /DEMO-F02/u })).toBeInTheDocument()

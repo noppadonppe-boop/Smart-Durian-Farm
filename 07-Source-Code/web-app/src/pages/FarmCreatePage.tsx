@@ -4,17 +4,20 @@ import { Link, useNavigate } from 'react-router-dom'
 import { usePhase2 } from '../app/usePhase2'
 import { FarmProfileForm } from '../components/FarmProfileForm'
 import type { FarmProfileDraft } from '../domain/farm'
+import { useAuth } from '../security/AuthContext'
 import { PageHeader } from './PageHeader'
 
 export function FarmCreatePage() {
   const navigate = useNavigate()
   const { currentFarm, createFarm, mode } = usePhase2()
+  const { isSystemAdmin } = useAuth()
   const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [submitting, setSubmitting] = useState(false)
   const [idempotencyKey] = useState(() => `farm-create-${crypto.randomUUID()}`)
 
   if (!currentFarm) return null
-  if (!currentFarm.isOrganizationOwner) {
+  const canCreate = currentFarm.isOrganizationOwner || isSystemAdmin
+  if (!canCreate) {
     return (
       <section className="page-stack">
         <PageHeader

@@ -1953,12 +1953,20 @@ textarea {
 
 @media (min-width: 48rem) {
   .app-frame {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
     grid-template-columns: 16.5rem 1fr;
     grid-template-rows: auto 1fr;
   }
 
   .app-header {
     grid-column: 1 / -1;
+    position: relative;
+    top: auto;
+    z-index: 30;
+    flex-shrink: 0;
     padding: var(--space-3) var(--space-6) 0;
     display: grid;
     grid-template-columns: 1fr minmax(24rem, 36rem);
@@ -1981,9 +1989,10 @@ textarea {
   }
 
   .app-sidebar {
-    position: sticky;
-    top: 0;
-    height: calc(100vh - 5.5rem);
+    height: 100%;
+    max-height: 100%;
+    position: relative;
+    top: auto;
     padding: var(--space-5) var(--space-4);
     display: flex;
     flex-direction: column;
@@ -1991,6 +2000,18 @@ textarea {
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  .app-sidebar::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .app-sidebar::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-sm);
   }
 
   .app-sidebar nav {
@@ -2047,6 +2068,10 @@ textarea {
   }
 
   .app-main {
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--space-5) var(--space-6);
   }
 

@@ -3,7 +3,7 @@ import { useAuth } from '../security/AuthContext'
 
 export function NoFarmPage() {
   const { authError, identity, signOut } = usePhase2()
-  const { userProfile } = useAuth()
+  const { userProfile, profileError } = useAuth()
   const pending = userProfile?.status === 'pending'
 
   return (
@@ -20,7 +20,9 @@ export function NoFarmPage() {
             ? 'ระบบบันทึก User และคำขอสถานะ Pending ใน Firebase แล้ว กรุณารอ MasterAdmin กำหนดสิทธิ์และ Assign สวน'
             : 'ข้อมูลปลอดภัยและยังไม่มีสิทธิ์เปิดดูสวนใด กรุณาให้ MasterAdmin ตรวจ User Profile และ Farm membership'}
         </p>
-        {authError ? <p className="form-error" role="alert">{authError}</p> : null}
+        {profileError || authError ? (
+          <p className="form-error" role="alert">{profileError ?? authError}</p>
+        ) : null}
         <button className="secondary-action" onClick={() => void signOut()} type="button">
           ออกจากระบบ
         </button>

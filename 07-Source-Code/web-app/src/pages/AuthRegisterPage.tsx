@@ -1,13 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { authService } from '../services/authService'
-
-function messageFromError(reason: unknown): string {
-  return reason instanceof Error && reason.message
-    ? reason.message
-    : 'เกิดข้อผิดพลาดในการสมัครสมาชิก'
-}
+import { authenticationErrorMessage, authService } from '../services/authService'
 
 export function AuthRegisterPage() {
   const [email, setEmail] = useState('')
@@ -27,7 +21,7 @@ export function AuthRegisterPage() {
       await authService.registerWithEmail(email, password, firstName, lastName, position)
       void navigate('/')
     } catch (reason) {
-      setErrorMsg(messageFromError(reason))
+      setErrorMsg(authenticationErrorMessage(reason))
     } finally {
       setSubmitting(false)
     }

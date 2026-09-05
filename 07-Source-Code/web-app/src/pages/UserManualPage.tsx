@@ -1,174 +1,383 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
 import { roleLabels } from '../domain/farm'
 import { PageHeader } from './PageHeader'
 import { WorkflowDependencyMap } from '../components/WorkflowDependencyMap'
+import './UserManualPage.css'
 
-const roleGuides = [
-  {
-    code: 'ORG_OWNER',
-    title: 'เจ้าขององค์กร',
-    duty: 'ดูภาพรวมสวนที่ได้รับสิทธิ์ จัดการสมาชิก ตรวจ KPI, Audit และ Policy',
-    caution: 'ห้ามใช้สิทธิ์ Owner ข้าม Farm ที่ไม่มี membership หรือข้าม Gate เพื่อ Deploy',
-  },
-  {
-    code: 'FARM_MANAGER',
-    title: 'ผู้จัดการสวน',
-    duty: 'วางแผน มอบหมาย ตรวจรับงาน ตัดสิน Conflict และดูข้อมูลของสวนปัจจุบัน',
-    caution: 'ห้ามแก้รายงานของ Worker หรือประวัติเดิมแบบเงียบ ๆ',
-  },
-  {
-    code: 'AGRONOMIST',
-    title: 'นักวิชาการเกษตร',
-    duty: 'ตรวจอาการ ยืนยันการวินิจฉัย วางแผนดูแล และติดตามผลตามสิทธิ์',
-    caution: 'แยกอาการที่พบออกจาก diagnosis และไม่ให้คำแนะนำสารเคมีอัตโนมัติ',
-  },
-  {
-    code: 'WORKER',
-    title: 'ผู้ปฏิบัติงาน',
-    duty: 'รับงาน ยืนยันต้นด้วย QR บันทึกผล วัสดุ และรูป BEFORE/AFTER',
-    caution: 'ห้ามทำงานต่อเมื่อ QR ผิดสวน/ผิดต้น หรือส่งงานขณะรูปยังอัปโหลดไม่ครบ',
-  },
-  {
-    code: 'SALES_INVENTORY',
-    title: 'ผลผลิต การขาย และคลัง',
-    duty: 'ดูแล Harvest/Sales lot, Inventory movement และต้นทุนตรงตาม Farm scope',
-    caution: 'ห้ามเดาหน่วย แก้ยอดย้อนหลัง หรือใช้ข้อมูลนี้แทนระบบบัญชี/ภาษี/ธนาคาร',
-  },
-  {
-    code: 'VIEWER',
-    title: 'ผู้ดูข้อมูล',
-    duty: 'อ่านข้อมูลธุรกิจตามสิทธิ์โดยไม่มีการแก้ไข',
-    caution: 'ไม่มี Audit หรือ Export โดยอัตโนมัติ',
-  },
-  {
-    code: 'AUDITOR',
-    title: 'ผู้ตรวจสอบ',
-    duty: 'อ่าน Audit/Data Quality และ Export เฉพาะ assignment ที่ได้รับ',
-    caution: 'ห้ามแก้ข้อมูลปฏิบัติการหรือเปิดข้อมูลนอกขอบเขตที่มอบหมาย',
-  },
-] as const
+interface StepItem {
+  number: number
+  title: string
+  actionTag?: string
+  description: string
+  tip?: string
+  caution?: string
+}
 
-const workflows = [
-  {
-    title: 'ทะเบียนต้นและ QR',
-    audience: 'Owner · Manager · Agronomist · Worker',
-    steps: [
-      'ตรวจชื่อและรหัสสวนที่ Header ก่อนทุกครั้ง',
-      'Owner/Manager ดาวน์โหลดแม่แบบ Excel ภาษาไทยเพื่อเพิ่มหลายตำแหน่ง; ถ้าใช้ Google Sheets ให้ดาวน์โหลดกลับเป็น .xlsx หรือ .csv แล้วตรวจตัวอย่างก่อนยืนยัน',
-      'ค้นหาต้นหรือเปิดงาน แล้วสแกน QR/กรอกรหัสด้วยมือ',
-      'เทียบ Farm, Zone, Row, Position และรหัสต้นกับเป้าหมาย',
-      'หากตรงจึงเปิด Timeline หรือเริ่มงาน; หากไม่ตรงให้หยุดและแจ้ง Manager',
-      'ป้ายเสียหรือไม่พบข้อมูลให้บันทึกเหตุการณ์ ห้ามเดารหัสหรือใช้ข้อมูลต้นอื่นแทน',
-    ],
-  },
-  {
-    title: 'แปลนสวนและเลือกตำแหน่ง',
-    audience: 'ตามสิทธิ์ของแต่ละ Workflow',
-    steps: [
-      'เปิด เพิ่มเติม → แปลนสวนและเลือกตำแหน่ง แล้วตรวจชื่อ/รหัสสวนปัจจุบัน',
-      'เลือกใช้ “แปลนต้น” เพื่อดู Zone/Row/สถานะ หรือ “ตารางติ๊กเลือก” เพื่อเลือกหลายต้นได้เร็ว; สลับมุมมองแล้วตำแหน่งที่เลือกยังอยู่',
-      'แต่ละ Zone เช่น Z01, Z02, Z03 แสดงแยกกัน; Row เรียงซ้ายไปขวาและต้นเรียงบนลงล่าง',
-      'เลือกต้น หลายต้น ทั้งแถว หรือทั้งโซนตามงาน แล้วตรวจสรุปจำนวนและ Zone ก่อนดำเนินการ',
-      'เลือกเมนูที่ต้องการ: งานทั่วไป งานดูแล รายงานอาการ/โรค บันทึกจำนวนผล หรือ Harvest Lot; เมนูที่ยังไม่เข้าเงื่อนไขจะแจ้งเหตุผล',
-      'เมื่อเปิดฟอร์มปลายทางให้ตรวจตำแหน่งอีกครั้ง; งานรายต้นยังต้องยืนยัน QR/รหัสตามขั้นตอนเดิม',
-    ],
-  },
-  {
-    title: 'คำสั่งงานจนตรวจรับ',
-    audience: 'Owner · Manager · Worker',
-    steps: [
-      'ผู้สร้างกรอกเป้าหมาย ประเภทงาน ผู้รับผิดชอบ Due date ขั้นตอน วัสดุ และรูปอ้างอิง 0–3 รูปขณะ Draft',
-      'หลัง Assign รูปอ้างอิงเป็น Read-only; Worker เปิดดูและกดรับงาน',
-      'งานรายต้นต้องสแกนยืนยันต้นก่อนเริ่ม',
-      'Worker บันทึกผลจริง หน่วย วัสดุ Exception และรูป BEFORE/AFTER อย่างน้อยประเภทละ 1 รูป รวมไม่เกิน 6 รูป',
-      'รอรูปทุกใบเป็น Uploaded แล้วจึงส่งตรวจ',
-      'Manager ตรวจ target, เวลา, วัสดุ และรูป แล้วเลือก Approve, Request rework หรือ Reject พร้อมเหตุผล',
-      'เมื่อผ่านจึงปิดงาน; Rework ต้องคงประวัติรอบก่อนหน้า',
-    ],
-  },
-  {
-    title: 'ดูแลต้น โรค และการติดตาม',
-    audience: 'Manager · Agronomist · Worker',
-    steps: [
-      'บันทึกอาการที่สังเกตได้ ความรุนแรง เวลา ต้น และรูป โดยยังไม่สรุป diagnosis',
-      'ส่ง Incident ให้ Manager/Agronomist ตรวจ',
-      'Agronomist ยืนยันหรือแก้ diagnosis ตามหลักฐาน และกำหนด follow-up',
-      'หากมีงานดูแล ให้สร้าง Work Order ที่อ้าง Incident',
-      'บันทึกผลติดตามและปิดเคสเมื่อมีหลักฐานครบ; การแก้ข้อมูลใช้ Correction Event',
-    ],
-  },
-  {
-    title: 'รอบบริหารสวนรายปี',
-    audience: 'ทุกบทบาทอ่านได้ · Owner จัดการรอบ · Manager จัดทำแผน',
-    steps: [
-      'ตรวจสวนปัจจุบันและรอบปีที่ Header; เปลี่ยนสวนแล้วระบบจะโหลดรอบของสวนใหม่',
-      'ค่าเริ่มต้นคือ 1 มิถุนายน–31 พฤษภาคม; Owner กำหนดวันเริ่มเฉพาะสวนได้ก่อนเริ่มรอบ',
-      'วางแผนระดับทั้งสวนหรือ Zone เป็นหลัก และเลือก Tree Set เฉพาะกรณีที่จำเป็น',
-      'Crop Cycle เป็นรอบผลผลิตย่อยและต้องเลือกรอบบริหารสวนที่อ้างอิง ไม่ใช่รอบเดียวกัน',
-      'โหมด Firebase Production ยังไม่เปิดเขียน Crop Cycle ใหม่จาก Annual Cycle จำลอง และจะหยุดก่อนส่งข้อมูลจนมี Annual repository ที่เชื่อถือได้',
-      'ก่อนปิดรอบตรวจแผน งานค้าง และคุณภาพข้อมูล; รอบที่ปิดแล้วแก้ผ่าน Correction พร้อมเหตุผลเท่านั้น',
-    ],
-  },
-  {
-    title: 'ผล จำนวนผล เก็บเกี่ยว และการขาย',
-    audience: 'Owner · Manager · Agronomist · Sales/Inventory',
-    steps: [
-      'เลือก Crop Cycle และ stage ให้ถูกต้องก่อนบันทึก Fruit Observation',
-      'เลือกที่มาของจำนวนเป็นคนนับหรือ AI ช่วยนับ + คนตรวจ และระบุวิธี/คุณภาพค่า',
-      'แยก Measured, Estimated และ Unknown; ห้ามแทน Unknown ด้วย 0',
-      'สร้าง Harvest lot โดยอ้าง Farm, Cycle, Zone/Tree, จำนวน น้ำหนัก เกรด และหน่วย',
-      'สร้าง Sales lot จาก Harvest lot และบันทึกราคา มัดจำ รับแล้ว ค้างตามสิทธิ์',
-      'Correction ต้องอ้างรายการเดิมและเก็บ before/after ใน Audit',
-    ],
-  },
-  {
-    title: 'Inventory และต้นทุนตรง',
-    audience: 'Owner · Manager · Sales/Inventory',
-    steps: [
-      'เลือก Item และ Lot ของสวนปัจจุบัน',
-      'เลือกประเภท Receive, Issue หรือ Adjustment',
-      'กรอก quantity พร้อม unit และ reason/reference ทุกครั้ง',
-      'Issue ควรอ้าง Work/Care Event เมื่อเกี่ยวข้อง',
-      'ตรวจคงเหลือและ Audit; ยอดผิดให้ทำ Adjustment/Correction ไม่แก้ประวัติเดิม',
-    ],
-  },
-  {
-    title: 'รายงานการจัดการสวนและต้นทุน',
-    audience: 'Owner · Manager · Sales/Inventory · Viewer/Auditor ตามสิทธิ์',
-    steps: [
-      'เลือก Annual Cycle และงวดสัปดาห์ เดือน 3 เดือน หรือปีของสวนปัจจุบัน',
-      'บันทึกค่าแรงเป็นต้นทุนบริหารแบบชั่วโมง วัน ชิ้น หรือเหมา โดยไม่ใช้เป็น Payroll',
-      'บันทึกค่าใช้จ่ายตามหมวดและขอบเขต; สินทรัพย์ลงทุนต้องแยกจากต้นทุนดำเนินงาน',
-      'ต้นทุนวัสดุนับเมื่อเบิกใช้ (Issue) ไม่บวกยอดรับเข้าอีกครั้ง',
-      'ตรวจ Unknown/Estimated/วันที่ไม่ครบและ Drill-down ก่อนใช้ส่วนต่างยอดขาย–ต้นทุน',
-      'CSV เป็นไฟล์ในเครื่องและไม่มี public link; ตัวเลขเป็น SIMULATED/TEST ONLY',
-    ],
-  },
-  {
-    title: 'รายงาน Audit และ Export',
-    audience: 'ตามสิทธิ์และ Policy',
-    steps: [
-      'ตรวจ Farm, period, timezone, cutoff และ Data Quality ก่อนอ่าน KPI',
-      'Drill-down รายการ Unknown, Estimated, Pending, Conflict และ late data',
-      'แก้ข้อมูลต้นทางด้วย Correction ก่อน Finalize',
-      'Export เฉพาะ scope/column ที่อนุญาตและตรวจสิทธิ์ใหม่ตอนดาวน์โหลด',
-      'ห้ามสร้าง public link; รายงานที่ Finalized แล้วแก้ด้วย Restated revision เท่านั้น',
-    ],
-  },
-] as const
+interface ManualTopic {
+  id: string
+  badgeIcon: string
+  title: string
+  subtitle: string
+  audience: string
+  steps: StepItem[]
+  quickLink?: { label: string; to: string }
+}
 
-const troubleshooting = [
-  ['เข้าสู่ระบบไม่ได้', 'ใช้หมายเลข/OTP ทดสอบที่กำหนด ตรวจตัวเลข 6 หลัก และห้ามใช้ SMS จริงในโหมดทดสอบ'],
-  ['ไม่เห็นสวน', 'ตรวจ Active membership; ห้ามแก้ URL หรือ Farm ID เพื่อข้ามสิทธิ์'],
-  ['QR ไม่ตรงงาน', 'หยุดงาน เปรียบเทียบ expected/actual และแจ้ง Manager'],
-  ['ออฟไลน์แล้วไม่พบต้น', 'กลับ Online เพื่อโหลดข้อมูล ห้ามใช้ cache ของต้นอื่น'],
-  ['รูปค้าง Pending/Failed', 'อย่า Submit; เปิดศูนย์ซิงก์และ Retry ด้วย batch เดิม'],
-  ['ข้อมูลขัดแย้ง', 'Manager ตรวจ before/after พร้อมเหตุผล หรือส่งต่อ Owner'],
-  ['Export ไม่ได้', 'ตรวจ Role/Policy; ห้ามยืมบัญชีหรือส่งไฟล์ผ่าน public link'],
-  ['เห็นข้อมูลต่างสวน', 'หยุดทันที เก็บหลักฐาน ไม่ Export/ส่งต่อ และแจ้ง Owner'],
-] as const
+const manualTopics: readonly ManualTopic[] = [
+  {
+    id: 'topic-disease',
+    badgeIcon: '🔍',
+    title: '1. เมื่อเจอโรคหรือศัตรูพืช ต้องทำอย่างไร? (ตั้งแต่ตรวจพบจนรักษาหายดี)',
+    subtitle: 'ทำตามขั้นตอน 1 2 3 4 5 เพื่อไม่ให้โรคลุกลาม และเก็บประวัติการรักษาไว้ที่ต้นตลอดไป',
+    audience: 'คนงาน · ผู้จัดการสวน · หมอพืช/นักวิชาการ · เจ้าของสวน',
+    quickLink: { label: 'ไปที่เมนูโรค', to: '/disease' },
+    steps: [
+      {
+        number: 1,
+        title: 'เดินตรวจต้น & ถ่ายรูปอาการที่ตาเห็น',
+        actionTag: '📸 ถ่ายรูปจุดผิดปกติ',
+        description: 'เมื่อเดินตรวจสวนแล้วพบอาการผิดปกติ เช่น ใบเหลือง ยอดแห้ง มีคราบน้ำยางสีน้ำตาลไหลเยิ้มที่โคนต้น หรือกิ่งเน่า ให้หยิบโทรศัพท์ขึ้นมาถ่ายรูปบริเวณที่เป็นโรคให้เห็นชัดเจน (ถ่ายใบ ถ่ายโคนต้น หรือถ่ายทรงพุ่ม)',
+        tip: 'ถ่ายให้ชัด แสงสว่างพอ และถ่ายให้เห็นทั้งแผลใกล้ๆ และทรงพุ่มโดยรวม',
+        caution: 'อย่าเพิ่งรีบเอาสารเคมีมาฉีดพ่นเองโดยที่ยังไม่ทราบชนิดของโรคที่แน่นอน',
+      },
+      {
+        number: 2,
+        title: 'กดเปิดเมนู "โรค" แล้วกดบันทึกอาการที่พบ',
+        actionTag: '📱 เข้าเมนู โรค → รายงานอาการ',
+        description: 'เปิดแอป แล้วกดเมนู "โรค" (รูปแว่นขยาย) หรือจิ้มเลือกต้นจาก "แปลนสวน": เลือกต้นที่พบอาการ (เช่น โซน A แถว 1 ต้นที่ 5) → พิมพ์บอกอาการสั้นๆ ในช่อง Observed symptom เช่น "พบคราบน้ำยางสีน้ำตาลไหลที่โคนต้น ใบเริ่มสลด" → เลือกระดับความรุนแรง (ต่ำ / ปานกลาง / รุนแรง / วิกฤต) → กดปุ่ม "บันทึกอาการ"',
+        tip: 'ระบบจะจำทันทีว่าใครเป็นคนพบ และบันทึกลงสมุดประจำต้น โดยยังไม่ถือเป็นคำสั่งจ่ายยาอัตโนมัติ เพื่อความปลอดภัยของต้นไม้',
+      },
+      {
+        number: 3,
+        title: 'หมอพืช / นักวิชาการเกษตร ตรวจวินิจฉัยและวางแผนรักษา',
+        actionTag: '🔬 วินิจฉัย & กำหนดวิธีรักษา',
+        description: 'นักวิชาการเกษตร (Agronomist) หรือผู้จัดการสวนจะเปิดดูรูปและอาการที่คนงานบันทึกไว้ จากนั้นพิมพ์ระบุชื่อโรคที่แน่ชัด (Confirmed Diagnosis) เช่น "โรครากเน่าโคนเน่าจากเชื้อไฟทอปธอร่า" พร้อมกำหนดแผนการรักษา (Treatment Plan) เช่น "ถากเปลือกบริเวณแผลออก ทาด้วยสารป้องกันเชื้อรา และงดให้น้ำชุ่มโคนต้น 3 วัน" แล้วกดบันทึก',
+        caution: 'ระบบไม่อนุญาตให้ระบบคอมพิวเตอร์สั่งจ่ายสารเคมีเองอัตโนมัติ ต้องได้รับการยืนยันจากหมอพืชหรือผู้มีประสบการณ์เสมอ',
+      },
+      {
+        number: 4,
+        title: 'ออกใบสั่งงานรักษา (สร้าง Treatment Work Order)',
+        actionTag: '📋 กดปุ่ม "สร้างงานรักษา"',
+        description: 'ในการ์ดของโรคนั้น จะมีปุ่ม "สร้างงานรักษา (Treatment Work Order)" ให้ผู้จัดการสวนกดปุ่มนี้เพื่อมอบหมายให้คนงานไปปฏิบัติงานจริง ระบุชื่อคนงานและวันที่ต้องทำให้เสร็จ ใบงานนี้จะส่งตรงไปที่มือถือของคนงานคนนั้นทันที',
+        tip: 'ระบบจะเชื่อมโยงงานรักษานี้เข้ากับเคสโรคของต้นไม้นั้นโดยอัตโนมัติ ไม่ต้องคอยจำว่าสั่งใครไปทำ',
+      },
+      {
+        number: 5,
+        title: 'คนงานรักษาเสร็จ และติดตามผลจนหายดี (ปิดเคส)',
+        actionTag: '✅ ติดตามผล & ปิดเคส',
+        description: 'หลังจากคนงานทำแผลและพ่นยาเรียบร้อย หมอพืชหรือเจ้าของสวนเดินไปตรวจดูซ้ำ บันทึกผลติดตาม (Follow-up) เช่น "แผลเริ่มแห้งสนิท มียางไหลหยุดแล้ว แตกใบอ่อนชุดใหม่" เมื่อต้นทุเรียนหายดีเป็นปกติแล้ว ให้กดปุ่ม "ปิดเคส (Close Incident)" เป็นอันจบกระบวนการสมบูรณ์',
+        tip: 'ประวัติโรคและการรักษาทั้งหมดจะถูกเก็บเป็นประวัติสุขภาพของต้นนั้นตลอดไป สแกน QR เมื่อไหร่ก็ย้อนดูได้',
+      },
+    ],
+  },
+  {
+    id: 'topic-tree',
+    badgeIcon: '🌳',
+    title: '2. การอัปเดตข้อมูลต้นไม้ และจัดการทะเบียนต้น',
+    subtitle: 'ดูประวัติต้นไม้ แก้ไขข้อมูลต้น ปลูกต้นใหม่ทดแทน หรือแจ้งป้ายชำรุด',
+    audience: 'เจ้าของสวน · ผู้จัดการสวน · คนดูแลสวน',
+    quickLink: { label: 'ไปที่เมนูต้นไม้', to: '/trees' },
+    steps: [
+      {
+        number: 1,
+        title: 'เปิดเมนู "ต้นไม้" แล้วเลือกต้นที่ต้องการ',
+        actionTag: '🌳 เมนู ต้นไม้',
+        description: 'กดที่ปุ่มเมนูรูปต้นไม้ "ต้นไม้" ด้านล่างของจอ จะเห็นรายชื่อต้นไม้ทั้งหมดในสวน สามารถพิมพ์ค้นหารหัสป้าย เช่น "A-01-05" หรือเลือกกรองตามโซน/แถวได้ จากนั้นกดที่ต้นไม้ที่ต้องการดู เพื่อเปิดหน้าประวัติต้น',
+      },
+      {
+        number: 2,
+        title: 'กดปุ่ม "แก้ไขรายละเอียด" เพื่ออัปเดตข้อมูล',
+        actionTag: '✏️ กดปุ่ม แก้ไขรายละเอียด',
+        description: 'ในหน้าข้อมูลต้นไม้ เลื่อนดูข้อมูลแล้วกดปุ่มสีเทาอ่อน "แก้ไขรายละเอียด" จะมีแบบฟอร์มขึ้นมาให้แก้ไข: เลือกว่ามีต้นอยู่ปกติหรือเป็นหลุมว่าง, ปรับสถานะสุขภาพ (สมบูรณ์แข็งแรง, โทรม/ใบเหลือง, อยู่ระหว่างรักษา), ใส่ข้อมูลขนาดต้น เช่น ความสูง เส้นรอบวงลำต้น หรือขนาดทรงพุ่ม (ถ้ามีคนวัด) และพิมพ์หมายเหตุเพิ่มเติม',
+        tip: 'หากต้นไม้เริ่มแตกใบอ่อน หรือมีอาการโทรม ให้มาปรับสถานะตรงนี้ เพื่อให้คนในสวนรู้พร้อมกัน',
+      },
+      {
+        number: 3,
+        title: 'กดปุ่ม "บันทึกข้อมูล" เป็นอันเสร็จสิ้น',
+        actionTag: '💾 กดปุ่ม บันทึกข้อมูล',
+        description: 'เมื่อตรวจดูความถูกต้องเรียบร้อย ให้กดปุ่มสีเขียว "บันทึกข้อมูล" ระบบจะเก็บประวัติการเปลี่ยนแปลงลงไทม์ไลน์ของต้นไม้นั้นทันที',
+      },
+      {
+        number: 4,
+        title: 'กรณีพิเศษ ก: ถ้าต้นเดิมตาย แล้วปลูกต้นใหม่แทนที่',
+        actionTag: '🌱 กดปุ่ม "ปลูกต้นใหม่ทดแทน"',
+        description: 'หากต้นทุเรียนต้นเดิมตาย แล้วเรานำกิ่งพันธุ์ใหม่มาปลูกลงหลุมเดิม "ห้ามลบต้นทิ้งหรือเปลี่ยนป้ายใหม่" ให้กดปุ่ม "ปลูกต้นใหม่ทดแทน" แล้วเลือกพันธุ์ทุเรียนใหม่ พร้อมระบุปีที่ปลูกใหม่ ระบบจะบันทึกเป็นรอบปลูกที่ 2 (Planting Cycle 2) โดยใช้รหัสป้ายและ QR เดิม ช่วยประหยัดค่าป้าย และไม่สับสนตำแหน่ง',
+      },
+      {
+        number: 5,
+        title: 'กรณีพิเศษ ข: ป้ายหัก ตัวหนังสือลบเลือน หรือ QR หลุดหาย',
+        actionTag: '🏷️ กดปุ่ม "แจ้งป้ายชำรุด"',
+        description: 'หากเดินตรวจสวนแล้วพบว่าป้ายประจำต้นหัก หลุดหาย หรือสีซีดจางจนสแกนไม่ติด ให้เปิดหน้าต้นนั้นแล้วกดปุ่ม "แจ้งป้ายชำรุด" พิมพ์แจ้งอาการสั้นๆ เช่น "ป้ายหักจากกิ่งไม้ตกใส่" ระบบจะบันทึกเตือนให้ผู้จัดการสวนจัดพิมพ์ป้ายใหม่มาเปลี่ยนให้ตรงต้นเดิม',
+      },
+    ],
+  },
+  {
+    id: 'topic-create-work',
+    badgeIcon: '📋',
+    title: '3. การสร้างงาน และจ่ายงานให้คนงาน (สำหรับผู้จัดการสวน)',
+    subtitle: 'สั่งงานชัดเจน เลือกว่าจะทำกี่ต้น แนบรูปตัวอย่างงาน และกำหนดคนทำ',
+    audience: 'เจ้าของสวน · ผู้จัดการสวน',
+    quickLink: { label: 'สร้างงานใหม่', to: '/work/new' },
+    steps: [
+      {
+        number: 1,
+        title: 'เข้าเมนู "งาน" แล้วกดปุ่ม "+ สร้างงานใหม่"',
+        actionTag: '📋 เมนู งาน → สร้างงานใหม่',
+        description: 'กดเมนู "งาน" ที่แถบล่าง จากนั้นกดปุ่มสีเขียว "+ สร้างงานใหม่" (หรือจะเลือกต้นไม้จาก "แปลนสวน" แล้วกดปุ่ม "สร้างงาน" ก็ได้เช่นกัน ระบบจะเลือกต้นไม้ให้ทันที)',
+      },
+      {
+        number: 2,
+        title: 'พิมพ์ชื่องาน และเลือกประเภทงาน',
+        actionTag: '✍️ ตั้งชื่องาน & ประเภทงาน',
+        description: 'ตั้งชื่องานให้เข้าใจง่าย เช่น "ใส่ปุ๋ยอินทรีย์บำรุงดิน โซน A แถว 1 ถึง 3" หรือ "พ่นสารชีวภัณฑ์ป้องกันเพลี้ยไก่แจ้" จากนั้นเลือกประเภทงาน เช่น งานดูแล (รดน้ำ, ใส่ปุ๋ย, พ่นยา, ตัดแต่งกิ่ง, ตรวจสภาพ) หรืองานทั่วไป (ตัดหญ้า, ซ่อมสปริงเกลอร์)',
+      },
+      {
+        number: 3,
+        title: 'เลือกเป้าหมาย: ทำต้นไหนบ้าง?',
+        actionTag: '🎯 เลือก ต้น / แถว / โซน',
+        description: 'เลือกว่าจะสั่งงานแบบใด: "รายต้น" (เลือกเฉพาะต้นที่ต้องการ), "ทั้งแถว" (เลือกทั้งแถว), หรือ "ทั้งโซน" (เลือกทุกต้นในโซนนั้น)',
+        tip: 'หากเป็นงานใส่ปุ๋ยหรือตัดแต่งกิ่ง สามารถเลือกทำทั้งแถวหรือทั้งโซนได้เลยในคลิกเดียว ไม่ต้องกดทีละต้น',
+      },
+      {
+        number: 4,
+        title: 'เลือกคนงาน กำหนดวันเสร็จ และแนบรูปตัวอย่าง',
+        actionTag: '👤 มอบหมายงาน & แนบรูป',
+        description: 'เลือกชื่อคนงานที่จะให้รับผิดชอบงานนี้ → กำหนดวันที่ต้องทำให้เสร็จ (Due Date) → สามารถถ่ายรูปหรือแนบรูปตัวอย่างงานได้สูงสุด 3 รูป เช่น ถ่ายกระสอบปุ๋ยที่ต้องการให้ใส่ หรือถ่ายกิ่งตัวอย่างที่ต้องการให้ตัดแต่ง เพื่อให้คนงานเห็นภาพชัดเจน',
+      },
+      {
+        number: 5,
+        title: 'กดปุ่ม "มอบหมายงาน"',
+        actionTag: '🚀 กด มอบหมายงาน',
+        description: 'กดปุ่ม "มอบหมายงาน" ใบสั่งงานจะถูกสร้างขึ้น และส่งตรงไปแสดงบนหน้าจอโทรศัพท์ของคนงานคนนั้นทันที',
+      },
+    ],
+  },
+  {
+    id: 'topic-worker-report',
+    badgeIcon: '📱',
+    title: '4. คนงานรับงาน และส่งรายงานการทำงาน (มีรูป ก่อนทำ - หลังทำ)',
+    subtitle: 'ทำง่าย ไม่ยุ่งยาก สแกนป้ายยืนยันต้น ถ่ายรูป Before/After แล้วส่งตรวจ',
+    audience: 'คนงาน · ผู้ปฏิบัติงานในสวน',
+    quickLink: { label: 'ไปที่หน้ารายการงาน', to: '/work' },
+    steps: [
+      {
+        number: 1,
+        title: 'คนงานเปิดเมนู "งาน" แล้วกด "รับงาน"',
+        actionTag: '📋 กดปุ่ม รับงาน',
+        description: 'เมื่อเปิดแอปเข้ามาที่เมนู "งาน" จะเห็นใบงานที่มีชื่อเราได้รับมอบหมาย กดเข้าไปดูรายละเอียดงาน อ่านคำสั่ง และดูรูปตัวอย่าง แล้วกดปุ่มสีน้ำเงิน "รับงาน (Accept Work)"',
+      },
+      {
+        number: 2,
+        title: 'เดินไปที่ต้นไม้ แล้วสแกน QR เพื่อยืนยันว่า "มาถูกต้น"',
+        actionTag: '📷 สแกนป้าย QR ที่ต้นไม้',
+        description: 'สำหรับงานที่เป็นรายต้น ให้เดินไปที่ต้นไม้เป้าหมาย หยิบโทรศัพท์ส่องกล้องสแกน QR ที่ป้ายประจำต้น ระบบจะขึ้นเครื่องหมายถูกสีเขียวว่า "ยืนยันต้นถูกต้องแล้ว" ป้องกันการใส่ปุ๋ยหรือพ่นยาผิดต้น',
+        caution: 'ถ้าสแกนแล้วขึ้นเตือนว่าผิดต้น ให้หยุดทันที และเดินหาต้นที่ป้ายตรงกับใบงาน',
+      },
+      {
+        number: 3,
+        title: 'ถ่ายรูป "ก่อนทำ (BEFORE)"',
+        actionTag: '📸 ถ่ายรูป ก่อนทำ',
+        description: 'กดปุ่มเลือกรูปหรือถ่ายรูปต้นไม้หรือจุดที่กำลังจะทำ เช่น สภาพหญ้ารกก่อนตัด หรือสภาพโคนต้นก่อนใส่ปุ๋ย อย่างน้อย 1 รูป',
+      },
+      {
+        number: 4,
+        title: 'ลงมือทำงานจริง แล้วถ่ายรูป "หลังทำ (AFTER)"',
+        actionTag: '📸 ถ่ายรูป หลังทำ',
+        description: 'ลงมือปฏิบัติงานตามที่ได้รับมอบหมาย เมื่อทำงานเสร็จเรียบร้อย ให้ถ่ายรูปหลังทำ เช่น โคนต้นที่โรยปุ๋ยเสร็จแล้ว หรือกิ่งที่ตัดแต่งเรียบร้อยแล้ว อย่างน้อย 1 รูป พร้อมพิมพ์บอกว่าใช้วัสดุอะไรไปบ้าง เช่น "ปุ๋ยอินทรีย์ 1 กระสอบ"',
+      },
+      {
+        number: 5,
+        title: 'กดปุ่ม "ส่งตรวจงาน (Submit Report)"',
+        actionTag: '📤 ส่งตรวจงาน',
+        description: 'รอให้สถานะรูปขึ้นว่า "Uploaded" ครบทั้งรูปก่อนทำและหลังทำ แล้วกดปุ่ม "ส่งตรวจงาน" รายงานจะส่งไปที่ผู้จัดการสวนทันที',
+        tip: 'ถ้าสัญญาณเน็ตในสวนไม่ดี ระบบจะเก็บรูปไว้ในเครื่องก่อน พอเดินกลับถึงบ้านมีเน็ต ค่อยกดซิงก์ส่งได้ ไม่ต้องกลัวข้อมูลหาย',
+      },
+      {
+        number: 6,
+        title: 'ผู้จัดการสวนตรวจรับงาน',
+        actionTag: '✔️ ผู้จัดการตรวจ & อนุมัติ',
+        description: 'ผู้จัดการสวนเปิดดูรูปเปรียบเทียบ ก่อนทำ-หลังทำ และตรวจดูจำนวนปุ๋ยยาที่ใช้ หากทำถูกต้องเรียบร้อย ให้กดปุ่ม "อนุมัติงาน (Approve)" งานจะปิดสมบูรณ์ทันที หากยังไม่เรียบร้อย สามารถกดสั่งให้แก้ใหม่ (Request Rework) พร้อมบอกเหตุผลได้',
+      },
+    ],
+  },
+  {
+    id: 'topic-orchard-layout',
+    badgeIcon: '🗺️',
+    title: '5. ดูแปลนสวน (ผังวงกลมต้นไม้) และจิ้มเลือกสั่งงานทันที',
+    subtitle: 'เห็นต้นไม้ทั้งสวนเป็นวงกลมสีเขียว สลับดูแนวตั้ง/แนวนอนได้ และสั่งงานได้เร็วมาก',
+    audience: 'ทุกคนในสวน',
+    quickLink: { label: 'เปิดแปลนสวน', to: '/orchard-layout' },
+    steps: [
+      {
+        number: 1,
+        title: 'เข้าหน้าแปลนสวน',
+        actionTag: '🗺️ เมนู ต้นไม้ → แปลนสวน',
+        description: 'กดเมนู "ต้นไม้" แล้วกดปุ่ม "แปลนสวนและเลือกตำแหน่ง" (หรือเข้าจากเมนู เพิ่มเติม → แปลนสวน) จะเห็นผังต้นไม้ของสวนเราทั้งหมด',
+      },
+      {
+        number: 2,
+        title: 'สลับมุมมอง "แนวตั้ง" หรือ "แนวนอน" ตามความถนัด',
+        actionTag: '🔄 กดสลับทิศทางแถว',
+        description: 'หน้าจอมีปุ่มให้เลือกว่าจะแสดงแถวเป็น "แนวนอน" หรือ "แนวตั้ง" สามารถกดสลับได้ตามทิศทางการเดินจริงในแปลงของเรา โดยต้นไม้จะยังเรียงลำดับเดิมไม่สับสน',
+      },
+      {
+        number: 3,
+        title: 'จิ้มเลือกต้นไม้ที่ต้องการ',
+        actionTag: '👆 จิ้มที่วงกลมต้นไม้',
+        description: 'ต้นไม้แต่ละต้นจะแสดงเป็นวงกลมสีเขียว มีเลขป้ายบอกชัดเจนด้านล่าง สามารถเอานิ้วจิ้มเลือก 1 ต้น หลายต้น หรือกดเลือกทั้งแถว/ทั้งโซนได้ง่ายๆ วงกลมต้นที่ถูกเลือกจะเปลี่ยนเป็นสีเน้นเด่นชัด',
+      },
+      {
+        number: 4,
+        title: 'กดปุ่มสั่งงานที่ต้องการด้านล่างทันที',
+        actionTag: '⚡ กดปุ่มการทำงานด้านล่าง',
+        description: 'เมื่อเลือกต้นไม้เสร็จแล้ว เลื่อนลงมาด้านล่าง จะมีปุ่มทางลัดให้กดทำรายการต่อได้ทันที: "สร้างงานทั่วไป", "สร้างงานดูแล", "รายงานอาการ/โรค", "บันทึกจำนวนผล", หรือ "สร้างชุดเก็บเกี่ยว (Harvest Lot)"',
+        tip: 'ไม่ต้องเสียเวลาพิมพ์รหัสต้นไม้ทีละต้น แค่จิ้มเลือกบนแปลนแล้วกดปุ่ม ระบบจะส่งรหัสต้นไม้ไปใส่ในฟอร์มให้เองอัตโนมัติ',
+      },
+    ],
+  },
+  {
+    id: 'topic-scan-qr',
+    badgeIcon: '📷',
+    title: '6. การสแกนป้าย QR Code ที่ต้นไม้',
+    subtitle: 'เดินไปที่ต้นไม้ ยกมือถือส่องกล้อง รู้ประวัติทันที ไม่ต้องค้นหาชื่อให้เสียเวลา',
+    audience: 'ทุกคนในสวน',
+    quickLink: { label: 'เปิดกล้องสแกน', to: '/scan' },
+    steps: [
+      {
+        number: 1,
+        title: 'กดปุ่มเมนู "สแกน" (รูปกล้องถ่ายรูป)',
+        actionTag: '📷 เมนู สแกน ที่แถบล่าง',
+        description: 'กดที่ปุ่มเมนู "สแกน" หน้าจอจะเปิดกล้องโทรศัพท์ขึ้นมา (หากเป็นครั้งแรก ให้กดยินยอมให้แอปเข้าถึงกล้อง)',
+      },
+      {
+        number: 2,
+        title: 'ส่องกล้องไปที่ป้าย QR ประจำต้นไม้',
+        actionTag: '🎯 ส่องให้ตรงกรอบสี่เหลี่ยม',
+        description: 'นำกล้องไปจ่อที่แผ่นป้าย QR Code ที่ผูกไว้กับกิ่งหรือลำต้นทุเรียน ให้อยู่ในกรอบสี่เหลี่ยมบนหน้าจอ แสงสว่างเพียงพอ ไม่ต้องกดปุ่มชัตเตอร์ ระบบจะอ่านโค้ดให้อัตโนมัติในเสี้ยววินาที',
+      },
+      {
+        number: 3,
+        title: 'หน้าจอจะเปิดข้อมูลต้นไม้นั้นขึ้นมาทันที',
+        actionTag: '📖 ดูประวัติสมบูรณ์',
+        description: 'เมื่อสแกนติด แอปจะพามาที่หน้าข้อมูลของต้นไม้นั้นทันที: บอกพันธุ์, ปีที่ปลูก, สุขภาพต้น, ประวัติการใส่ปุ๋ย, ประวัติการรักษาโรค และบันทึกผลผลิต',
+        tip: 'หากกำลังเปิดใบสั่งงานค้างอยู่ การสแกนนี้จะทำหน้าที่ "ยืนยันต้น" ให้อัตโนมัติว่าคนงานมาถูกต้นแล้ว',
+      },
+    ],
+  },
+  {
+    id: 'topic-care',
+    badgeIcon: '💧',
+    title: '7. การบันทึกการดูแลต้นไม้ประจำวัน (รดน้ำ ใส่ปุ๋ย พ่นยา ตัดแต่ง)',
+    subtitle: 'จดบันทึกง่ายๆ เพื่อดูย้อนหลังได้ว่าต้นไหนได้ปุ๋ยไปเมื่อไหร่ ให้น้ำวันไหน',
+    audience: 'คนงาน · ผู้จัดการสวน · เจ้าของสวน',
+    quickLink: { label: 'ไปที่เมนูดูแลต้นไม้', to: '/care' },
+    steps: [
+      {
+        number: 1,
+        title: 'เข้าเมนู "ดูแล" หรือสร้างงานดูแลจากหน้างาน',
+        actionTag: '💧 เมนู ดูแลต้นไม้',
+        description: 'สามารถดูรายการบันทึกการดูแลที่เคยทำมาทั้งหมดได้ที่เมนู "ดูแล" (เข้าจากเมนู เพิ่มเติม → ดูแลต้นไม้)',
+      },
+      {
+        number: 2,
+        title: 'เลือกประเภทการดูแล',
+        actionTag: '🌿 เลือกว่าทำอะไร',
+        description: 'เลือกว่าเป็นการดูแลแบบใด เช่น: ให้น้ำ (Irrigation), ใส่ปุ๋ย (Fertilization), พ่นสารป้องกันศัตรูพืช (Pest Control), ตัดแต่งกิ่ง/จัดการทรงพุ่ม (Pruning), หรือตรวจสภาพทั่วไป (Inspection)',
+      },
+      {
+        number: 3,
+        title: 'ระบุต้นไม้ วัสดุที่ใช้ และวันที่ทำ',
+        actionTag: '📝 กรอกรายละเอียด',
+        description: 'ระบุต้นหรือแปลงที่ดูแล ระบุปุ๋ยหรือยาที่ใช้พร้อมปริมาณ เช่น "ปุ๋ยสูตร 16-16-16 จำนวน 500 กรัมต่อต้น" และวันที่ลงมือทำ',
+        tip: 'การจดบันทึกสม่ำเสมอจะช่วยให้เจ้าของสวนคำนวณต้นทุนค่าปุ๋ยค่ายาได้อย่างแม่นยำ และรู้ว่าต้นไหนสมบูรณ์เพราะอะไร',
+      },
+    ],
+  },
+  {
+    id: 'topic-harvest',
+    badgeIcon: '🍈',
+    title: '8. การนับผลทุเรียน เก็บเกี่ยว (ตัดทุเรียน) และบันทึกการขาย',
+    subtitle: 'ตั้งแต่ลูกเท่าไข่ไก่จนถึงตัดขายรู้ยอดเงินชัดเจน ไม่มีเงินตกหล่น',
+    audience: 'เจ้าของสวน · ผู้จัดการสวน · ฝ่ายขาย/คลัง',
+    quickLink: { label: 'ไปที่เมนูผลผลิต', to: '/production' },
+    steps: [
+      {
+        number: 1,
+        title: 'ช่วงติดผลอ่อน: บันทึกจำนวนผล (Fruit Observation)',
+        actionTag: '🍈 นับลูกทุเรียนบนต้น',
+        description: 'เมื่อทุเรียนเริ่มติดผล (ระยะหางแย้, ไข่ไก่, กำปั้น) ให้เข้าเมนู "ผลผลิต" → บันทึกจำนวนผล: นับจำนวนลูกบนต้นแล้วกรอกตัวเลขจริงลงไป หรือใช้ภาพถ่ายช่วยประเมิน เพื่อวางแผนตัดแต่งผลและประเมินผลผลิตล่วงหน้า',
+      },
+      {
+        number: 2,
+        title: 'ช่วงเก็บเกี่ยว: สร้างชุดเก็บเกี่ยว (Harvest Lot)',
+        actionTag: '✂️ ตัดทุเรียน & ชั่งน้ำหนัก',
+        description: 'เมื่อถึงเวลาตัดทุเรียน ให้กด "สร้าง Harvest Lot": เลือกว่าตัดมาจากแปลงไหน โซนไหน ระบุจำนวนลูก น้ำหนักรวม (กิโลกรัม) และคัดเกรดผลผลิต เช่น เกรด A (ทรงสวย พูเต็ม), เกรด B, เกรด C หรือตกเกรด/หนามดำ',
+        tip: 'ระบบจะผูกผลผลิตชุดนี้เข้ากับต้นไม้ในแปลง ทำให้รู้ว่าแปลงไหนให้ผลผลิตดกและได้เกรด A มากที่สุด',
+      },
+      {
+        number: 3,
+        title: 'ช่วงขาย: บันทึกการขาย (Sales Lot)',
+        actionTag: '💰 บันทึกยอดขาย & ล้งรับซื้อ',
+        description: 'เมื่อส่งขายให้ล้งหรือพ่อค้าคนกลาง ให้กด "สร้าง Sales Lot" จากชุดเก็บเกี่ยว: ระบุชื่อผู้ซื้อ/ล้ง, ราคาต่อกิโลกรัม, เงินมัดจำที่ได้รับแล้ว, และยอดเงินคงเหลือที่ต้องตามเก็บ',
+      },
+    ],
+  },
+  {
+    id: 'topic-offline',
+    badgeIcon: '📶',
+    title: '9. เมื่อไม่มีสัญญาณเน็ตในสวน ต้องทำอย่างไร?',
+    subtitle: 'ไม่ต้องตกใจ! ทำงานได้ตามปกติ ถ่ายรูปได้ ระบบจำในเครื่องให้เอง พอมีเน็ตค่อยส่ง',
+    audience: 'ทุกคนที่ทำงานในสวน',
+    quickLink: { label: 'ไปที่ศูนย์ซิงก์ข้อมูล', to: '/sync' },
+    steps: [
+      {
+        number: 1,
+        title: 'ทำงานต่อไปได้ตามปกติ ไม่ต้องตกใจ',
+        actionTag: '📱 ทำงานแบบออฟไลน์ได้',
+        description: 'เวลาเดินเข้าไปท้ายสวนหรือจุดอับสัญญาณมือถือ แอป KDOMS ยังเปิดดูงาน สแกนต้นไม้ ถ่ายรูป Before/After และกดส่งงานได้ตามปกติ หน้าจอจะมีแถบสีส้มบอกว่า "ออฟไลน์ (Offline)"',
+      },
+      {
+        number: 2,
+        title: 'ข้อมูลและรูปถ่ายจะถูกเก็บในโทรศัพท์อย่างปลอดภัย',
+        actionTag: '🔒 เก็บไว้ในเครื่องอย่างปลอดภัย',
+        description: 'รูปถ่ายและรายงานที่ทำจะถูกบรรจุลงกล่องนิรภัยในเครื่องโทรศัพท์ ไม่สูญหาย แม้ปิดแอปหรือแบตเตอรี่หมด ข้อมูลก็ยังอยู่ครบ',
+      },
+      {
+        number: 3,
+        title: 'เมื่อเดินกลับถึงจุดที่มีเน็ต ให้กด "ส่งข้อมูล"',
+        actionTag: '🔄 เมนู ศูนย์ซิงก์ข้อมูล',
+        description: 'เมื่อเดินกลับมาที่บ้านพัก หรือจุดที่มีสัญญาณ WiFi / 4G ให้เปิดเมนู "เพิ่มเติม" → "ศูนย์ซิงก์ข้อมูล (Sync Center)" แล้วกดปุ่ม "ซิงก์ข้อมูลทั้งหมด" ระบบจะส่งรูปถ่ายและรายงานขึ้นคลาวด์ให้อัตโนมัติในทันที',
+        caution: 'อย่าเพิ่งลบแอปหรือกดเคลียร์ข้อมูลโทรศัพท์ในขณะที่ยังมีรายการค้างส่งอยู่',
+      },
+    ],
+  },
+]
+
+const elderFaqs = [
+  {
+    q: 'เข้าสู่ระบบไม่ได้ ต้องทำอย่างไร?',
+    a: 'ตรวจดูว่าพิมพ์หมายเลขโทรศัพท์ถูกต้องหรือไม่ หากอยู่ในโหมดทดสอบ ให้ใช้หมายเลขและรหัส OTP 6 หลักที่ได้รับแจ้ง หากยังเข้าไม่ได้ ให้ติดต่อเจ้าของสวนหรือผู้ดูแลระบบเพื่อตรวจดูว่าชื่อของท่านถูกเพิ่มเข้าสวนแล้วหรือยัง',
+  },
+  {
+    q: 'สแกน QR Code ไม่ติด กล้องไม่ยอมอ่าน ทำอย่างไร?',
+    a: '1. เช็ดหน้าเลนส์กล้องมือถือให้สะอาด 2. ถอยกล้องออกมาระยะประมาณ 1 คืบถึง 2 คืบ 3. หากป้ายมีฝุ่นหรือคราบโคลนเกาะ ให้ใช้ผ้าเช็ดป้ายให้สะอาด 4. หากป้ายชำรุดมาก ให้พิมพ์รหัสป้ายด้วยมือในช่องค้นหาแทน แล้วกดแจ้งป้ายชำรุด',
+  },
+  {
+    q: 'ทำไมถ่ายรูปแล้วส่งงานไม่ได้ ขึ้นว่ากำลังโหลด?',
+    a: 'เนื่องจากรูปถ่ายจากมือถือมีความละเอียดสูง ระบบกำลังย่อรูปให้เล็กลงเพื่อไม่ให้เปลืองเน็ตของท่าน หากสัญญาณเน็ตในสวนอ่อน ให้รอสักครู่ หรือเดินไปยังจุดที่มีสัญญาณดีขึ้น ระบบจะอัปโหลดให้อัตโนมัติ',
+  },
+  {
+    q: 'ต้นไม้ตายแล้วปลูกใหม่ ต้องสร้างป้าย QR ใหม่ไหม?',
+    a: 'ไม่ต้องทำป้ายใหม่ครับ! ให้เปิดหน้าต้นเดิมแล้วกดปุ่ม "ปลูกต้นใหม่ทดแทน" ระบบจะเก็บประวัติต้นเก่าไว้ และเริ่มรอบปลูกใหม่โดยใช้ป้าย QR เดิม ช่วยประหยัดค่าป้ายและไม่ต้องตอกหลักใหม่',
+  },
+  {
+    q: 'กลัวกดผิด ข้อมูลในสวนจะหายไหม?',
+    a: 'ไม่ต้องกลัวครับ ระบบมีระบบบันทึกประวัติ (Timeline & Audit) ทุกการกดแก้ไขหรือเปลี่ยนสถานะจะถูกจดบันทึกไว้เสมอ และระบบป้องกันไม่ให้มีการลบข้อมูลทิ้งอย่างถาวร หากกดผิดสามารถแจ้งผู้จัดการสวนช่วยแก้ไขให้ได้ครับ',
+  },
+]
 
 export function UserManualPage() {
   const { currentFarm } = usePhase2()
@@ -176,6 +385,8 @@ export function UserManualPage() {
   useEffect(() => {
     document.documentElement.scrollTop = 0
     document.body.scrollTop = 0
+    const main = document.getElementById('main-content')
+    if (main) main.scrollTop = 0
   }, [])
 
   if (!currentFarm) return null
@@ -183,160 +394,215 @@ export function UserManualPage() {
   return (
     <section className="page-stack user-manual-page">
       <PageHeader
-        eyebrow="KDOMS User Manual v1.1 · In-app guide"
-        title="คู่มือผู้ใช้"
-        description={`วิธีใช้งานตามบทบาทใน ${currentFarm.farmCode} ตั้งแต่เข้าสู่ระบบจนตรวจรับ รายงาน และแก้ปัญหา`} backTo="/more"
+        eyebrow="คู่มือการใช้งานระบบสวนทุเรียนอัจฉริยะ KDOMS"
+        title="คู่มือชาวสวน ฉบับเข้าใจง่าย"
+        description={`ขั้นตอนการทำงานทีละขั้น 1 2 3 4 สำหรับสวน ${currentFarm.farmName} (${currentFarm.farmCode})`}
+        backTo="/more"
       />
 
-      <div className="field-validation-banner" role="note">
-        <strong>MOCK · SIMULATED/TEST ONLY</strong>
-        <span>คู่มือนี้อธิบายฟังก์ชันใน Candidate ปัจจุบัน ไม่ใช่การอนุมัติ Deploy, Pilot หรือ Production</span>
+      <div className="manual-elder-banner" role="banner">
+        <div className="manual-elder-banner__header">
+          <span aria-hidden="true">🌿</span>
+          <span>คู่มือสไตล์คนสวน ตัวหนังสือใหญ่ อ่านง่าย สบายตา</span>
+        </div>
+        <p>
+          ระบบนี้ช่วยให้เราดูแลทุเรียนได้เป็นระเบียบ ต้นไม้ทุกต้นมีสมุดพกประจำตัว
+          หากไม่แน่ใจว่าต้องทำอย่างไร สามารถกดเลือกหัวข้อที่ต้องการอ่านจากปุ่มลัดด้านล่างนี้ได้ทันทีครับ
+        </p>
       </div>
 
-      <nav className="manual-index" aria-label="สารบัญคู่มือผู้ใช้">
-        <a href="#manual-start">เริ่มต้นใช้งาน</a>
-        <a href="#manual-roles">7 บทบาท</a>
-        <a href="#manual-dependencies">แผนผังระบบ (Dependency)</a>
-        <a href="#manual-workflows">Workflow</a>
-        <a href="#manual-data">การกรอกข้อมูล</a>
-        <a href="#manual-sync">Offline/Sync</a>
-        <a href="#manual-help">แก้ปัญหา</a>
+      <nav className="manual-quick-nav" aria-label="ปุ่มลัดไปหัวข้อคู่มือ">
+        <a className="manual-quick-nav__btn" href="#topic-disease">
+          <span className="manual-quick-nav__icon">🔍</span>
+          <span>1. เจอโรคทำอย่างไร</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-tree">
+          <span className="manual-quick-nav__icon">🌳</span>
+          <span>2. อัปเดตข้อมูลต้นไม้</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-create-work">
+          <span className="manual-quick-nav__icon">📋</span>
+          <span>3. สั่งงาน / จ่ายงาน</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-worker-report">
+          <span className="manual-quick-nav__icon">📱</span>
+          <span>4. รับงาน & ส่งงาน</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-orchard-layout">
+          <span className="manual-quick-nav__icon">🗺️</span>
+          <span>5. แปลนสวนผังวงกลม</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-scan-qr">
+          <span className="manual-quick-nav__icon">📷</span>
+          <span>6. สแกนป้าย QR</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-care">
+          <span className="manual-quick-nav__icon">💧</span>
+          <span>7. ดูแลต้น / รดน้ำใส่ปุ๋ย</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-harvest">
+          <span className="manual-quick-nav__icon">🍈</span>
+          <span>8. นับผล & ตัดทุเรียนขาย</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-offline">
+          <span className="manual-quick-nav__icon">📶</span>
+          <span>9. ใช้งานตอนไม่มีเน็ต</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-roles">
+          <span className="manual-quick-nav__icon">👥</span>
+          <span>10. ใครทำอะไรในสวน</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-faq">
+          <span className="manual-quick-nav__icon">❓</span>
+          <span>11. คำถามที่พบบ่อย</span>
+        </a>
+        <a className="manual-quick-nav__btn" href="#topic-system-map">
+          <span className="manual-quick-nav__icon">📊</span>
+          <span>12. แผนผังระบบ</span>
+        </a>
       </nav>
 
-      <section className="manual-section" id="manual-start" aria-labelledby="manual-start-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">01 · Quick start</span>
-          <h2 id="manual-start-title">เริ่มต้นใช้งานให้ถูกสวนและถูกสิทธิ์</h2>
-        </div>
-        <ol className="manual-step-list">
-          <li><strong>เข้าสู่ระบบ</strong><span>โหมดทดสอบใช้ Phone + OTP ทดสอบเท่านั้น</span></li>
-          <li><strong>เลือกสวน</strong><span>ตรวจชื่อ Farm Code และบทบาทใน Header ก่อนอ่านหรือสร้างข้อมูล</span></li>
-          <li><strong>ตรวจสถานะ</strong><span>ดู Online/Offline, จำนวนรายการค้าง และเวลาซิงก์ล่าสุด</span></li>
-          <li><strong>เปิดงานหรือโมดูล</strong><span>เมนูจะแสดงความสามารถตามบทบาทของสวนปัจจุบัน</span></li>
-          <li><strong>ออกจากระบบ</strong><span>ตรวจ Pending/Failed ก่อนออก; Durable queue จะจัดการตาม Policy ที่อนุมัติ</span></li>
-        </ol>
-        <div className="manual-context" role="status">
-          <span>บริบทปัจจุบัน</span>
-          <strong>{currentFarm.farmName}</strong>
-          <code>{currentFarm.farmCode}</code>
-          <small>{roleLabels[currentFarm.role]}</small>
-        </div>
-      </section>
+      {manualTopics.map((topic) => (
+        <article className="manual-card" id={topic.id} key={topic.id}>
+          <header className="manual-card__header">
+            <div className="manual-card__badge" aria-hidden="true">{topic.badgeIcon}</div>
+            <div className="manual-card__title-group">
+              <h2>{topic.title}</h2>
+              <p>{topic.subtitle}</p>
+              <small style={{ color: '#2e7d32', fontWeight: 600 }}>สำหรับ: {topic.audience}</small>
+            </div>
+            {topic.quickLink ? (
+              <div style={{ marginLeft: 'auto' }}>
+                <Link className="primary-action" to={topic.quickLink.to} style={{ padding: '0.5rem 1rem', fontSize: '0.95rem' }}>
+                  {topic.quickLink.label} →
+                </Link>
+              </div>
+            ) : null}
+          </header>
 
-      <section className="manual-section" id="manual-roles" aria-labelledby="manual-roles-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">02 · Role guide</span>
-          <h2 id="manual-roles-title">หน้าที่และข้อห้ามของผู้ใช้ 7 บทบาท</h2>
-          <p>บทบาทประเมินใหม่ทุกสวน ผู้ใช้คนเดียวอาจมีบทบาทต่างกันในแต่ละ Farm</p>
-        </div>
-        <div className="manual-role-grid">
-          {roleGuides.map((role) => (
-            <article key={role.code}>
-              <code>{role.code}</code>
-              <h3>{role.title}</h3>
-              <p>{role.duty}</p>
-              <small><strong>ข้อควรระวัง:</strong> {role.caution}</small>
-            </article>
-          ))}
-        </div>
-      </section>
+          <div className="elder-steps">
+            {topic.steps.map((step) => (
+              <div className="elder-step-item" key={step.number}>
+                <div className="elder-step-num">{step.number}</div>
+                <div className="elder-step-content">
+                  <h3 className="elder-step-title">{step.title}</h3>
+                  {step.actionTag ? <span className="elder-step-action-tag">{step.actionTag}</span> : null}
+                  <p className="elder-step-desc">{step.description}</p>
+                  {step.tip ? (
+                    <div className="elder-step-tip">
+                      <span aria-hidden="true">💡</span>
+                      <span><strong>คำแนะนำ:</strong> {step.tip}</span>
+                    </div>
+                  ) : null}
+                  {step.caution ? (
+                    <div className="elder-step-caution">
+                      <span aria-hidden="true">⚠️</span>
+                      <span><strong>ข้อควรระวัง:</strong> {step.caution}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      ))}
 
-      <section className="manual-section" id="manual-dependencies" aria-labelledby="manual-dependencies-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">03 · System Dependencies</span>
-          <h2 id="manual-dependencies-title">แผนผังการเชื่อมโยงระบบและ Workflow Dependency</h2>
-          <p>
-            แสดงความสัมพันธ์ของทุกเมนูและฟังก์ชันใน KDOMS: เลือกเมนูเพื่อดูสิ่งที่ต้องทำก่อน (Pre-requisites)
-            และสิ่งที่ระบบจะส่งผลต่อไปยังฟังก์ชันถัดไป (Next Steps / Downstream)
-          </p>
-        </div>
-        <WorkflowDependencyMap />
-      </section>
+      {/* Role Guide Section */}
+      <article className="manual-card" id="topic-roles">
+        <header className="manual-card__header">
+          <div className="manual-card__badge" aria-hidden="true">👥</div>
+          <div className="manual-card__title-group">
+            <h2>10. ใครทำหน้าที่อะไรในสวน? (บทบาทในระบบ)</h2>
+            <p>ระบบกำหนดหน้าที่ชัดเจน เพื่อความปลอดภัย และไม่ให้ข้อมูลปะปนกัน</p>
+          </div>
+        </header>
 
-      <section className="manual-section" id="manual-workflows" aria-labelledby="manual-workflows-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">04 · End-to-end</span>
-          <h2 id="manual-workflows-title">Workflow ตั้งแต่สร้างข้อมูลจนตรวจรับหรือปิดรายการ</h2>
-          <p>เปิดแต่ละหัวข้อเพื่อดูขั้นตอนตามลำดับ</p>
+        <div className="elder-role-grid">
+          <div className="elder-role-card is-owner">
+            <div className="elder-role-card__header">
+              <span className="elder-role-icon">👑</span>
+              <h3>เจ้าของสวน (Org Owner)</h3>
+            </div>
+            <p><strong>หน้าที่:</strong> ดูภาพรวมทุกสวน ดูแลยอดขาย ต้นทุนกำไร จัดการเพิ่มลดสมาชิกในสวน และอนุมัติตรวจสอบเรื่องสำคัญ</p>
+            <small style={{ color: '#2e7d32' }}>เห็นข้อมูลการเงินและภาพรวมได้ครบถ้วน</small>
+          </div>
+
+          <div className="elder-role-card is-manager">
+            <div className="elder-role-card__header">
+              <span className="elder-role-icon">👨‍🌾</span>
+              <h3>ผู้จัดการสวน (Farm Manager)</h3>
+            </div>
+            <p><strong>หน้าที่:</strong> วางแผนงานรายวัน รายสัปดาห์ มอบหมายงานให้คนงาน ตรวจรับงาน ดูรูป Before/After และดูแลต้นไม้ในสวน</p>
+            <small style={{ color: '#1565c0' }}>ดูแลความเรียบร้อยของคนงานและงานในแปลง</small>
+          </div>
+
+          <div className="elder-role-card is-agronomist">
+            <div className="elder-role-card__header">
+              <span className="elder-role-icon">🔬</span>
+              <h3>หมอพืช / นักวิชาการ (Agronomist)</h3>
+            </div>
+            <p><strong>หน้าที่:</strong> ตรวจดูอาการผิดปกติของต้น วินิจฉัยโรคแมลง วางแผนการรักษา และสั่งงานดูแลรักษาต้นไม้</p>
+            <small style={{ color: '#6a1b9a' }}>ผู้เชี่ยวชาญด้านโรคพืชและการให้ปุ๋ยยา</small>
+          </div>
+
+          <div className="elder-role-card is-worker">
+            <div className="elder-role-card__header">
+              <span className="elder-role-icon">🛠️</span>
+              <h3>คนงาน / ผู้ปฏิบัติงาน (Worker)</h3>
+            </div>
+            <p><strong>หน้าที่:</strong> เปิดดูงานที่ได้รับมอบหมาย เดินไปสแกนป้าย QR ที่ต้นไม้ ถ่ายรูปก่อนทำ ลงมือทำ แล้วถ่ายรูปหลังทำส่งตรวจ</p>
+            <small style={{ color: '#e65100' }}>ใช้งานง่าย เน้นสแกนต้น ถ่ายรูป และส่งงาน</small>
+          </div>
         </div>
-        <div className="manual-workflows">
-          {workflows.map((workflow, index) => (
-            <details key={workflow.title} open={index === 0}>
-              <summary>
-                <span>{workflow.title}</span>
-                <small>{workflow.audience}</small>
+      </article>
+
+      {/* FAQ Section */}
+      <article className="manual-card" id="topic-faq">
+        <header className="manual-card__header">
+          <div className="manual-card__badge" aria-hidden="true">❓</div>
+          <div className="manual-card__title-group">
+            <h2>11. คำถามที่พบบ่อย และวิธีแก้ปัญหา (FAQ)</h2>
+            <p>รวมปัญหาที่ชาวสวนมักจะเจอ พร้อมวิธีแก้ง่ายๆ</p>
+          </div>
+        </header>
+
+        <div className="elder-faq-list">
+          {elderFaqs.map((faq, index) => (
+            <details className="elder-faq-item" key={faq.q} open={index === 0}>
+              <summary className="elder-faq-summary">
+                <span aria-hidden="true">💬</span>
+                <span>{faq.q}</span>
               </summary>
-              <ol>
-                {workflow.steps.map((step) => <li key={step}>{step}</li>)}
-              </ol>
+              <div className="elder-faq-body">{faq.a}</div>
             </details>
           ))}
         </div>
-      </section>
+      </article>
 
-      <section className="manual-section" id="manual-data" aria-labelledby="manual-data-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">05 · Data quality</span>
-          <h2 id="manual-data-title">คำแนะนำการกรอกข้อมูล</h2>
-        </div>
-        <div className="manual-table-wrap">
-          <table>
-            <thead><tr><th>เรื่อง</th><th>ต้องทำ</th><th>ห้ามทำ</th></tr></thead>
-            <tbody>
-              <tr><td>Required field</td><td>กรอกช่องที่มีเครื่องหมายบังคับและแก้ Error ก่อนบันทึก</td><td>ใส่ “-” หรือข้อความสมมติเพื่อข้าม Validation</td></tr>
-              <tr><td>จำนวน/หน่วย</td><td>กรอก value + unit + method + เวลา/ผู้บันทึกตามแบบฟอร์ม</td><td>กรอกตัวเลขลอย ๆ หรือแปลงหน่วยเองโดยไม่มี conversion</td></tr>
-              <tr><td>คุณภาพค่า</td><td>เลือก Measured, Estimated หรือ Unknown ให้ตรงหลักฐาน</td><td>แทน Unknown ด้วย 0 หรือยกระดับ Estimated เป็น Measured</td></tr>
-              <tr><td>รหัสต้น</td><td>ใช้ Farm + Zone + Row + Position + QR ร่วมกัน</td><td>ใช้ GPS หรือ QR อย่างเดียวเป็น authorization</td></tr>
-              <tr><td>รูปภาพ</td><td>แยก Instruction, BEFORE และ AFTER พร้อม Farm/Work/purpose</td><td>ปะปนรูปต่างงาน ต่างสวน หรือส่งรูปที่ยัง Failed</td></tr>
-              <tr><td>Correction</td><td>อ้าง Record เดิม ระบุเหตุผล และเก็บ before/after</td><td>แก้หรือลบประวัติสำคัญแบบเงียบ ๆ</td></tr>
-              <tr><td>ข้อมูลจริง</td><td>ข้อมูลจำลองใช้ข้อมูลที่ติดป้าย SIMULATED/TEST ONLY</td><td>นำชื่อ เบอร์โทร รูป พิกัด หรือข้อมูลสวนจริงเข้าแหล่งข้อมูลใช้งานจริง</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Dependency Map Section */}
+      <article className="manual-card" id="topic-system-map">
+        <header className="manual-card__header">
+          <div className="manual-card__badge" aria-hidden="true">📊</div>
+          <div className="manual-card__title-group">
+            <h2>12. แผนผังการเชื่อมโยงระบบ (System Map)</h2>
+            <p>จิ้มเลือกเมนูเพื่อดูว่าแต่ละฟังก์ชันเชื่อมโยงถึงกันอย่างไร</p>
+          </div>
+        </header>
+        <WorkflowDependencyMap />
+      </article>
 
-      <section className="manual-section" id="manual-sync" aria-labelledby="manual-sync-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">06 · Offline & evidence</span>
-          <h2 id="manual-sync-title">QR รูปภาพ Offline/Sync และ Conflict</h2>
-        </div>
-        <div className="manual-state-grid">
-          <article><strong>บันทึกในเครื่อง</strong><p>รายการยังไม่ถึง trusted service ห้ามอ้างว่าเสร็จหรือซิงก์แล้ว</p></article>
-          <article><strong>กำลังซิงก์</strong><p>รักษา Farm scope และ idempotency key เดิม อย่าสร้างรายการใหม่ซ้ำ</p></article>
-          <article><strong>ซิงก์แล้ว</strong><p>ตรวจเวลาล่าสุดและ Work/Audit reference ก่อนออกจากหน้า</p></article>
-          <article><strong>ข้อมูลขัดแย้ง</strong><p>หยุดการเขียนทับ เปิด before/after และให้ Manager/Owner ตัดสินตามสิทธิ์</p></article>
-        </div>
-        <div className="form-warning" role="note">
-          <strong>Critical stop:</strong> หากเห็นข้อมูลต่างสวน สแกนผิดต้นแต่ยังทำงานต่อได้
-          ประวัติเสีย หรือพบ secret ให้หยุด เก็บหลักฐาน และแจ้ง Owner ทันที
-        </div>
-      </section>
-
-      <section className="manual-section" id="manual-help" aria-labelledby="manual-help-title">
-        <div className="manual-section__heading">
-          <span className="status-pill">07 · Troubleshooting</span>
-          <h2 id="manual-help-title">แนวทางแก้ปัญหาเบื้องต้น</h2>
-        </div>
-        <div className="manual-table-wrap">
-          <table>
-            <thead><tr><th>อาการ</th><th>วิธีดำเนินการ</th></tr></thead>
-            <tbody>
-              {troubleshooting.map(([issue, action]) => <tr key={issue}><td>{issue}</td><td>{action}</td></tr>)}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
+      {/* Boundary and Governance */}
       <section className="phase-boundary" aria-labelledby="manual-boundary-title">
-        <span className="status-pill">Current boundary</span>
-        <h2 id="manual-boundary-title">สถานะการใช้งานปัจจุบัน</h2>
+        <span className="status-pill">บริบทความปลอดภัยของสวน</span>
+        <h2 id="manual-boundary-title">สถานะสวนปัจจุบัน: {currentFarm.farmName} ({currentFarm.farmCode})</h2>
+        <p>คุณเข้าใช้งานในบทบาท: <strong>{roleLabels[currentFarm.role]}</strong></p>
         <ul>
-          <li>Gate 6 ผ่าน และการทดสอบ PA-1 ผ่าน</li>
-          <li>External PA-1 เป็น NO-GO/BLOCKED</li>
-          <li>PA-2, Controlled Pilot, Deployment และ Production ยังไม่อนุมัติ</li>
-          <li>การมี API Key ในไฟล์ตั้งค่าไม่เปลี่ยน Gate และไม่อนุญาตเชื่อม External resource โดยอัตโนมัติ</li>
+          <li>ข้อมูลทุกอย่างจะถูกบันทึกแยกเฉพาะสวนนี้เท่านั้น ไม่ปะปนกับสวนอื่น</li>
+          <li>ป้าย QR Code มีความปลอดภัยสูง สแกนแล้วตรงต้นเสมอ</li>
+          <li>ห้ามใช้สิทธิ์ข้ามสวน หรือแก้ไขรายงานการทำงานย้อนหลังโดยไม่มีเหตุผล</li>
         </ul>
       </section>
     </section>
   )
 }
+

@@ -158,7 +158,7 @@ function normalizedIdempotencyKey(value: string): string {
   return normalized
 }
 
-function memberFromData(data: DocumentData): FarmMember {
+export function memberFromData(data: DocumentData): FarmMember {
   const role: unknown = data.role
   const status: unknown = data.status
   const version: unknown = data.version
@@ -174,7 +174,9 @@ function memberFromData(data: DocumentData): FarmMember {
     farmId: requiredString(data, 'farmId'),
     userId: requiredString(data, 'userId'),
     displayName: requiredString(data, 'displayName'),
-    maskedPhone: requiredString(data, 'maskedPhone'),
+    // Google/email accounts may not have a phone number. The membership
+    // contract requires a string, but an empty string is a valid value.
+    maskedPhone: stringField(data, 'maskedPhone'),
     role,
     status,
     version,

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import {
   farmStatusLabels,
@@ -58,7 +58,14 @@ export function AppLayout() {
   const [syncState, setSyncState] = useState<SyncState>('synced')
   const [colorScheme, setColorScheme] = useState<'system' | 'light' | 'dark'>('system')
   const { userProfile, isSystemAdmin, loading: authLoading } = useAuth()
+  const location = useLocation()
 
+  useEffect(() => {
+    const main = document.getElementById('main-content')
+    if (main) {
+      main.scrollTop = 0
+    }
+  }, [location.pathname])
 
   useEffect(() => {
     const root = document.documentElement
@@ -224,15 +231,15 @@ export function AppLayout() {
         </nav>
         <div className="app-sidebar__footer">
           <nav aria-label="เมนูผู้ดูแลและคู่มือ">
-            {isSystemAdmin && (
-              <NavLink className={navigationClass} to="/firebase-admin">
-                <span aria-hidden="true">◆</span>
-                Firebase Live / Seed
+            {(isSystemAdmin || (authMode === 'mock' && Boolean(farm?.isOrganizationOwner))) && (
+              <NavLink className={navigationClass} to="/farm-management">
+                <span aria-hidden="true">🏡</span>
+                จัดการสวน
               </NavLink>
             )}
             {isSystemAdmin && (
               <NavLink className={navigationClass} to="/user-management">
-                <span aria-hidden="true">⚙️</span>
+                <span aria-hidden="true">👥</span>
                 จัดการผู้ใช้งาน
               </NavLink>
             )}

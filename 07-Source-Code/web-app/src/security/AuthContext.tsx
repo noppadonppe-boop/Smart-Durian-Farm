@@ -10,13 +10,13 @@ import type { User as FirebaseUser } from 'firebase/auth'
 
 import { appEnvironment } from '../config/environment'
 import type { UserProfile } from '../domain/auth'
-import { ensureFirebaseAccessRequest } from '../services/accessRequestService'
 
 interface AuthContextValue {
   firebaseUser: FirebaseUser | null
   userProfile: UserProfile | null
   isSystemAdmin: boolean
   loading: boolean
+  profileError: string | undefined
   refreshProfile: () => Promise<void>
   pendingUsersCount: number
 }
@@ -34,10 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isSystemAdmin, setIsSystemAdmin] = useState(false)
+  const [profileError, setProfileError] = useState<string>()
   const [loading, setLoading] = useState(
     () => appEnvironment.authAdapter === 'firebase-live',
   )
-  const [pendingUsersCount] = useState(0)
+  const [pendingUsersCount, setPendingUsersCount] = useState(0)
 
   useEffect(() => {
     if (appEnvironment.authAdapter !== 'firebase-live') return undefined
@@ -61,8 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!runtime) {
       setUserProfile(null)
       setIsSystemAdmin(false)
+      setPendingUsersCount(0)
       return
     }
+
+    setProfileError(undefined)
 
     const [profileResult, rootResult, tokenResult] = await Promise.allSettled([
       runtime.getDoc(runtime.doc(runtime.firestore, ...liveDataRoot, 'users', user.uid)),
@@ -101,9 +105,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hasMasterAdminClaim = tokenResult.status === 'fulfilled'
       && tokenResult.value.claims.masterAdmin === true
 
+    const systemAdmin = hasMasterAdminClaim || rootOwnerUid === user.uid
     setUserProfile(profile)
-    setIsSystemAdmin(hasMasterAdminClaim || rootOwnerUid === user.uid)
+    setIsSystemAdmin(systemAdmin)
+    if (!systemAdmin) setPendingUsersCount(0)
   }, [runtime])
+
+  useEffect(() => {
+    if (!runtime || !isSystemAdmin) {
+      return undefined
+    }
+    return runtime.onSnapshot(
+      runtime.query(
+        runtime.collection(runtime.firestore, ...liveDataRoot, 'accessRequests'),
+        runtime.where('status', '==', 'PENDING'),
+      ),
+      (snapshot) => setPendingUsersCount(snapshot.size),
+      (error) => setProfileError(`โหลดจำนวนคำขอเข้าใช้งานไม่สำเร็จ: ${error.message}`),
+    )
+  }, [isSystemAdmin, runtime])
 
   const refreshProfile = useCallback(async () => {
     if (firebaseUser) {
@@ -119,16 +139,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = runtime.onAuthStateChanged(runtime.auth, (user) => {
       setFirebaseUser(user)
       if (user) {
-        void ensureFirebaseAccessRequest(user)
+        setProfileError(undefined)
+        void import('../services/accessRequestService')
+          .then(({ ensureFirebaseAccessRequest }) => ensureFirebaseAccessRequest(user))
           .then(() => fetchProfile(user))
           .catch((error: unknown) => {
             console.error('สร้างคำขอเข้าใช้งาน Firebase ไม่สำเร็จ', error)
             setUserProfile(null)
+            setProfileError(
+              `สร้าง User Profile/คำขอเข้าใช้งานไม่สำเร็จ: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            )
           })
           .finally(() => setLoading(false))
       } else {
         setUserProfile(null)
         setIsSystemAdmin(false)
+        setPendingUsersCount(0)
+        setProfileError(undefined)
         setLoading(false)
       }
     })
@@ -140,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userProfile,
     isSystemAdmin,
     loading,
+    profileError,
     refreshProfile,
     pendingUsersCount,
   }

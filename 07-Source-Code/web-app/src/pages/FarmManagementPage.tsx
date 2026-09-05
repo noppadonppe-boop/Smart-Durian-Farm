@@ -3,19 +3,22 @@ import { Link } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
 import { farmStatusLabels, type FarmProfile } from '../domain/farm'
+import { useAuth } from '../security/AuthContext'
 import { PageHeader } from './PageHeader'
 
 import '../components/FarmManagement.css'
 
 export function FarmManagementPage() {
   const { currentFarm, listFarmProfiles, mode } = usePhase2()
+  const { isSystemAdmin } = useAuth()
   const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [profiles, setProfiles] = useState<readonly FarmProfile[]>([])
   const [error, setError] = useState<string>()
   const isOwner = currentFarm?.isOrganizationOwner === true
+  const canManage = isSystemAdmin || isOwner
 
   useEffect(() => {
-    if (!isOwner) return
+    if (!canManage) return
     let active = true
     void listFarmProfiles()
       .then((result) => {
@@ -27,10 +30,10 @@ export function FarmManagementPage() {
     return () => {
       active = false
     }
-  }, [isOwner, listFarmProfiles])
+  }, [canManage, listFarmProfiles])
 
   if (!currentFarm) return null
-  if (!isOwner) {
+  if (!canManage) {
     return (
       <section className="page-stack">
         <PageHeader

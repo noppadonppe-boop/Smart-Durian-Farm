@@ -8,6 +8,7 @@ import { useAuth } from '../security/AuthContext'
 import {
   approveFirebaseAccessRequest,
   rejectFirebaseAccessRequest,
+  updateFirebaseUserAccess,
 } from '../services/accessRequestService'
 
 interface UserProfileWithDoc extends UserProfile {
@@ -33,6 +34,11 @@ export function UserManagementPage() {
   const [requestSelections, setRequestSelections] = useState<Record<string, RequestSelection>>({})
   const [requestBusy, setRequestBusy] = useState<string>()
   const [requestError, setRequestError] = useState<string>()
+  const [editingUser, setEditingUser] = useState<UserProfileWithDoc>()
+  const [editSelection, setEditSelection] = useState<RequestSelection>({
+    farmKey: '',
+    role: 'WORKER',
+  })
   const [hideDuplicates, setHideDuplicates] = useState(false)
   const { firestore } = createFirebaseLiveClients()
 
@@ -73,17 +79,25 @@ export function UserManagementPage() {
             const farmSnapshot = await getDocs(rootCollection(
               firestore, 'organizations', id, 'farms',
             ))
-            return farmSnapshot.docs.map((farmDocument) => {
-              const farm = farmDocument.data() as { farmId?: string; farmCode?: string; farmName?: string }
+            return farmSnapshot.docs.flatMap((farmDocument) => {
+              const farm = farmDocument.data() as {
+                farmId?: string
+                farmCode?: string
+                farmName?: string
+                status?: string
+              }
               const farmId = farm.farmId || farmDocument.id
-              return {
+              if (farm.status !== 'ACTIVE') return []
+              return [{
                 organizationId: id,
                 farmId,
                 label: `${data.organizationName ?? id} · ${farm.farmCode ?? farmId} · ${farm.farmName ?? ''}`,
-              }
+              }]
             })
           }))
-        setFarms(farmGroups.flat())
+        setFarms(
+          farmGroups.flat().sort((left, right) => left.label.localeCompare(right.label, 'th')),
+        )
       } catch (err) {
         setRequestError(`โหลดรายการสวนไม่สำเร็จ: ${err instanceof Error ? err.message : String(err)}`)
       }
@@ -151,6 +165,57 @@ export function UserManagementPage() {
       await rejectFirebaseAccessRequest(request.uid, reason)
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : 'ปฏิเสธคำขอไม่สำเร็จ')
+    } finally {
+      setRequestBusy(undefined)
+    }
+  }
+
+  const startEditing = (user: UserProfileWithDoc) => {
+    const request = accessRequests.find(
+      (item) => item.uid === user.uid && item.status === 'APPROVED',
+    )
+    if (!request) {
+      setRequestError('ไม่พบ Access Request ที่อนุมัติแล้วสำหรับผู้ใช้นี้')
+      return
+    }
+    const profileRole = user.role.find((role): role is CanonicalRole => (
+      canonicalRoles.includes(role as CanonicalRole)
+    ))
+    setEditingUser(user)
+    setEditSelection({
+      farmKey: request.organizationId && request.farmId
+        ? `${request.organizationId}/${request.farmId}`
+        : '',
+      role: request.assignedRole ?? profileRole ?? 'WORKER',
+    })
+    setRequestError(undefined)
+  }
+
+  const saveUserAccess = async () => {
+    if (!editingUser) return
+    const farm = farms.find(
+      (item) => `${item.organizationId}/${item.farmId}` === editSelection.farmKey,
+    )
+    if (!farm) {
+      setRequestError('กรุณาเลือกสวนที่อยู่ในสถานะ ACTIVE')
+      return
+    }
+    if (!window.confirm(
+      `ยืนยันเปลี่ยนสิทธิ์ของ ${editingUser.firstName} ${editingUser.lastName} เป็น ${editSelection.role} ใน ${farm.label}`,
+    )) return
+
+    setRequestBusy(editingUser.uid)
+    setRequestError(undefined)
+    try {
+      await updateFirebaseUserAccess({
+        uid: editingUser.uid,
+        organizationId: farm.organizationId,
+        farmId: farm.farmId,
+        role: editSelection.role,
+      })
+      setEditingUser(undefined)
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'แก้ไขสิทธิ์ผู้ใช้ไม่สำเร็จ')
     } finally {
       setRequestBusy(undefined)
     }
@@ -277,6 +342,82 @@ export function UserManagementPage() {
         )}
       </section>
 
+      {editingUser ? (
+        <section
+          aria-labelledby="edit-user-access-title"
+          style={{
+            background: '#fff',
+            border: '2px solid #95c7a6',
+            borderRadius: '10px',
+            display: 'grid',
+            gap: '0.75rem',
+            marginBottom: '1.25rem',
+            padding: '1rem',
+          }}
+        >
+          <div>
+            <h2 id="edit-user-access-title" style={{ margin: 0 }}>แก้ไขสิทธิ์และย้ายสวน</h2>
+            <p style={{ margin: '0.25rem 0 0' }}>
+              {editingUser.firstName} {editingUser.lastName} · {editingUser.email || editingUser.uid}
+            </p>
+          </div>
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+            <label>
+              สวนปลายทาง (เฉพาะ ACTIVE)
+              <select
+                value={editSelection.farmKey}
+                onChange={(event) => setEditSelection((current) => ({
+                  ...current,
+                  farmKey: event.target.value,
+                }))}
+              >
+                {!farms.some((farm) => `${farm.organizationId}/${farm.farmId}` === editSelection.farmKey) ? (
+                  <option value={editSelection.farmKey}>สวนเดิมไม่พร้อมใช้งาน — กรุณาเลือกสวนใหม่</option>
+                ) : null}
+                <option value="">เลือกสวน</option>
+                {farms.map((farm) => (
+                  <option key={`${farm.organizationId}/${farm.farmId}`} value={`${farm.organizationId}/${farm.farmId}`}>
+                    {farm.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Role ใหม่
+              <select
+                value={editSelection.role}
+                onChange={(event) => setEditSelection((current) => ({
+                  ...current,
+                  role: event.target.value as CanonicalRole,
+                }))}
+              >
+                {canonicalRoles.map((role) => <option key={role} value={role}>{role}</option>)}
+              </select>
+            </label>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <button
+              className="primary-action"
+              disabled={requestBusy === editingUser.uid || !farms.some(
+                (farm) => `${farm.organizationId}/${farm.farmId}` === editSelection.farmKey,
+              )}
+              onClick={() => void saveUserAccess()}
+              type="button"
+            >
+              บันทึก Role และสวน
+            </button>
+            <button
+              className="secondary-action"
+              disabled={requestBusy === editingUser.uid}
+              onClick={() => setEditingUser(undefined)}
+              type="button"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       {hasDuplicateEmails && !hideDuplicates && (
         <div style={{ background: '#fffbeb', border: '1px solid #fef08a', borderRadius: '6px', padding: '0.6rem 1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#854d0e' }}>
           💡 <strong>ข้อสังเกต:</strong> พบรายการที่มีอีเมลเดียวกันมากกว่า 1 แถว เนื่องจากระบบมีเอกสารเดิม (เช่น ตอนสมัครสมาชิกที่ตำแหน่งระบุว่า &quot;รอผู้ดูแลอนุมัติ&quot;) และเอกสารใหม่ (เช่น ตอนเริ่มต้นระบบระบุตำแหน่งเป็น &quot;ผู้ดูแลระบบ&quot;) ในฐานข้อมูล Firestore — ท่านสามารถกดปุ่ม <strong>&quot;ลบ&quot;</strong> ที่แถวที่ไม่ต้องการ เพื่อลบเอกสารซ้ำซ้อนออกจากฐานข้อมูลได้โดยตรง
@@ -293,7 +434,7 @@ export function UserManagementPage() {
               <th style={{ padding: '8px 12px', width: '120px' }}>สถานะ</th>
               <th style={{ padding: '8px 12px', width: '160px' }}>สิทธิ์ (Roles)</th>
               <th style={{ padding: '8px 12px', minWidth: '180px' }}>โครงการ/สวนที่รับผิดชอบ</th>
-              <th style={{ padding: '8px 12px', width: '70px', textAlign: 'center' }}>จัดการ</th>
+              <th style={{ padding: '8px 12px', width: '150px', textAlign: 'center' }}>จัดการ</th>
             </tr>
           </thead>
           <tbody>
@@ -354,6 +495,17 @@ export function UserManagementPage() {
                     {u.assignedProjects?.length ? u.assignedProjects.join(', ') : 'ยังไม่ได้ Assign สวน'}
                   </td>
                   <td style={{ padding: '4px 8px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    {!u.role?.includes('MasterAdmin') && u.status === 'approved' ? (
+                      <button
+                        className="secondary-action"
+                        disabled={requestBusy === u.uid}
+                        onClick={() => startEditing(u)}
+                        style={{ fontSize: '0.78rem', marginRight: '0.35rem', padding: '2px 8px' }}
+                        type="button"
+                      >
+                        แก้ไขสิทธิ์
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => void deleteUser(u.docId, `${u.firstName} ${u.lastName}`)}

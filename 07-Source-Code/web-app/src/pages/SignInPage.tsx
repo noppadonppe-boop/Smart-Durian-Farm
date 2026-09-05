@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
 
@@ -209,6 +210,11 @@ export function SignInPage() {
 
         {authError ? <div className="form-error" role="alert">{authError}</div> : null}
         <div id="firebase-recaptcha-container" />
+
+        <div className="form-actions">
+          <Link className="secondary-action" to="/login">เข้าสู่ระบบด้วยอีเมล</Link>
+          <Link className="secondary-action" to="/register">สมัครสมาชิกด้วยอีเมล</Link>
+        </div>
 
         {authMode !== 'firebase-live' ? <details className="demo-accounts">
           <summary>ดูบัญชีทดสอบ</summary>

@@ -4,11 +4,9 @@ import { usePhase2 } from '../app/usePhase2'
 import { permissionsFor, roleLabels } from '../domain/farm'
 import { canReadCommercial } from '../domain/commercialTraceability'
 import { canViewManagementReports } from '../domain/managementReporting'
-import { useAuth } from '../security/AuthContext'
 import { PageHeader } from './PageHeader'
 
 export function MorePage() {
-  const { isSystemAdmin } = useAuth()
   const {
     mode,
     authMode,
@@ -80,7 +78,7 @@ export function MorePage() {
           </div>
           <div className="admin-links">
             <Link className="admin-link-card--planning" to="/annual-cycles">
-              <span aria-hidden="true">◷</span>
+              <span aria-hidden="true">📅</span>
               <div>
                 <strong>รอบบริหารสวนรายปี</strong>
                 <small>มิ.ย.–พ.ค. หรือวันเริ่มเฉพาะสวน · แผนระดับสวน/โซน</small>
@@ -89,7 +87,7 @@ export function MorePage() {
             </Link>
             {canViewManagementReports(currentFarm) ? (
               <Link className="admin-link-card--planning" to="/reports">
-                <span aria-hidden="true">▤</span>
+                <span aria-hidden="true">📊</span>
                 <div>
                   <strong>รายงานผลสวนและต้นทุน</strong>
                   <small>สัปดาห์ · เดือน · 3 เดือน · ปี พร้อมค่าแรงและค่าใช้จ่าย</small>
@@ -98,7 +96,7 @@ export function MorePage() {
               </Link>
             ) : null}
             <Link className="admin-link-card--planning" to="/orchard-layout">
-              <span aria-hidden="true">▦</span>
+              <span aria-hidden="true">🗺️</span>
               <div>
                 <strong>แปลนสวนและเลือกตำแหน่ง</strong>
                 <small>โซน · แถวซ้ายไปขวา · ต้นบนลงล่าง</small>
@@ -107,7 +105,7 @@ export function MorePage() {
             </Link>
             {currentFarm.isOrganizationOwner ? (
               <Link className="admin-link-card--planning" to="/portfolio">
-                <span aria-hidden="true">▧</span>
+                <span aria-hidden="true">🏢</span>
                 <div>
                   <strong>ภาพรวมหลายสวน</strong>
                   <small>Owner only · รวมเฉพาะสวนที่มีสิทธิ์</small>
@@ -115,25 +113,14 @@ export function MorePage() {
                 <span aria-hidden="true">›</span>
               </Link>
             ) : null}
-            {currentFarm.isOrganizationOwner ? (
-              <Link className="admin-link-card--planning" to="/farm-management">
-                <span aria-hidden="true">⌂</span>
-                <div>
-                  <strong>จัดการสวน</strong>
-                  <small>ORG_OWNER · เพิ่ม แก้ไข ระงับ เปิดใหม่ และเก็บถาวร</small>
-                </div>
-                <span aria-hidden="true">›</span>
-              </Link>
-            ) : (
-              <Link className="admin-link-card--planning" to={`/farm-management/${currentFarm.farmId}`}>
-                <span aria-hidden="true">⌂</span>
-                <div>
-                  <strong>ข้อมูลสวน</strong>
-                  <small>อ่านอย่างเดียวตาม Farm membership</small>
-                </div>
-                <span aria-hidden="true">›</span>
-              </Link>
-            )}
+            <Link className="admin-link-card--planning" to={`/farm-management/${currentFarm.farmId}`}>
+              <span aria-hidden="true">🏡</span>
+              <div>
+                <strong>ข้อมูลสวน</strong>
+                <small>อ่านอย่างเดียวตาม Farm membership</small>
+              </div>
+              <span aria-hidden="true">›</span>
+            </Link>
           </div>
         </section>
 
@@ -147,7 +134,7 @@ export function MorePage() {
             {canReadCommercial(currentFarm.role) ? (
               <>
                 <Link className="admin-link-card--ops" to="/production">
-                  <span aria-hidden="true">◉</span>
+                  <span aria-hidden="true">📦</span>
                   <div>
                     <strong>ผลผลิตและการขาย</strong>
                     <small>Crop → Harvest → Sales · แยกตามสวน</small>
@@ -155,7 +142,7 @@ export function MorePage() {
                   <span aria-hidden="true">›</span>
                 </Link>
                 <Link className="admin-link-card--ops" to="/inventory">
-                  <span aria-hidden="true">▣</span>
+                  <span aria-hidden="true">🪵</span>
                   <div>
                     <strong>{currentFarm.isOrganizationOwner ? 'สต็อกและต้นทุนตรง' : 'สต็อกวัสดุ'}</strong>
                     <small>
@@ -169,7 +156,7 @@ export function MorePage() {
               </>
             ) : null}
             <Link className="admin-link-card--ops" to="/sync">
-              <span aria-hidden="true">⇄</span>
+              <span aria-hidden="true">🔄</span>
               <div>
                 <strong>ศูนย์ซิงก์และ Conflict</strong>
                 <small>Offline queue, Retry, Photo recovery และ Correction</small>
@@ -188,7 +175,7 @@ export function MorePage() {
           <div className="admin-links">
             {permissions.canManageMemberships ? (
               <Link className="admin-link-card--system" to="/members">
-                <span aria-hidden="true">♙</span>
+                <span aria-hidden="true">👥</span>
                 <div>
                   <strong>สมาชิกและสิทธิ์</strong>
                   <small>Owner only · มี Audit ทุกการเปลี่ยน</small>
@@ -196,19 +183,9 @@ export function MorePage() {
                 <span aria-hidden="true">›</span>
               </Link>
             ) : null}
-            {isSystemAdmin ? (
-              <Link className="admin-link-card--system" to="/firebase-admin">
-                <span aria-hidden="true">◆</span>
-                <div>
-                  <strong>Firebase Live / Seed</strong>
-                  <small>MasterAdmin · สร้างพื้นที่จริงหรือ Seed ชุดทดสอบ</small>
-                </div>
-                <span aria-hidden="true">›</span>
-              </Link>
-            ) : null}
             {permissions.canReadAudit ? (
               <Link className="admin-link-card--system" to="/audit">
-                <span aria-hidden="true">◇</span>
+                <span aria-hidden="true">📜</span>
                 <div>
                   <strong>ประวัติ Audit</strong>
                   <small>เฉพาะสวนปัจจุบัน</small>
@@ -217,7 +194,7 @@ export function MorePage() {
               </Link>
             ) : null}
             <Link className="admin-link-card--system" to={`/farms/${currentFarm.farmId}`}>
-              <span aria-hidden="true">⌁</span>
+              <span aria-hidden="true">🔗</span>
               <div>
                 <strong>ทดสอบ Farm deep link</strong>
                 <small>ตรวจ membership ก่อนเปิดสวน</small>
@@ -226,7 +203,7 @@ export function MorePage() {
             </Link>
             {import.meta.env.DEV && mode === 'mock' ? (
               <Link className="admin-link-card--system" to="/dev/scenarios">
-                <span aria-hidden="true">⚙</span>
+                <span aria-hidden="true">🧪</span>
                 <div>
                   <strong>Mock Scenario Center</strong>
                   <small>Development only · deterministic scenarios</small>
@@ -235,7 +212,7 @@ export function MorePage() {
               </Link>
             ) : null}
             <Link className="admin-link-card--system" to="/manual">
-              <span aria-hidden="true">?</span>
+              <span aria-hidden="true">📖</span>
               <div>
                 <strong>คู่มือผู้ใช้</strong>
                 <small>เริ่มต้นใช้งาน บทบาท Workflow การกรอกข้อมูล และการแก้ปัญหา</small>

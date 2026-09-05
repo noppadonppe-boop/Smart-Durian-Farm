@@ -6,16 +6,16 @@ export interface NavigationItem {
 }
 
 export const navigationItems: readonly NavigationItem[] = [
-  { to: '/', label: 'หน้าหลัก', shortLabel: 'หน้าหลัก', icon: '⌂' },
-  { to: '/work', label: 'งาน', shortLabel: 'งาน', icon: '✓' },
-  { to: '/scan', label: 'สแกน', shortLabel: 'สแกน', icon: '⌗' },
-  { to: '/trees', label: 'ต้นไม้', shortLabel: 'ต้นไม้', icon: '♧' },
-  { to: '/more', label: 'เพิ่มเติม', shortLabel: 'เพิ่มเติม', icon: '•••' },
+  { to: '/', label: 'หน้าหลัก', shortLabel: 'หน้าหลัก', icon: '🏠' },
+  { to: '/work', label: 'งาน', shortLabel: 'งาน', icon: '📋' },
+  { to: '/scan', label: 'สแกน', shortLabel: 'สแกน', icon: '📷' },
+  { to: '/trees', label: 'ต้นไม้', shortLabel: 'ต้นไม้', icon: '🌳' },
+  { to: '/more', label: 'เพิ่มเติม', shortLabel: 'เพิ่มเติม', icon: '⚙️' },
 ] as const
 
 export const userManualNavigationItem: NavigationItem = {
   to: '/manual',
   label: 'คู่มือผู้ใช้',
   shortLabel: 'คู่มือ',
-  icon: '?',
+  icon: '📖',
 }

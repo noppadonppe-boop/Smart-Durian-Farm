@@ -1,9 +1,10 @@
-import { createBrowserRouter, type RouteObject } from 'react-router-dom'
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
 import { AppLayout } from './AppLayout'
 import { LazyPhase2Provider } from './LazyPhase2Provider'
 import { RouteLoading } from './RouteLoading'
 import { AuthProvider } from '../security/AuthContext'
+import { ProtectedRoute } from '../security/ProtectedRoute'
 
 export const routes: RouteObject[] = [
   {
@@ -15,6 +16,34 @@ export const routes: RouteObject[] = [
     ),
     HydrateFallback: RouteLoading,
     children: [
+      {
+        path: 'login',
+        lazy: async () => ({ Component: (await import('../pages/AuthLoginPage')).AuthLoginPage }),
+      },
+      {
+        path: 'register',
+        lazy: async () => ({ Component: (await import('../pages/AuthRegisterPage')).AuthRegisterPage }),
+      },
+      {
+        path: 'pending',
+        lazy: async () => ({
+          Component: (await import('./AuthRoutes')).PendingProtectedRoute,
+        }),
+      },
+      {
+        path: 'dashboard',
+        element: (
+          <ProtectedRoute>
+            <Navigate to="/" replace />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin',
+        lazy: async () => ({
+          Component: (await import('./AuthRoutes')).AdminProtectedRoute,
+        }),
+      },
       {
         element: <AppLayout />,
         children: [

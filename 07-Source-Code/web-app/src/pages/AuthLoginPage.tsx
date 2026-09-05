@@ -2,11 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../security/AuthContext'
-import { authService } from '../services/authService'
-
-function messageFromError(reason: unknown, fallback: string): string {
-  return reason instanceof Error && reason.message ? reason.message : fallback
-}
+import { authenticationErrorMessage, authService } from '../services/authService'
 
 function errorCode(reason: unknown): string | undefined {
   if (typeof reason !== 'object' || reason === null || !('code' in reason)) return undefined
@@ -48,7 +44,7 @@ export function AuthLoginPage() {
       await authService.loginWithEmail(email, password)
       await refreshProfile()
     } catch (reason) {
-      setErrorMsg(messageFromError(reason, 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'))
+      setErrorMsg(authenticationErrorMessage(reason))
     } finally {
       setSubmitting(false)
     }
@@ -62,7 +58,7 @@ export function AuthLoginPage() {
       await refreshProfile()
     } catch (reason) {
       if (errorCode(reason) !== 'auth/popup-closed-by-user') {
-        setErrorMsg(messageFromError(reason, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google'))
+        setErrorMsg(authenticationErrorMessage(reason))
       }
     } finally {
       setSubmitting(false)

@@ -11,6 +11,8 @@ export function AuthPendingPage() {
   useEffect(() => {
     if (userProfile?.status === 'approved') {
       void navigate('/')
+    } else if (userProfile?.status === 'rejected') {
+      void navigate('/login', { replace: true })
     }
   }, [userProfile, navigate])
 
