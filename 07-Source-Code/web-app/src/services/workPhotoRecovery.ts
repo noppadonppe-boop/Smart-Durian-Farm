@@ -1,5 +1,4 @@
 import type { FarmAccess } from '../domain/farm'
-import type { DataAdapterMode } from '../config/environment'
 import type { PhotoRecoveryDraft } from '../domain/operationalHardening'
 import type { WorkPhotoEvidence, WorkPhotoPhase } from '../domain/workCareDisease'
 import { withBoundedPhotoRetry } from './workPhotoProcessing'
@@ -12,7 +11,6 @@ export interface WorkPhotoUploadCandidate {
 }
 
 interface UploadAndCommitOptions<T> {
-  mode: DataAdapterMode
   farm: FarmAccess
   workOrderId: string
   candidates: readonly WorkPhotoUploadCandidate[]
@@ -39,14 +37,10 @@ class PhotoUploadCheckpointError extends Error {
 }
 
 export function expectedWorkPhotoStoragePath(
-  mode: DataAdapterMode,
   farm: FarmAccess,
   workOrderId: string,
   photoId: string,
 ): string {
-  if (mode === 'mock') {
-    return `mock://organizations/${farm.organizationId}/farms/${farm.farmId}/workEvidence/${workOrderId}/${photoId}`
-  }
   return `organizations/${farm.organizationId}/farms/${farm.farmId}/workEvidence/${workOrderId}/${photoId}`
 }
 
@@ -74,7 +68,7 @@ export async function uploadAndCommitWorkPhotoBatch<T>(
   results.forEach((result, index) => {
     const candidate = options.candidates[index]!
     const storagePath = expectedWorkPhotoStoragePath(
-      options.mode, options.farm, options.workOrderId, candidate.photoId,
+      options.farm, options.workOrderId, candidate.photoId,
     )
     if (result.status === 'fulfilled') {
       uploaded.push(result.value)

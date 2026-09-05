@@ -5,14 +5,22 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
+  writeBatch,
   type DocumentData,
   type Firestore,
 } from 'firebase/firestore'
-import { getDownloadURL, ref, uploadString, type FirebaseStorage } from 'firebase/storage'
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadString,
+  type FirebaseStorage,
+} from 'firebase/storage'
 
 import type { TreeQrAssetRepository } from '../../adapters/contracts'
 import {
   canManageTreeRegister,
+  canDeleteTreePositions,
   normalizeTagCode,
   treeQrFormats,
   type TreeMutationContext,
@@ -75,16 +83,19 @@ function assetCollection(firestore: Firestore, context: TreeMutationContext) {
 async function assetFromDocument(
   document: { data: () => DocumentData },
   storage: FirebaseStorage,
+  storageReady = true,
 ): Promise<TreeQrAsset> {
   const data = document.data()
   const path = requiredString(data, 'storagePath')
   let storageUrl = ''
-  try {
-    storageUrl = await getDownloadURL(ref(storage, path))
-  } catch {
-    // Keep the metadata readable when an older object is missing or Storage is
-    // temporarily unavailable. The UI can render the deterministic local SVG
-    // while the asset is repaired.
+  if (storageReady) {
+    try {
+      storageUrl = await getDownloadURL(ref(storage, path))
+    } catch {
+      // Keep the metadata readable when an older object is missing or Storage is
+      // temporarily unavailable. The UI can render the deterministic local SVG
+      // while the asset is repaired.
+    }
   }
   return {
     qrAssetId: requiredString(data, 'qrAssetId'),
@@ -107,11 +118,12 @@ export class FirebaseTreeQrAssetRepository implements TreeQrAssetRepository {
     private readonly firestore: Firestore,
     private readonly storage: FirebaseStorage,
     private readonly exampleData = false,
+    private readonly storageReady = true,
   ) {}
 
   async listQrAssets(context: TreeMutationContext): Promise<readonly TreeQrAsset[]> {
     const snapshot = await getDocs(assetCollection(this.firestore, context))
-    return Promise.all(snapshot.docs.map((document) => assetFromDocument(document, this.storage)))
+    return Promise.all(snapshot.docs.map((document) => assetFromDocument(document, this.storage, this.storageReady)))
   }
 
   async createQrAsset(
@@ -146,23 +158,25 @@ export class FirebaseTreeQrAssetRepository implements TreeQrAssetRepository {
     const id = assetId(draft.positionId, draft.format)
     const assetReference = doc(assetCollection(this.firestore, context), id)
     const existing = await getDoc(assetReference)
-    if (existing.exists()) return assetFromDocument(existing, this.storage)
+    if (existing.exists()) return assetFromDocument(existing, this.storage, this.storageReady)
 
     const path = storagePath(context, draft)
-    await uploadString(ref(this.storage, path), draft.svg, 'raw', {
-      contentType: 'image/svg+xml',
-      customMetadata: {
-        organizationId: context.farm.organizationId,
-        farmId: context.farm.farmId,
-        uploadedBy: context.actor.userId,
-        positionId: draft.positionId,
-        tagCode: draft.tagCode,
-        qrFormat: draft.format,
-        storageFileName: `${draft.format}.svg`,
-        exampleData: String(this.exampleData),
-        classification: this.exampleData ? 'SIMULATED/TEST ONLY' : 'OPERATIONAL',
-      },
-    })
+    if (this.storageReady) {
+      await uploadString(ref(this.storage, path), draft.svg, 'raw', {
+        contentType: 'image/svg+xml',
+        customMetadata: {
+          organizationId: context.farm.organizationId,
+          farmId: context.farm.farmId,
+          uploadedBy: context.actor.userId,
+          positionId: draft.positionId,
+          tagCode: draft.tagCode,
+          qrFormat: draft.format,
+          storageFileName: `${draft.format}.svg`,
+          exampleData: String(this.exampleData),
+          classification: this.exampleData ? 'SIMULATED/TEST ONLY' : 'OPERATIONAL',
+        },
+      })
+    }
 
     await setDoc(assetReference, {
       recordType: 'TREE_QR_ASSET',
@@ -181,7 +195,46 @@ export class FirebaseTreeQrAssetRepository implements TreeQrAssetRepository {
     })
 
     const created = await getDoc(assetReference)
-    if (!created.exists()) throw new Error('อัปโหลด QR แล้วแต่ไม่พบ metadata ใน Firebase')
-    return assetFromDocument(created, this.storage)
+    if (!created.exists()) throw new Error('บันทึก QR แล้วแต่ไม่พบ metadata ใน Firebase')
+    return assetFromDocument(created, this.storage, this.storageReady)
+  }
+
+  async deleteQrAssets(
+    context: TreeMutationContext,
+    positionIds: readonly string[],
+  ): Promise<number> {
+    if (!canDeleteTreePositions(context.farm, context.isSystemAdmin)) {
+      throw new Error('เฉพาะ MasterAdmin หรือเจ้าของสวนที่ใช้งานอยู่เท่านั้นที่ลบ QR ได้')
+    }
+    const uniqueIds = [...new Set(positionIds)]
+    if (uniqueIds.length === 0) return 0
+
+    const selectedIds = new Set(uniqueIds)
+    const snapshot = await getDocs(assetCollection(this.firestore, context))
+    const selectedDocuments = snapshot.docs.filter((document) => {
+      const positionId: unknown = document.data().positionId
+      return typeof positionId === 'string' && selectedIds.has(positionId)
+    })
+
+    if (this.storageReady) {
+      await Promise.all(selectedDocuments.map(async (document) => {
+        const path = requiredString(document.data(), 'storagePath')
+        try {
+          await deleteObject(ref(this.storage, path))
+        } catch (cause) {
+          const code = cause && typeof cause === 'object' && 'code' in cause
+            ? String(cause.code)
+            : ''
+          if (!['storage/object-not-found', 'storage/bucket-not-found'].includes(code)) throw cause
+        }
+      }))
+    }
+
+    if (selectedDocuments.length > 0) {
+      const batch = writeBatch(this.firestore)
+      selectedDocuments.forEach((document) => batch.delete(document.ref))
+      await batch.commit()
+    }
+    return selectedDocuments.length
   }
 }

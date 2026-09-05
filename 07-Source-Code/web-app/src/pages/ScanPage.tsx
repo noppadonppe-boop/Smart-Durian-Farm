@@ -33,7 +33,6 @@ export function ScanPage() {
   const workOrderId = searchParams.get('workOrder') ?? ''
   const {
     currentFarm,
-    mode,
     listTreePositions,
     resolvePositionRoute,
     resolveTag,
@@ -241,18 +240,6 @@ export function ScanPage() {
     }
   }
 
-  const simulate = async (kind: 'MATCH' | 'MISMATCH') => {
-    const expected = positions.at(0)
-    const scanned = kind === 'MATCH' ? expected : positions.at(1)
-    if (!expected || !scanned) {
-      setMessage('ข้อมูลจำลองไม่พอสำหรับ scenario นี้')
-      return
-    }
-    setExpectedPositionId(expected.positionId)
-    setManualInput(scanned.positionId)
-    await resolveInput(scanned.positionId, expected.positionId)
-  }
-
   const reportDamage = async () => {
     if (!result || !('position' in result)) return
     try {
@@ -314,7 +301,6 @@ export function ScanPage() {
         <p>รับ Human Tag, QR URL หรือ Opaque Position ID</p>
         <label className="scan-context" htmlFor="manual-scan-input">รหัส Tag, QR URL หรือ Position ID</label>
         <div><input autoCapitalize="characters" id="manual-scan-input" onChange={(event) => setManualInput(event.target.value)} placeholder="Z01-R01-T01" value={manualInput} /><button onClick={() => void resolveInput(manualInput)} type="button">ตรวจรหัส</button></div>
-        {mode === 'mock' ? <div className="simulation-actions"><button onClick={() => void simulate('MATCH')} type="button">จำลองสแกนตรงต้น</button><button onClick={() => void simulate('MISMATCH')} type="button">จำลองสแกนผิดต้น</button></div> : null}
       </section>
 
       {message ? <div className="scan-message" role="status">{message}</div> : null}

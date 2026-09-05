@@ -14,7 +14,6 @@ import type {
   TreeRouteResolution,
 } from '../adapters/contracts'
 import { createRuntimeAdapters } from '../adapters/runtimeAdapters'
-import { appEnvironment } from '../config/environment'
 import { Phase2Context } from './usePhase2'
 import type {
   AuthenticatedIdentity,
@@ -30,6 +29,7 @@ import type {
   MembershipAuditEvent,
 } from '../domain/farm'
 import type {
+  DeleteTreePositionsResult,
   ReplacePlantingCycleInput,
   TreeImportCandidate,
   TreeImportResult,
@@ -46,8 +46,6 @@ import type {
   DiseaseFollowUpInput,
   DiseaseIncidentDraft,
   DiseaseIncidentRecord,
-  DiseasePhotoAction,
-  DiseasePhotoMockDraft,
   InAppNotification,
   TreatmentWorkOrderInput,
   TreatmentWorkOrderResult,
@@ -184,18 +182,14 @@ export interface Phase2ContextValue {
     kind: ReportPeriodKind,
     anchorDate: string,
   ) => Promise<FarmManagementReport>
-  resetManagementReportingMockData: () => Promise<void>
   requestOtp: (phoneNumber: string) => Promise<void>
   verifyOtp: (code: string) => Promise<void>
   cancelOtp: () => void
   signInAsDevelopmentAdmin: () => Promise<void>
-  signInWithMockAccount: (phoneNumber: string, otp: string) => Promise<void>
   signOut: () => Promise<void>
   requestFarmSwitch: (farmId: string) => void
   confirmFarmSwitch: () => void
   cancelFarmSwitch: () => void
-  addDemoPendingOperation: () => void
-  clearDemoPendingOperations: () => void
   listFarmProfiles: () => Promise<readonly FarmProfile[]>
   getFarmProfile: (farmId: string) => Promise<FarmProfile | undefined>
   createFarm: (
@@ -236,6 +230,10 @@ export interface Phase2ContextValue {
     positionId: string,
     reason: string,
   ) => Promise<TreePositionDetail>
+  deleteTreePositions: (
+    positionIds: readonly string[],
+    isSystemAdmin?: boolean,
+  ) => Promise<DeleteTreePositionsResult>
   reportDamagedTag: (positionId: string, note: string) => Promise<TreePositionDetail>
   importTreePositions: (
     idempotencyKey: string,
@@ -299,17 +297,6 @@ export interface Phase2ContextValue {
     idempotencyKey: string,
     input: DiseaseFollowUpInput,
   ) => Promise<DiseaseIncidentRecord>
-  addDiseasePhotoMock: (
-    incidentId: string,
-    idempotencyKey: string,
-    draft: DiseasePhotoMockDraft,
-  ) => Promise<DiseaseIncidentRecord>
-  advanceDiseasePhotoMock: (
-    incidentId: string,
-    photoId: string,
-    idempotencyKey: string,
-    action: DiseasePhotoAction,
-  ) => Promise<DiseaseIncidentRecord>
   createTreatmentWorkOrder: (
     incidentId: string,
     idempotencyKey: string,
@@ -368,7 +355,6 @@ export interface Phase2ContextValue {
     input: InventoryMovementInput,
   ) => Promise<InventoryMovementRecord>
   listCommercialAudit: () => Promise<readonly CommercialAuditEvent[]>
-  resetPhase5MockData: () => Promise<void>
   getFarmDashboard: () => Promise<FarmDashboardView>
   getPortfolioDashboard: () => Promise<PortfolioDashboard>
   listOfflineOperations: () => Promise<readonly OfflineOperationRecord[]>
@@ -410,7 +396,6 @@ export interface Phase2ContextValue {
   ) => Promise<PhotoRecoveryRecord>
   listOperationalAudit: () => Promise<readonly OperationalAuditEvent[]>
   requestFarmExport: (idempotencyKey: string) => Promise<FarmExportRecord>
-  resetPhase6MockData: () => Promise<void>
 }
 
 function readableError(error: unknown): string {
@@ -425,11 +410,9 @@ function chooseInitialFarm(farms: readonly FarmAccess[]): FarmAccess | undefined
 
 function ResolvedPhase2Provider({
   adapters,
-  activateDevelopmentAdmin,
   children,
 }: {
   adapters: Phase6Adapters
-  activateDevelopmentAdmin: () => Promise<void>
   children?: ReactNode
 }) {
   const [identity, setIdentity] = useState<AuthenticatedIdentity | null | undefined>()
@@ -574,44 +557,17 @@ function ResolvedPhase2Provider({
     setAuthError(undefined)
     setOtpChallenge(undefined)
     try {
-      if (adapters.mode === 'firebase-live' && adapters.authMode === 'firebase-live') {
-        if (!adapters.auth.signInWithGoogle) {
-          throw new Error('Firebase Production ยังไม่พร้อมสำหรับ Google Sign-In')
-        }
-        const nextIdentity = await adapters.auth.signInWithGoogle()
-        setIdentity(nextIdentity)
-        await loadFarmAccess(nextIdentity)
-        return
+      if (!adapters.auth.signInWithGoogle) {
+        throw new Error('Firebase Production ยังไม่พร้อมสำหรับ Google Sign-In')
       }
-      await activateDevelopmentAdmin()
+      const nextIdentity = await adapters.auth.signInWithGoogle()
+      setIdentity(nextIdentity)
+      await loadFarmAccess(nextIdentity)
     } catch (error) {
       setAuthError(readableError(error))
       throw error
     }
-  }, [activateDevelopmentAdmin, adapters.auth, adapters.authMode, adapters.mode, loadFarmAccess])
-
-  const signInWithMockAccount = useCallback(
-    async (phoneNumber: string, code: string) => {
-      if (adapters.authMode !== 'mock') {
-        const error = new Error('การเข้าใช้แบบคลิกเดียวเปิดได้เฉพาะ Mock mode')
-        setAuthError(error.message)
-        throw error
-      }
-      setAuthError(undefined)
-      try {
-        const challenge = await adapters.auth.requestOtp(
-          phoneNumber,
-          'firebase-recaptcha-container',
-        )
-        setOtpChallenge(challenge)
-        await adapters.auth.verifyOtp(challenge, code)
-      } catch (error) {
-        setAuthError(readableError(error))
-        throw error
-      }
-    },
-    [adapters.auth, adapters.authMode],
-  )
+  }, [adapters.auth, loadFarmAccess])
 
   const signOut = useCallback(async () => {
     if (identity) {
@@ -652,21 +608,6 @@ function ResolvedPhase2Provider({
   }, [applyFarmSwitch, pendingSwitchTarget])
 
   const cancelFarmSwitch = useCallback(() => setPendingSwitchTarget(undefined), [])
-
-  const addDemoPendingOperation = useCallback(() => {
-    if (!currentFarm) return
-    setPendingOperations((current) => [
-      ...current,
-      {
-        operationId: `pending_${crypto.randomUUID()}`,
-        organizationId: currentFarm.organizationId,
-        farmId: currentFarm.farmId,
-        label: `รายการค้างส่งทดสอบ · ${currentFarm.farmCode}`,
-      },
-    ])
-  }, [currentFarm])
-
-  const clearDemoPendingOperations = useCallback(() => setPendingOperations([]), [])
 
   const requireFarmAndIdentity = useCallback(() => {
     if (!identity || !currentFarm) throw new Error('ยังไม่มีผู้ใช้หรือสวนปัจจุบัน')
@@ -978,6 +919,20 @@ function ResolvedPhase2Provider({
     )
   }, [adapters.treeRepository, requireFarmAndIdentity])
 
+  const deleteTreePositions = useCallback(async (
+    positionIds: readonly string[],
+    isSystemAdmin = false,
+  ) => {
+    const context = requireFarmAndIdentity()
+    const mutationContext = {
+      actor: context.identity,
+      farm: context.currentFarm,
+      isSystemAdmin,
+    }
+    await adapters.treeQrAssetRepository.deleteQrAssets(mutationContext, positionIds)
+    return adapters.treeRepository.deleteTreePositions(mutationContext, positionIds)
+  }, [adapters.treeQrAssetRepository, adapters.treeRepository, requireFarmAndIdentity])
+
   const listTreeQrAssets = useCallback(async () => {
     const context = requireFarmAndIdentity()
     return adapters.treeQrAssetRepository.listQrAssets({
@@ -1042,15 +997,12 @@ function ResolvedPhase2Provider({
   ) => {
     const { prepareWorkPhotoForUpload } = await import('../services/workPhotoProcessing')
     const prepared = await prepareWorkPhotoForUpload(file, {
-      allowSimulatedTestFallback: adapters.mode === 'mock',
-      decode: adapters.mode === 'mock'
-        ? () => Promise.reject(new Error('SIMULATED/TEST ONLY — browser image decoder bypassed'))
-        : undefined,
+      allowSimulatedTestFallback: false,
     })
     return adapters.workRepository.uploadWorkPhoto(
       workContext(), workOrderId, photoId, phase, prepared,
     )
-  }, [adapters.mode, adapters.workRepository, workContext])
+  }, [adapters.workRepository, workContext])
 
   const saveWorkInstructionPhotos = useCallback(async (
     workOrderId: string,
@@ -1122,27 +1074,6 @@ function ResolvedPhase2Provider({
   ) => {
     return adapters.workRepository.followUpDiseaseIncident(
       workContext(), incidentId, idempotencyKey, input,
-    )
-  }, [adapters.workRepository, workContext])
-
-  const addDiseasePhotoMock = useCallback(async (
-    incidentId: string,
-    idempotencyKey: string,
-    draft: DiseasePhotoMockDraft,
-  ) => {
-    return adapters.workRepository.addDiseasePhotoMock(
-      workContext(), incidentId, idempotencyKey, draft,
-    )
-  }, [adapters.workRepository, workContext])
-
-  const advanceDiseasePhotoMock = useCallback(async (
-    incidentId: string,
-    photoId: string,
-    idempotencyKey: string,
-    action: DiseasePhotoAction,
-  ) => {
-    return adapters.workRepository.advanceDiseasePhotoMock(
-      workContext(), incidentId, photoId, idempotencyKey, action,
     )
   }, [adapters.workRepository, workContext])
 
@@ -1258,13 +1189,6 @@ function ResolvedPhase2Provider({
     return adapters.commercialRepository.listCommercialAudit(workContext())
   }, [adapters.commercialRepository, workContext])
 
-  const resetPhase5MockData = useCallback(async () => {
-    if (!adapters.commercialRepository.resetMockPack) {
-      throw new Error('Reset นี้ใช้ได้เฉพาะ Mock Data Pack')
-    }
-    await adapters.commercialRepository.resetMockPack()
-  }, [adapters.commercialRepository])
-
   const selectedManagementCycle = useCallback(() => {
     const selected = annualCycleSnapshot.selectedCycle
     if (!selected) throw new Error('กรุณาเลือกรอบบริหารสวนรายปีก่อนบันทึกต้นทุนหรือสร้างรายงาน')
@@ -1330,13 +1254,6 @@ function ResolvedPhase2Provider({
     selectedManagementCycle,
     workContext,
   ])
-
-  const resetManagementReportingMockData = useCallback(async () => {
-    if (!adapters.managementReportingRepository.resetMockPack) {
-      throw new Error('Reset นี้ใช้ได้เฉพาะ Management Reporting Mock Data Pack')
-    }
-    await adapters.managementReportingRepository.resetMockPack()
-  }, [adapters.managementReportingRepository])
 
   const operationalContext = useCallback(() => {
     const context = requireFarmAndIdentity()
@@ -1464,7 +1381,6 @@ function ResolvedPhase2Provider({
     const batch = await workPhotoBinaryQueue.get(batchId, scope)
     if (!batch) throw new Error('ไม่พบ Durable Photo Queue หรือรายการหมดอายุแล้ว')
     const result = await uploadAndCommitWorkPhotoBatch({
-      mode: adapters.mode,
       farm: context.currentFarm,
       workOrderId: batch.workOrderId,
       candidates: batch.candidates,
@@ -1498,7 +1414,6 @@ function ResolvedPhase2Provider({
     await workPhotoBinaryQueue.delete(batch.batchId, scope)
     return result
   }, [
-    adapters.mode,
     adapters.operationalRepository,
     binaryQueueScope,
     operationalContext,
@@ -1525,23 +1440,11 @@ function ResolvedPhase2Provider({
     return adapters.operationalRepository.requestFarmExport(operationalContext(), idempotencyKey)
   }, [adapters.operationalRepository, operationalContext])
 
-  const resetPhase6MockData = useCallback(async () => {
-    if (!adapters.operationalRepository.resetMockPack) {
-      throw new Error('Reset นี้ใช้ได้เฉพาะ Phase 6 Mock Data Pack')
-    }
-    await adapters.operationalRepository.resetMockPack()
-    const { workPhotoBinaryQueue } = await import('../services/workPhotoBinaryQueue')
-    await workPhotoBinaryQueue.clearScope(binaryQueueScope())
-    setPendingOperations([])
-  }, [adapters.operationalRepository, binaryQueueScope])
-
   const value = useMemo<Phase2ContextValue>(
     () => ({
       mode: adapters.mode,
       authMode: adapters.authMode,
-      developmentAdminSignInAvailable:
-        adapters.mode === 'firebase-live' ||
-        (import.meta.env.DEV && appEnvironment.dataAdapter === 'mock'),
+      developmentAdminSignInAvailable: true,
       identity,
       farms,
       currentFarm,
@@ -1563,18 +1466,14 @@ function ResolvedPhase2Provider({
       createLaborCost,
       createOperatingExpense,
       generateManagementReport,
-      resetManagementReportingMockData,
       requestOtp,
       verifyOtp,
       cancelOtp,
       signInAsDevelopmentAdmin,
-      signInWithMockAccount,
       signOut,
       requestFarmSwitch,
       confirmFarmSwitch,
       cancelFarmSwitch,
-      addDemoPendingOperation,
-      clearDemoPendingOperations,
       listFarmProfiles,
       getFarmProfile,
       createFarm,
@@ -1593,6 +1492,7 @@ function ResolvedPhase2Provider({
       updateCurrentPlantingCycle,
       replacePlantingCycle,
       archiveTreePosition,
+      deleteTreePositions,
       reportDamagedTag,
       importTreePositions,
       listTreeQrAssets,
@@ -1612,8 +1512,6 @@ function ResolvedPhase2Provider({
       createDiseaseIncident,
       assessDiseaseIncident,
       followUpDiseaseIncident,
-      addDiseasePhotoMock,
-      advanceDiseasePhotoMock,
       createTreatmentWorkOrder,
       listNotifications,
       listDiseaseAnalysisSessions,
@@ -1630,7 +1528,6 @@ function ResolvedPhase2Provider({
       archiveSalesLot,
       recordInventoryMovement,
       listCommercialAudit,
-      resetPhase5MockData,
       getFarmDashboard,
       getPortfolioDashboard,
       listOfflineOperations,
@@ -1649,18 +1546,15 @@ function ResolvedPhase2Provider({
       cleanupOrphanPhoto,
       listOperationalAudit,
       requestFarmExport,
-      resetPhase6MockData,
     }),
     [
       adapters.mode,
       adapters.authMode,
-      addDemoPendingOperation,
       authError,
       cancelFarmSwitch,
       cancelOtp,
       changeFarmMembership,
       changeFarmStatus,
-      clearDemoPendingOperations,
       confirmFarmSwitch,
       createFarm,
       currentFarm,
@@ -1681,6 +1575,7 @@ function ResolvedPhase2Provider({
       updateCurrentPlantingCycle,
       replacePlantingCycle,
       archiveTreePosition,
+      deleteTreePositions,
       reportDamagedTag,
       importTreePositions,
       listTreeQrAssets,
@@ -1700,8 +1595,6 @@ function ResolvedPhase2Provider({
       createDiseaseIncident,
       assessDiseaseIncident,
       followUpDiseaseIncident,
-      addDiseasePhotoMock,
-      advanceDiseasePhotoMock,
       createTreatmentWorkOrder,
       listNotifications,
       listDiseaseAnalysisSessions,
@@ -1718,7 +1611,6 @@ function ResolvedPhase2Provider({
       archiveSalesLot,
       recordInventoryMovement,
       listCommercialAudit,
-      resetPhase5MockData,
       getFarmDashboard,
       getPortfolioDashboard,
       listOfflineOperations,
@@ -1737,7 +1629,6 @@ function ResolvedPhase2Provider({
       cleanupOrphanPhoto,
       listOperationalAudit,
       requestFarmExport,
-      resetPhase6MockData,
       otpChallenge,
       pendingOperations,
       pendingSwitchTarget,
@@ -1754,11 +1645,9 @@ function ResolvedPhase2Provider({
       createLaborCost,
       createOperatingExpense,
       generateManagementReport,
-      resetManagementReportingMockData,
       requestFarmSwitch,
       requestOtp,
       signInAsDevelopmentAdmin,
-      signInWithMockAccount,
       signOut,
       updateFarmProfile,
       verifyOtp,
@@ -1775,55 +1664,6 @@ function ResolvedPhase2Provider({
 export function Phase2Provider({ children }: { children?: ReactNode }) {
   const [adapters, setAdapters] = useState<Phase6Adapters>()
   const [adapterError, setAdapterError] = useState<string>()
-
-  const activateDevelopmentAdmin = useCallback(async () => {
-    if (!import.meta.env.DEV) {
-      throw new Error('ปุ่มผู้ดูแลแบบไม่ใช้ OTP เปิดได้เฉพาะเครื่องพัฒนา')
-    }
-    if (appEnvironment.dataAdapter === 'firebase-live') {
-      throw new Error('Firebase Production ต้องเข้าสู่ระบบด้วย OTP จริงเท่านั้น')
-    }
-
-    const mockModulePath = '../adapters/mock/mockFoundationAdapters.ts'
-    const demoAccountModulePath = '../../scripts/seed-data/demoAccounts.ts'
-    const [{ createMockPhase2Adapters }, { developmentAdminAccount }] =
-      await Promise.all([
-        import(/* @vite-ignore */ mockModulePath) as Promise<
-          typeof import('../adapters/mock/mockFoundationAdapters')
-        >,
-        import(/* @vite-ignore */ demoAccountModulePath) as Promise<
-          typeof import('../../scripts/seed-data/demoAccounts')
-        >,
-      ])
-    if (!developmentAdminAccount) {
-      throw new Error('ไม่พบบัญชีผู้ดูแลในชุดข้อมูลจำลอง')
-    }
-
-    const developmentAdapters = createMockPhase2Adapters()
-    const challenge = await developmentAdapters.auth.requestOtp(
-      developmentAdminAccount.phoneNumber,
-      'firebase-recaptcha-container',
-    )
-    const identity = await developmentAdapters.auth.verifyOtp(
-      challenge,
-      developmentAdminAccount.otp,
-    )
-    const farmAccess = await developmentAdapters.repository.listFarmAccess(
-      identity.userId,
-    )
-    const hasMaximumMockAccess = farmAccess.some(
-      (farm) =>
-        farm.farmStatus === 'ACTIVE' &&
-        farm.role === 'ORG_OWNER' &&
-        farm.isOrganizationOwner,
-    )
-    if (!hasMaximumMockAccess) {
-      throw new Error('บัญชีผู้ดูแลจำลองไม่มีสิทธิ์ ORG_OWNER ในสวนที่ใช้งาน')
-    }
-
-    setAdapterError(undefined)
-    setAdapters(developmentAdapters)
-  }, [])
 
   useEffect(() => {
     let active = true
@@ -1860,10 +1700,7 @@ export function Phase2Provider({ children }: { children?: ReactNode }) {
   }
 
   return (
-    <ResolvedPhase2Provider
-      activateDevelopmentAdmin={activateDevelopmentAdmin}
-      adapters={adapters}
-    >
+    <ResolvedPhase2Provider adapters={adapters}>
       {children}
     </ResolvedPhase2Provider>
   )

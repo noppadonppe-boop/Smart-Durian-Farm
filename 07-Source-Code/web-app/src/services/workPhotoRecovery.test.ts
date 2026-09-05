@@ -26,7 +26,7 @@ describe('automatic work photo recovery registration', () => {
     let attempts = 0
     const register = vi.fn()
     const result = await uploadAndCommitWorkPhotoBatch({
-      mode: 'mock', farm, workOrderId: 'work_demo_01',
+      farm, workOrderId: 'work_demo_01',
       candidates: [{ photoId: 'photo_before_demo01', phase: 'BEFORE', file: new Blob(['x']) }],
       upload: (candidate) => {
         attempts += 1
@@ -51,7 +51,7 @@ describe('automatic work photo recovery registration', () => {
       return Promise.resolve()
     })
     await expect(uploadAndCommitWorkPhotoBatch({
-      mode: 'mock', farm, workOrderId: 'work_demo_01',
+      farm, workOrderId: 'work_demo_01',
       candidates: [
         { photoId: 'photo_before_demo01', phase: 'BEFORE', file: new Blob(['x']) },
         { photoId: 'photo_after_demo02', phase: 'AFTER', file: new Blob(['y']) },
@@ -72,7 +72,7 @@ describe('automatic work photo recovery registration', () => {
     const checkpoint = vi.fn(() => Promise.resolve())
     const existing = photo('photo_before_demo01')
     const committed = await uploadAndCommitWorkPhotoBatch({
-      mode: 'mock', farm, workOrderId: 'work_demo_01',
+      farm, workOrderId: 'work_demo_01',
       candidates: [
         {
           photoId: 'photo_before_demo01', phase: 'BEFORE', file: new Blob(['x']),
@@ -95,7 +95,7 @@ describe('automatic work photo recovery registration', () => {
   it('registers an uploaded object as orphan when its durable checkpoint fails', async () => {
     const registeredDrafts: PhotoRecoveryDraft[] = []
     await expect(uploadAndCommitWorkPhotoBatch({
-      mode: 'mock', farm, workOrderId: 'work_demo_01',
+      farm, workOrderId: 'work_demo_01',
       candidates: [{ photoId: 'photo_before_demo01', phase: 'BEFORE', file: new Blob(['x']) }],
       upload: (candidate) => Promise.resolve(photo(candidate.photoId)),
       commit: () => Promise.resolve(),

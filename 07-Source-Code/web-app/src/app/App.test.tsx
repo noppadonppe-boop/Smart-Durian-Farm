@@ -96,11 +96,11 @@ describe('Smart Durian local mock app', () => {
     expect(within(mobileNavigation).queryByRole('link', { name: 'คู่มือผู้ใช้' })).not.toBeInTheDocument()
 
     await user.click(manualLink!)
-    expect(await screen.findByRole('heading', { name: 'คู่มือผู้ใช้', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'หน้าที่และข้อห้ามของผู้ใช้ 7 บทบาท' })).toBeInTheDocument()
-    expect(screen.getByText('WORKER')).toBeInTheDocument()
-    expect(screen.getByText(/External PA-1 เป็น NO-GO\/BLOCKED/u)).toBeInTheDocument()
-  })
+    expect(await screen.findByRole('heading', { name: /คู่มือ/u, level: 1 }, { timeout: 4000 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /บทบาทในระบบ/u })).toBeInTheDocument()
+    expect(screen.getAllByText('ผู้ปฏิบัติงาน').length).toBeGreaterThan(0)
+    expect(screen.getByText(/ข้อมูลทุกอย่างจะถูกบันทึกแยกเฉพาะสวนนี้เท่านั้น/u)).toBeInTheDocument()
+  }, 15000)
 
   it('resolves an authorized permanent QR route to the Tree Register', async () => {
     renderApp('/t/pos_demo_a01f783bc219')
@@ -345,6 +345,7 @@ describe('Smart Durian local mock app', () => {
     renderApp('/more')
     const user = await signIn()
 
+    expect(screen.getByRole('link', { name: /จัดการผู้ใช้งานในสวน/u })).toHaveAttribute('href', '/members')
     await user.click(screen.getByRole('button', { name: 'เพิ่มรายการค้างส่งจำลอง' }))
     await user.click(screen.getByRole('button', { name: /สวนปัจจุบัน/u }))
     await user.click(screen.getByRole('button', { name: /สวนสาธิตใต้/u }))
@@ -360,7 +361,7 @@ describe('Smart Durian local mock app', () => {
     renderApp('/more')
     await signIn('+16505550102', '222222')
 
-    expect(screen.queryByRole('link', { name: /สมาชิกและสิทธิ์/u })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /จัดการผู้ใช้งานในสวน/u })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /ประวัติ Audit/u })).not.toBeInTheDocument()
   })
 

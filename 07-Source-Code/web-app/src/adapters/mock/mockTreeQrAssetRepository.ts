@@ -1,5 +1,11 @@
 import type { TreeQrAssetRepository } from '../contracts'
-import { canManageTreeRegister, type TreeMutationContext, type TreeQrAsset, type TreeQrAssetDraft } from '../../domain/treeRegister'
+import {
+  canDeleteTreePositions,
+  canManageTreeRegister,
+  type TreeMutationContext,
+  type TreeQrAsset,
+  type TreeQrAssetDraft,
+} from '../../domain/treeRegister'
 
 function assetKey(context: TreeMutationContext, positionId: string, format: TreeQrAsset['format']): string {
   return `${context.farm.organizationId}:${context.farm.farmId}:${positionId}:${format}`
@@ -46,5 +52,24 @@ export class MockTreeQrAssetRepository implements TreeQrAssetRepository {
     }
     this.assets.set(key, asset)
     return Promise.resolve(structuredClone(asset))
+  }
+
+  deleteQrAssets(context: TreeMutationContext, positionIds: readonly string[]): Promise<number> {
+    if (!canDeleteTreePositions(context.farm, context.isSystemAdmin)) {
+      throw new Error('เฉพาะ MasterAdmin หรือเจ้าของสวนที่ใช้งานอยู่เท่านั้นที่ลบ QR ได้')
+    }
+    const selectedIds = new Set(positionIds)
+    let deletedCount = 0
+    for (const [key, asset] of this.assets) {
+      if (
+        asset.organizationId === context.farm.organizationId &&
+        asset.farmId === context.farm.farmId &&
+        selectedIds.has(asset.positionId)
+      ) {
+        this.assets.delete(key)
+        deletedCount += 1
+      }
+    }
+    return Promise.resolve(deletedCount)
   }
 }

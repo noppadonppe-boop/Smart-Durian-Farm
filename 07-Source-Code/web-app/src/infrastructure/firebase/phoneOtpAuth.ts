@@ -16,6 +16,7 @@ import type {
   PhoneOtpChallenge,
   PhoneOtpGateway,
 } from '../../adapters/contracts'
+import { formatPhoneNumber } from '../../domain/auth'
 import type { AuthenticatedIdentity } from '../../domain/farm'
 
 function errorCode(error: unknown): string | undefined {
@@ -111,10 +112,12 @@ function identityFromUser(
   mappedUserId?: string,
 ): AuthenticatedIdentity {
   const phone = user.phoneNumber ?? '+10000000000'
+  const formattedPhone = user.phoneNumber ? formatPhoneNumber(user.phoneNumber) : ''
   return {
     userId: mappedUserId ?? user.uid,
     displayName:
-      user.displayName ??
+      user.displayName?.trim() ||
+      formattedPhone ||
       'ผู้ใช้ยืนยันผ่าน Firebase',
     maskedPhone: maskPhone(phone),
     source,

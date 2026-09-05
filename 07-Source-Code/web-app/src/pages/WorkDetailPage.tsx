@@ -15,7 +15,6 @@ import { PageHeader } from './PageHeader'
 export function WorkDetailPage() {
   const { workOrderId = '' } = useParams()
   const {
-    mode,
     currentFarm,
     identity,
     getWorkOrder,
@@ -28,7 +27,7 @@ export function WorkDetailPage() {
     checkpointQueuedWorkPhoto,
     removeQueuedWorkPhotoBatch,
   } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const isProduction = true
   const [order, setOrder] = useState<WorkOrderRecord>()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -123,7 +122,6 @@ export function WorkDetailPage() {
         reportDraft,
       })
       const updated = await uploadAndCommitWorkPhotoBatch({
-        mode,
         farm: currentFarm,
         workOrderId,
         candidates: batch.candidates,

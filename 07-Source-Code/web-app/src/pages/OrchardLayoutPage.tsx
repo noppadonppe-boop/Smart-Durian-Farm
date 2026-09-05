@@ -45,8 +45,8 @@ function OrchardWorkflowAction({
 }
 
 export function OrchardLayoutPage() {
-  const { currentFarm, listTreePositions, mode } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const { currentFarm, listTreePositions } = usePhase2()
+  const isProduction = true
   const [positions, setPositions] = useState<readonly TreePositionSummary[]>([])
   const [selectedPositionIds, setSelectedPositionIds] = useState<readonly string[]>([])
   const [loading, setLoading] = useState(true)

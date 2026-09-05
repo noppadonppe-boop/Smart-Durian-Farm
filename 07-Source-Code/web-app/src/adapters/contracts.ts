@@ -14,6 +14,7 @@ import type {
   MembershipStatus,
 } from '../domain/farm'
 import type {
+  DeleteTreePositionsResult,
   ReplacePlantingCycleInput,
   TreeImportCandidate,
   TreeImportResult,
@@ -31,8 +32,6 @@ import type {
   DiseaseFollowUpInput,
   DiseaseIncidentDraft,
   DiseaseIncidentRecord,
-  DiseasePhotoAction,
-  DiseasePhotoMockDraft,
   InAppNotification,
   TreatmentWorkOrderInput,
   TreatmentWorkOrderResult,
@@ -221,6 +220,10 @@ export interface TreeRegisterRepository {
     positionId: string,
     reason: string,
   ): Promise<TreePositionDetail>
+  deleteTreePositions(
+    context: TreeMutationContext,
+    positionIds: readonly string[],
+  ): Promise<DeleteTreePositionsResult>
   reportDamagedTag(
     context: TreeMutationContext,
     positionId: string,
@@ -244,6 +247,10 @@ export interface TreeQrAssetRepository {
     context: TreeMutationContext,
     draft: TreeQrAssetDraft,
   ): Promise<TreeQrAsset>
+  deleteQrAssets(
+    context: TreeMutationContext,
+    positionIds: readonly string[],
+  ): Promise<number>
 }
 
 export interface WorkCareDiseaseRepository {
@@ -319,19 +326,6 @@ export interface WorkCareDiseaseRepository {
     idempotencyKey: string,
     input: DiseaseFollowUpInput,
   ): Promise<DiseaseIncidentRecord>
-  addDiseasePhotoMock(
-    context: WorkMutationContext,
-    incidentId: string,
-    idempotencyKey: string,
-    draft: DiseasePhotoMockDraft,
-  ): Promise<DiseaseIncidentRecord>
-  advanceDiseasePhotoMock(
-    context: WorkMutationContext,
-    incidentId: string,
-    photoId: string,
-    idempotencyKey: string,
-    action: DiseasePhotoAction,
-  ): Promise<DiseaseIncidentRecord>
   createTreatmentWorkOrder(
     context: WorkMutationContext,
     incidentId: string,
@@ -399,7 +393,6 @@ export interface CommercialTraceabilityRepository {
   listCommercialAudit(
     context: CommercialMutationContext,
   ): Promise<readonly CommercialAuditEvent[]>
-  resetMockPack?(): Promise<void>
 }
 
 export interface Phase5Adapters extends Phase4Adapters {
@@ -452,7 +445,6 @@ export interface OperationalHardeningRepository {
     context: OperationalContext,
     idempotencyKey: string,
   ): Promise<FarmExportRecord>
-  resetMockPack?(): Promise<void>
 }
 
 export interface Phase6Adapters extends Phase5Adapters {
@@ -479,7 +471,6 @@ export interface ManagementReportingRepository {
     idempotencyKey: string,
     draft: OperatingExpenseDraft,
   ): Promise<OperatingExpenseRecord>
-  resetMockPack?(): Promise<void>
 }
 
 export interface AnnualCycleRepository {
@@ -519,7 +510,6 @@ export interface AnnualCycleRepository {
     idempotencyKey: string,
     draft: AnnualPlanItemDraft,
   ): Promise<AnnualPlanItemRecord>
-  resetMockPack?(): Promise<void>
 }
 
 export interface DiseaseAnalysisRepository {
@@ -537,5 +527,6 @@ export interface DiseaseAnalysisRepository {
     idempotencyKey: string,
     input: DiseaseAnalysisReviewInput,
   ): Promise<DiseaseAnalysisSessionRecord>
+  /** Test-double hook; Firebase runtime repositories do not expose this. */
   resetMockPack?(): Promise<void>
 }

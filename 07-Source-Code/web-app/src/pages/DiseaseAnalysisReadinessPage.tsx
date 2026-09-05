@@ -136,7 +136,6 @@ function SessionCard({ session, incident, tree, canReview, isProduction, busy, o
 
 export function DiseaseAnalysisReadinessPage() {
   const {
-    mode,
     currentFarm,
     listDiseaseIncidents,
     listTreePositions,
@@ -144,7 +143,7 @@ export function DiseaseAnalysisReadinessPage() {
     createDiseaseAnalysisSession,
     reviewDiseaseAnalysisSession,
   } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const isProduction = true
   const [incidents, setIncidents] = useState<readonly DiseaseIncidentRecord[]>([])
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [sessions, setSessions] = useState<readonly DiseaseAnalysisSessionRecord[]>([])

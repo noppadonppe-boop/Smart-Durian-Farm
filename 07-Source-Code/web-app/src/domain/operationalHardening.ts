@@ -260,10 +260,9 @@ export function validatePhotoRecoveryDraft(
     throw new Error('Photo ID ไม่ถูกต้อง')
   }
   const expectedPrefix = `organizations/${context.farm.organizationId}/farms/${context.farm.farmId}/workEvidence/${draft.workOrderId}/`
-  const expectedMockPrefix = `mock://organizations/${context.farm.organizationId}/farms/${context.farm.farmId}/workEvidence/${draft.workOrderId}/`
   if (
     draft.storagePath.includes('..') ||
-    (!draft.storagePath.startsWith(expectedPrefix) && !draft.storagePath.startsWith(expectedMockPrefix)) ||
+    !draft.storagePath.startsWith(expectedPrefix) ||
     !draft.storagePath.endsWith(draft.photoId)
   ) throw new Error('Storage path ของรูปไม่อยู่ใน Farm/Work scope')
   if (

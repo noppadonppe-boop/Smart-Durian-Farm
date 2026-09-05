@@ -1,11 +1,16 @@
 import type { User } from 'firebase/auth'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import {
   runTransaction,
   serverTimestamp,
   type DocumentData,
 } from 'firebase/firestore'
 
-import type { AccessRequestRecord } from '../domain/auth'
+import {
+  formatPhoneNumber,
+  type AccessRequestRecord,
+  type UserProfile,
+} from '../domain/auth'
 import type { CanonicalRole } from '../domain/farm'
 import { createFirebaseLiveClients } from '../infrastructure/firebase/firebaseClient'
 import { rootDoc, rootDocument } from '../infrastructure/firebase/firebaseDataRoot'
@@ -19,10 +24,33 @@ export interface AccessRequestResolutionInput {
 
 export type UserAccessUpdateInput = AccessRequestResolutionInput
 
+export interface MasterAdminAccessUpdateInput {
+  uid: string
+  masterAdmin: boolean
+  organizationId: string
+  farmId: string
+  fallbackRole: CanonicalRole
+}
+
+export async function updateFirebaseMasterAdminAccess(
+  input: MasterAdminAccessUpdateInput,
+): Promise<void> {
+  const { app, auth } = createFirebaseLiveClients()
+  const admin = auth.currentUser
+  if (!admin) throw new Error('กรุณาเข้าสู่ระบบ MasterAdmin ใหม่')
+
+  const callable = httpsCallable<MasterAdminAccessUpdateInput, { success: boolean }>(
+    getFunctions(app, 'asia-southeast1'),
+    'updateMasterAdminAccess',
+  )
+  await callable(input)
+}
+
 function displayNameForUser(user: User): string {
   const displayName = user.displayName?.trim()
   if (displayName) return displayName
   if (user.email) return user.email
+  if (user.phoneNumber) return formatPhoneNumber(user.phoneNumber)
   return 'ผู้ใช้ยืนยันผ่าน Firebase'
 }
 
@@ -56,6 +84,7 @@ export async function ensureFirebaseAccessRequest(user: User): Promise<void> {
       transaction.set(profileReference, {
         uid: user.uid,
         email: user.email ?? '',
+        phoneNumber: user.phoneNumber ?? '',
         firstName: names.firstName,
         lastName: names.lastName,
         position: 'รอผู้ดูแลกำหนดสิทธิ์',
@@ -66,6 +95,26 @@ export async function ensureFirebaseAccessRequest(user: User): Promise<void> {
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
         isFirstUser: false,
       })
+    } else {
+      const existingProfile = profileSnapshot.data() as Partial<UserProfile>
+      const updates: Record<string, unknown> = {}
+      if (!existingProfile.phoneNumber && user.phoneNumber) {
+        updates.phoneNumber = user.phoneNumber
+      }
+      const isPlaceholder =
+        (existingProfile.firstName === 'ผู้ใช้ยืนยันผ่าน' && (existingProfile.lastName === 'Firebase' || !existingProfile.lastName)) ||
+        existingProfile.firstName === 'ผู้ใช้ยืนยันผ่าน Firebase' ||
+        (!existingProfile.firstName && !existingProfile.lastName)
+      if (isPlaceholder && user.phoneNumber) {
+        updates.firstName = formatPhoneNumber(user.phoneNumber)
+        updates.lastName = ''
+      }
+      if (Object.keys(updates).length > 0) {
+        transaction.update(profileReference, {
+          ...updates,
+          updatedAt: serverTimestamp(),
+        })
+      }
     }
     const existingProfileStatus = profileSnapshot.exists()
       ? (profileSnapshot.data() as { status?: unknown }).status
@@ -272,12 +321,8 @@ export async function updateFirebaseUserAccess(
     }
 
     const request = requestSnapshot.data() as AccessRequestRecord
-    const profile = profileSnapshot.data() as { role?: unknown }
     if (request.status !== 'APPROVED') {
       throw new Error('แก้ไขสิทธิ์ได้เฉพาะผู้ใช้ที่อนุมัติแล้ว')
-    }
-    if (Array.isArray(profile.role) && profile.role.includes('MasterAdmin')) {
-      throw new Error('ไม่อนุญาตให้แก้ไข MasterAdmin จากหน้าจัดการผู้ใช้')
     }
 
     const oldOrganizationId = requiredString(request, 'organizationId')
@@ -495,5 +540,122 @@ export async function rejectFirebaseAccessRequest(
       resolvedBy: admin.uid,
       updatedAt: serverTimestamp(),
     })
+  })
+}
+
+export interface UpdateUserProfileInput {
+  uid: string
+  firstName: string
+  lastName: string
+  phoneNumber?: string
+}
+
+export async function updateUserProfile(input: UpdateUserProfileInput): Promise<void> {
+  const { auth, firestore } = createFirebaseLiveClients()
+  const user = auth.currentUser
+  if (!user || user.uid !== input.uid) {
+    throw new Error('กรุณาเข้าสู่ระบบก่อนอัปเดตข้อมูลโปรไฟล์')
+  }
+
+  const firstName = input.firstName.trim()
+  const lastName = input.lastName.trim()
+  if (!firstName) {
+    throw new Error('กรุณาระบุชื่อ')
+  }
+  const fullName = `${firstName} ${lastName}`.trim()
+
+  const profileReference = rootDoc(firestore, 'users', input.uid)
+  const requestReference = rootDoc(firestore, 'accessRequests', input.uid)
+
+  await runTransaction(firestore, async (transaction) => {
+    const [profileSnapshot, requestSnapshot] = await Promise.all([
+      transaction.get(profileReference),
+      transaction.get(requestReference),
+    ])
+
+    const updates: Record<string, unknown> = {
+      firstName,
+      lastName,
+      updatedAt: serverTimestamp(),
+    }
+    if (input.phoneNumber !== undefined) {
+      updates.phoneNumber = input.phoneNumber.trim()
+    }
+
+    if (profileSnapshot.exists()) {
+      transaction.update(profileReference, updates)
+    } else {
+      transaction.set(profileReference, {
+        uid: input.uid,
+        email: user.email ?? '',
+        phoneNumber: input.phoneNumber?.trim() ?? user.phoneNumber ?? '',
+        firstName,
+        lastName,
+        position: 'ผู้ใช้งาน',
+        role: ['WORKER'],
+        status: 'pending',
+        assignedProjects: [],
+        createdAt: serverTimestamp(),
+        ...updates,
+      })
+    }
+
+    if (requestSnapshot.exists()) {
+      transaction.update(requestReference, {
+        displayName: fullName,
+        updatedAt: serverTimestamp(),
+      })
+    }
+  })
+
+  try {
+    const { updateProfile } = await import('firebase/auth')
+    await updateProfile(user, { displayName: fullName })
+  } catch {
+    // Non-blocking best-effort update
+  }
+}
+
+export async function adminUpdateUserProfile(input: UpdateUserProfileInput): Promise<void> {
+  const { auth, firestore } = createFirebaseLiveClients()
+  const admin = auth.currentUser
+  if (!admin) throw new Error('กรุณาเข้าสู่ระบบ MasterAdmin ใหม่')
+
+  const firstName = input.firstName.trim()
+  const lastName = input.lastName.trim()
+  if (!firstName) {
+    throw new Error('กรุณาระบุชื่อ')
+  }
+  const fullName = `${firstName} ${lastName}`.trim()
+
+  const profileReference = rootDoc(firestore, 'users', input.uid)
+  const requestReference = rootDoc(firestore, 'accessRequests', input.uid)
+
+  await runTransaction(firestore, async (transaction) => {
+    const [profileSnapshot, requestSnapshot] = await Promise.all([
+      transaction.get(profileReference),
+      transaction.get(requestReference),
+    ])
+    if (!profileSnapshot.exists()) {
+      throw new Error('ไม่พบข้อมูลผู้ใช้ในระบบ')
+    }
+
+    const updates: Record<string, unknown> = {
+      firstName,
+      lastName,
+      updatedAt: serverTimestamp(),
+    }
+    if (input.phoneNumber !== undefined) {
+      updates.phoneNumber = input.phoneNumber.trim()
+    }
+
+    transaction.update(profileReference, updates)
+
+    if (requestSnapshot.exists()) {
+      transaction.update(requestReference, {
+        displayName: fullName,
+        updatedAt: serverTimestamp(),
+      })
+    }
   })
 }

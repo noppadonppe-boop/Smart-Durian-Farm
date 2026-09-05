@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { memberFromData } from './firebasePhase2Repository'
+import { isOperationalFarmProfile, memberFromData } from './firebasePhase2Repository'
 
 describe('FirebasePhase2Repository membership parsing', () => {
   it('accepts an empty maskedPhone for Google and email accounts', () => {
@@ -18,5 +18,22 @@ describe('FirebasePhase2Repository membership parsing', () => {
       maskedPhone: '',
       role: 'FARM_MANAGER',
     })
+  })
+})
+
+describe('FirebasePhase2Repository Farm Profile classification', () => {
+  it('keeps only trusted Operational profiles out of the production selector', () => {
+    expect(isOperationalFarmProfile({
+      classification: 'OPERATIONAL',
+      exampleData: false,
+    })).toBe(true)
+    expect(isOperationalFarmProfile({
+      classification: 'SIMULATED/TEST ONLY',
+      exampleData: true,
+    })).toBe(false)
+    expect(isOperationalFarmProfile({
+      classification: 'OPERATIONAL',
+      exampleData: true,
+    })).toBe(false)
   })
 })

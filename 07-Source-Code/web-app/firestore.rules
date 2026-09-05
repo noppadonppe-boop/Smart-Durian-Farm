@@ -1,8 +1,79 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function rootPath() {
+      return /databases/$(database)/documents/durian-smartfarm/root;
+    }
+
+    function organizationMemberPath(organizationId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/members/$(request.auth.uid);
+    }
+
+    function farmMemberPath(organizationId, farmId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/members/$(request.auth.uid);
+    }
+
+    function farmPath(organizationId, farmId) {
+      return /databases/$(database)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId);
+    }
+
+    function isSystemAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.masterAdmin == true
+          || (exists(rootPath()) && get(rootPath()).data.seedOwnerUid == request.auth.uid)
+        );
+    }
+
+    function isActiveFarmOwner(organizationId, farmId) {
+      return signedIn()
+        && exists(organizationMemberPath(organizationId))
+        && get(organizationMemberPath(organizationId)).data.status == 'ACTIVE'
+        && get(organizationMemberPath(organizationId)).data.isOwner == true
+        && exists(farmMemberPath(organizationId, farmId))
+        && get(farmMemberPath(organizationId, farmId)).data.status == 'ACTIVE'
+        && exists(farmPath(organizationId, farmId))
+        && get(farmPath(organizationId, farmId)).data.status == 'ACTIVE';
+    }
+
+    function canDeleteTreePositions(organizationId, farmId) {
+      return isSystemAdmin() || isActiveFarmOwner(organizationId, farmId);
+    }
+
+    match /durian-smartfarm/root/organizations/{organizationId}/farms/{farmId}/treePositions/{positionId} {
+      allow delete: if canDeleteTreePositions(organizationId, farmId);
+
+      match /{childCollection}/{childId} {
+        allow delete: if childCollection in ['plantingCycles', 'events']
+          && canDeleteTreePositions(organizationId, farmId);
+      }
+    }
+
+    match /durian-smartfarm/root/positionRoutes/{positionId} {
+      allow delete: if resource.data.organizationId is string
+        && resource.data.farmId is string
+        && canDeleteTreePositions(resource.data.organizationId, resource.data.farmId);
+    }
+
+    match /durian-smartfarm/root/organizations/{organizationId}/farms/{farmId}/treeQrAssets/{assetId} {
+      allow delete: if canDeleteTreePositions(organizationId, farmId);
+    }
+
+    match /durian-smartfarm/root/organizations/{organizationId}/farms/{farmId}/treeTags/{tagCode} {
+      allow delete: if canDeleteTreePositions(organizationId, farmId);
+    }
+
+    // Compatibility baseline from the current deployed source: existing reads,
+    // creates and updates remain unchanged. Deletes now fail closed except for
+    // the explicitly authorized Tree Register paths above.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, create, update: if true;
+      allow delete: if false;
     }
   }
 }

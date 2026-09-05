@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useOutletContext, useParams } from 'react-router-dom'
 
 import { usePhase2 } from '../app/usePhase2'
 import {
@@ -27,6 +27,7 @@ import './TreeRegisterPages.css'
 type EditorMode = 'EDIT' | 'REPLACE' | 'ARCHIVE' | null
 
 export function TreeDetailPage() {
+  const { syncState } = useOutletContext<{ syncState: 'synced' | 'offline' }>()
   const { positionId } = useParams()
   const {
     currentFarm,
@@ -105,16 +106,22 @@ export function TreeDetailPage() {
       let updated: TreePositionDetail
       if (editor === 'EDIT') {
         updated = await updateCurrentPlantingCycle(detail.positionId, cycleInput())
-        setNotice('บันทึกการแก้ไขพร้อม Tree timeline แล้ว')
+        setNotice(syncState === 'offline'
+          ? 'บันทึกในเครื่องแล้ว — Firebase จะซิงก์ให้อัตโนมัติเมื่อกลับมาออนไลน์'
+          : 'บันทึกการแก้ไขพร้อม Tree timeline แล้ว')
       } else if (editor === 'REPLACE') {
         updated = await replacePlantingCycle(detail.positionId, {
           ...cycleInput(),
           reason,
         })
-        setNotice('เพิ่ม Planting Cycle ใหม่แล้ว โดย Tag และตำแหน่งเดิมไม่เปลี่ยน')
+        setNotice(syncState === 'offline'
+          ? 'เก็บ Planting Cycle ใหม่ในเครื่องแล้ว — รอ Firebase ซิงก์ โดย Tag และตำแหน่งเดิมไม่เปลี่ยน'
+          : 'เพิ่ม Planting Cycle ใหม่แล้ว โดย Tag และตำแหน่งเดิมไม่เปลี่ยน')
       } else {
         updated = await archiveTreePosition(detail.positionId, reason)
-        setNotice('ลบรายการออกจากการใช้งานแล้ว (เก็บถาวร) ประวัติและ Tag ยังถูกสงวนไว้')
+        setNotice(syncState === 'offline'
+          ? 'เก็บคำสั่ง Archive ในเครื่องแล้ว — จะส่งเมื่อ Firebase กลับมาออนไลน์'
+          : 'ลบรายการออกจากการใช้งานแล้ว (เก็บถาวร) ประวัติและ Tag ยังถูกสงวนไว้')
       }
       setDetail(updated)
       setEditor(null)
@@ -133,7 +140,9 @@ export function TreeDetailPage() {
       const updated = await reportDamagedTag(detail.positionId, damagedNote)
       setDetail(updated)
       setDamagedNote('')
-      setNotice('บันทึกรายงานป้ายชำรุดใน Timeline แล้ว')
+      setNotice(syncState === 'offline'
+        ? 'เก็บรายงานป้ายชำรุดในเครื่องแล้ว — จะส่งเมื่อ Firebase กลับมาออนไลน์'
+        : 'บันทึกรายงานป้ายชำรุดใน Timeline แล้ว')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'รายงานป้ายไม่สำเร็จ')
     } finally {

@@ -1,5 +1,10 @@
 import { getAuth, type Auth } from 'firebase/auth'
-import { getFirestore, type Firestore } from 'firebase/firestore'
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from 'firebase/firestore'
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app'
 import { getStorage, type FirebaseStorage } from 'firebase/storage'
 
@@ -51,7 +56,11 @@ export function createFirebaseLiveClients(
   liveClients = {
     app,
     auth,
-    firestore: getFirestore(app),
+    firestore: initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    }),
     storage: getStorage(app),
   }
   return liveClients

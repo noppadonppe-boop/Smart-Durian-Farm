@@ -5,14 +5,17 @@ import type {
 import type { CanonicalRole } from '../../domain/farm'
 import {
   canManageTreeRegister,
+  canDeleteTreePositions,
   createOpaquePositionId,
   generateTagCode,
   normalizeRowCode,
   normalizeTagCode,
   normalizeTreeSequence,
   normalizeZoneCode,
+  treeRegisterImportBatchSize,
   validateTreeCycleInput,
   type PlantingCycleRecord,
+  type DeleteTreePositionsResult,
   type ReplacePlantingCycleInput,
   type TreeImportCandidate,
   type TreeImportResult,
@@ -310,6 +313,25 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
     return Promise.resolve(copyDetail(position))
   }
 
+  deleteTreePositions(
+    context: TreeMutationContext,
+    positionIds: readonly string[],
+  ): Promise<DeleteTreePositionsResult> {
+    if (!canDeleteTreePositions(context.farm, context.isSystemAdmin)) {
+      throw new Error('เฉพาะ MasterAdmin หรือเจ้าของสวนที่ใช้งานอยู่เท่านั้นที่ลบรายการต้นไม้ได้')
+    }
+    const uniqueIds = [...new Set(positionIds)]
+    if (uniqueIds.length === 0) throw new Error('กรุณาเลือกรายการที่ต้องการลบ')
+    if (uniqueIds.length > 50) throw new Error('ลบได้ครั้งละไม่เกิน 50 รายการ')
+
+    uniqueIds.forEach((positionId) => this.requirePosition(context, positionId))
+    const selectedIds = new Set(uniqueIds)
+    for (let index = this.positions.length - 1; index >= 0; index -= 1) {
+      if (selectedIds.has(this.positions[index]?.positionId ?? '')) this.positions.splice(index, 1)
+    }
+    return Promise.resolve({ deletedPositionIds: uniqueIds, deletedCount: uniqueIds.length })
+  }
+
   reportDamagedTag(
     context: TreeMutationContext,
     positionId: string,
@@ -342,7 +364,9 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
     const prior = this.imports.get(`${context.farm.farmId}:${idempotencyKey}`)
     if (prior) return Promise.resolve({ ...prior, wasRetry: true })
     if (candidates.length === 0) throw new Error('ไม่มีแถวที่ผ่านการตรวจสำหรับ Import')
-    if (candidates.length > 50) throw new Error('Phase 3 local import จำกัดครั้งละไม่เกิน 50 ตำแหน่ง')
+    if (candidates.length > treeRegisterImportBatchSize) {
+      throw new Error(`อัปโหลดทะเบียนต้นได้ชุดละไม่เกิน ${treeRegisterImportBatchSize} ตำแหน่ง`)
+    }
 
     const existingTags = new Set(
       this.positions
@@ -387,7 +411,7 @@ export class MockTreeRegisterRepository implements TreeRegisterRepository {
           event(
             context,
             'TREE_POSITION_IMPORTED',
-            `นำเข้าจากไฟล์ Template แถว ${candidate.sourceRow} แบบ atomic local flow`,
+            `นำเข้าจากไฟล์ Template แถว ${candidate.sourceRow} ในชุดอัปโหลด`,
             1,
           ),
         ],

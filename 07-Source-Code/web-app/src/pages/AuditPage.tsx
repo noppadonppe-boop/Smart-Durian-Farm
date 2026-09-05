@@ -21,8 +21,8 @@ const operationalLabels: Record<OperationalAuditEvent['eventType'], string> = {
   EXPORT_CREATED: 'สร้าง Export',
 }
 export function AuditPage() {
-  const { currentFarm, listMembershipAudit, listOperationalAudit, requestFarmExport, mode } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const { currentFarm, listMembershipAudit, listOperationalAudit, requestFarmExport } = usePhase2()
+  const isProduction = true
   const [membershipEvents, setMembershipEvents] = useState<readonly MembershipAuditEvent[]>([])
   const [operationalEvents, setOperationalEvents] = useState<readonly OperationalAuditEvent[]>([])
   const [exportRecord, setExportRecord] = useState<FarmExportRecord>()

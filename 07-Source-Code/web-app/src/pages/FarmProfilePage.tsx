@@ -28,7 +28,6 @@ export function FarmProfilePage() {
   const { farmId } = useParams()
   const location = useLocation()
   const {
-    mode,
     currentFarm,
     farms,
     getFarmProfile,
@@ -37,7 +36,6 @@ export function FarmProfilePage() {
     changeFarmStatus,
     listFarmAudit,
   } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [profile, setProfile] = useState<FarmProfile>()
   const [audit, setAudit] = useState<readonly FarmAuditEvent[]>([])
   const [readiness, setReadiness] = useState<FarmArchiveReadiness>()
@@ -172,7 +170,7 @@ export function FarmProfilePage() {
         description={`${profile.farmCode} · เวอร์ชัน ${profile.version} · ${farmStatusLabels[profile.status]}`}
         action={isOwner ? <Link className="secondary-action action-link" to="/farm-management">รายการสวน</Link> : undefined}
       />
-      <div className={isProduction ? 'operational-data-banner' : 'mock-scope-note'} role="status">{isProduction ? 'Firebase Production · Operational Farm Profile' : `${profile.classification} · exampleData=true`}</div>
+      <div className="operational-data-banner" role="status">Firebase Production · Operational Farm Profile</div>
       {notice ? <p className="success-message" role="status">{notice}</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <FarmProfileForm
@@ -181,7 +179,6 @@ export function FarmProfilePage() {
         mode={isOwner ? 'EDIT' : 'READ_ONLY'}
         onSubmit={isOwner ? saveProfile : undefined}
         organizationCode={currentFarm.organizationCode}
-        production={isProduction}
         submitting={submitting}
       />
 

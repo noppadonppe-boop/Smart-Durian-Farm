@@ -9,9 +9,8 @@ import { PageHeader } from './PageHeader'
 
 export function FarmCreatePage() {
   const navigate = useNavigate()
-  const { currentFarm, createFarm, mode } = usePhase2()
+  const { currentFarm, createFarm } = usePhase2()
   const { isSystemAdmin } = useAuth()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [submitting, setSubmitting] = useState(false)
   const [idempotencyKey] = useState(() => `farm-create-${crypto.randomUUID()}`)
 
@@ -50,14 +49,11 @@ export function FarmCreatePage() {
         title="เพิ่มสวน"
         description="ระบบสร้าง Farm ID, Farm Code, เวลา, Owner membership และ Audit ให้เอง"
       />
-      {isProduction
-        ? <div className="operational-data-banner" role="status">Firebase Production · สวนใหม่จะถูกบันทึกในองค์กรปัจจุบัน</div>
-        : <div className="mock-scope-note" role="status">SIMULATED/TEST ONLY · ไม่มีข้อมูลสวนจริง</div>}
+      <div className="operational-data-banner" role="status">Firebase Production · สวนใหม่จะถูกบันทึกในองค์กรปัจจุบัน</div>
       <FarmProfileForm
         mode="CREATE"
         onSubmit={submit}
         organizationCode={currentFarm.organizationCode}
-        production={isProduction}
         submitting={submitting}
       />
     </section>

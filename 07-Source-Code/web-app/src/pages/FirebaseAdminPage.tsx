@@ -4,7 +4,6 @@ import { appEnvironment } from '../config/environment'
 import { useAuth } from '../security/AuthContext'
 import {
   bootstrapOperationalWorkspace,
-  seedFirebaseLiveTestPack,
   type OperationalWorkspaceResult,
 } from '../services/productionBootstrap'
 import { PageHeader } from './PageHeader'
@@ -16,14 +15,14 @@ function formString(data: FormData, name: string): string {
 
 export function FirebaseAdminPage() {
   const { firebaseUser, isSystemAdmin, refreshProfile } = useAuth()
-  const [busy, setBusy] = useState<'operational' | 'test-seed'>()
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [workspace, setWorkspace] = useState<OperationalWorkspaceResult>()
 
   const submitOperational = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setBusy('operational')
+    setBusy(true)
     setError(undefined)
     setNotice(undefined)
     try {
@@ -45,27 +44,7 @@ export function FirebaseAdminPage() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'สร้างพื้นที่ใช้งานจริงไม่สำเร็จ')
     } finally {
-      setBusy(undefined)
-    }
-  }
-
-  const runTestSeed = async () => {
-    const confirmed = window.confirm(
-      'Seed ชุดนี้เป็นข้อมูลสังเคราะห์สำหรับทดสอบและจะแสดง SIMULATED/TEST ONLY แยกจากสวนจริง ต้องการดำเนินการต่อหรือไม่?',
-    )
-    if (!confirmed) return
-    setBusy('test-seed')
-    setError(undefined)
-    setNotice(undefined)
-    try {
-      const result = await seedFirebaseLiveTestPack()
-      setNotice(
-        `Seed ชุดทดสอบ ${result.modules.length} โมดูลลง Firebase Live สำเร็จ${result.skippedStorageUploads ? ' (ข้ามไฟล์รูปเพราะ Storage ยังไม่พร้อม)' : ''}`,
-      )
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Seed ชุดทดสอบไม่สำเร็จ')
-    } finally {
-      setBusy(undefined)
+      setBusy(false)
     }
   }
 
@@ -161,25 +140,11 @@ export function FirebaseAdminPage() {
               <input name="locationNote" maxLength={300} />
             </label>
           </div>
-          <button className="primary-action" disabled={Boolean(busy)} type="submit">
-            {busy === 'operational' ? 'กำลังสร้างใน Firebase Live…' : 'Seed พื้นที่ใช้งานจริงเข้า Firebase Live'}
+          <button className="primary-action" disabled={busy} type="submit">
+            {busy ? 'กำลังสร้างใน Firebase Live…' : 'สร้างพื้นที่ใช้งานใน Firebase Live'}
           </button>
         </form>
       )}
-
-      <section className="phase-boundary" aria-labelledby="test-seed-title">
-        <h2 id="test-seed-title">Seed Mock สำหรับทดสอบทุกโมดูล</h2>
-        <p>
-          ชุดนี้เก็บใน Firebase Live เช่นกัน แต่เป็นข้อมูลสังเคราะห์ จึงแยกเป็นสวน DEMO และคงป้าย
-          <code> SIMULATED/TEST ONLY </code> เพื่อไม่ให้ปะปนกับข้อมูลจริง
-        </p>
-        <button className="secondary-action" disabled={Boolean(busy)} onClick={() => void runTestSeed()} type="button">
-          {busy === 'test-seed' ? 'กำลัง Seed 8 โมดูล…' : 'Seed Mock 8 โมดูลเข้า Firebase Live'}
-        </button>
-        <small>
-          Storage: {appEnvironment.firebase.storageReady ? 'พร้อมเขียนรูปทดสอบ' : 'ยังไม่พร้อม — Seeder จะข้ามรูป placeholder'}
-        </small>
-      </section>
     </section>
   )
 }

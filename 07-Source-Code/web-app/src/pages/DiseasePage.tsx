@@ -5,19 +5,11 @@ import { usePhase2 } from '../app/usePhase2'
 import { OrchardTargetSelector } from '../components/OrchardTargetSelector'
 import { selectionFromNavigationState } from '../domain/orchardLayout'
 import {
-  canAddDiseasePhoto,
   canObserveDisease,
-  diseasePhotoMimeTypes,
-  diseasePhotoPlaceholderKinds,
   diseaseSeverityLabels,
   type DiseaseAssessmentInput,
   type DiseaseFollowUpInput,
   type DiseaseIncidentRecord,
-  type DiseasePhotoAction,
-  type DiseasePhotoMimeType,
-  type DiseasePhotoMockDraft,
-  type DiseasePhotoPlaceholderKind,
-  type DiseasePhotoUploadState,
   type DiseaseSeverity,
   type TreatmentWorkOrderInput,
 } from '../domain/workCareDisease'
@@ -35,35 +27,21 @@ const diseaseStatusLabels: Record<DiseaseIncidentRecord['status'], string> = {
   FOLLOW_UP: 'ติดตามผล', CLOSED: 'ปิดเคส',
 }
 
-const placeholderLabels: Record<DiseasePhotoPlaceholderKind, string> = {
-  LEAF_SPOT: 'Placeholder ใบ/จุดโรค',
-  TRUNK_AREA: 'Placeholder ลำต้น',
-  CANOPY: 'Placeholder ทรงพุ่ม',
-}
-
-const photoStateLabels: Record<DiseasePhotoUploadState, string> = {
-  PENDING: 'Pending', UPLOADING: 'Uploading', UPLOADED: 'Uploaded', FAILED: 'Failed',
-}
-
 interface DiseaseIncidentCardProps {
   assigneeSuggestion: string | null
   busy: boolean
-  canAddPhoto: boolean
   incident: DiseaseIncidentRecord
   isAgronomist: boolean
   isProduction: boolean
   tree?: TreePositionSummary
-  onAddPhoto: (incident: DiseaseIncidentRecord, draft: DiseasePhotoMockDraft) => Promise<void>
-  onAdvancePhoto: (incident: DiseaseIncidentRecord, photoId: string, action: DiseasePhotoAction) => Promise<void>
   onAssess: (incident: DiseaseIncidentRecord, input: DiseaseAssessmentInput) => Promise<void>
   onCreateTreatment: (incident: DiseaseIncidentRecord, input: TreatmentWorkOrderInput) => Promise<void>
   onFollowUp: (incident: DiseaseIncidentRecord, input: DiseaseFollowUpInput) => Promise<void>
-  onRunDemo: (incident: DiseaseIncidentRecord, tree: TreePositionSummary) => Promise<void>
 }
 
 function DiseaseIncidentCard({
-  assigneeSuggestion, busy, canAddPhoto: mayAddPhoto, incident, isAgronomist, tree,
-  onAddPhoto, onAdvancePhoto, onAssess, onCreateTreatment, onFollowUp, onRunDemo,
+  assigneeSuggestion, busy, incident, isAgronomist, tree,
+  onAssess, onCreateTreatment, onFollowUp,
   isProduction,
 }: DiseaseIncidentCardProps) {
   const [suspectedDiagnosis, setSuspectedDiagnosis] = useState(incident.suspectedDiagnosis)
@@ -71,10 +49,6 @@ function DiseaseIncidentCard({
   const [treatmentPlan, setTreatmentPlan] = useState(incident.treatmentPlan)
   const [followUpDate, setFollowUpDate] = useState(incident.followUpDate || '2026-09-05')
   const [outcome, setOutcome] = useState(incident.outcome || (isProduction ? 'ผลติดตาม' : 'ผลติดตามจำลอง'))
-  const [placeholderKind, setPlaceholderKind] = useState<DiseasePhotoPlaceholderKind>('LEAF_SPOT')
-  const [mimeType, setMimeType] = useState<DiseasePhotoMimeType>('image/webp')
-  const [sizeKb, setSizeKb] = useState('640')
-  const [photoNote, setPhotoNote] = useState(isProduction ? 'ภาพประกอบ Placeholder สำหรับบันทึก Metadata' : 'ภาพ Placeholder สังเคราะห์สำหรับทดสอบ Workflow เท่านั้น')
   const [assignedUserId, setAssignedUserId] = useState(assigneeSuggestion ?? '')
 
   const assess = () => onAssess(incident, {
@@ -84,16 +58,6 @@ function DiseaseIncidentCard({
   const followUp = (closeIncident: boolean) => onFollowUp(incident, {
     outcome, nextFollowUpDate: closeIncident ? '' : followUpDate, closeIncident,
   })
-
-  const addPhoto = (event: FormEvent) => {
-    event.preventDefault()
-    return onAddPhoto(incident, {
-      placeholderKind,
-      mimeType,
-      sizeBytes: Math.round(Number(sizeKb) * 1024),
-      note: photoNote,
-    })
-  }
 
   const createTreatment = () => {
     if (!tree) return Promise.resolve()
@@ -122,30 +86,7 @@ function DiseaseIncidentCard({
       <div><dt>Version</dt><dd>{incident.version}</dd></div>
     </dl>
 
-    {mayAddPhoto && incident.status !== 'CLOSED' ? <section className="disease-photo-panel" aria-label={`${isProduction ? 'รูปประกอบ' : 'รูปจำลอง'}สำหรับ ${incident.observedSymptom}`}>
-      <div><span className="status-pill">{isProduction ? 'Firebase metadata' : 'Synthetic DRY_RUN'}</span><h3>{isProduction ? 'Disease-photo workflow' : 'Disease-photo mock flow'}</h3><p>{isProduction ? 'บันทึก Metadata ของ Placeholder ลง Firebase; ยังไม่มี binary image ใน flow นี้' : 'รับเฉพาะ Placeholder/Synthetic ไม่มีไฟล์ภาพ กล้อง EXIF/GPS หรือ External Storage'}</p></div>
-      <form className="disease-photo-form" onSubmit={(event) => void addPhoto(event)}>
-        <label>Placeholder<select value={placeholderKind} onChange={(event) => setPlaceholderKind(event.target.value as DiseasePhotoPlaceholderKind)}>{diseasePhotoPlaceholderKinds.map((value) => <option key={value} value={value}>{placeholderLabels[value]}</option>)}</select></label>
-        <label>{isProduction ? 'ชนิดไฟล์' : 'ชนิดไฟล์จำลอง'}<select value={mimeType} onChange={(event) => setMimeType(event.target.value as DiseasePhotoMimeType)}>{diseasePhotoMimeTypes.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-        <label>{isProduction ? 'ขนาด (KB)' : 'ขนาดจำลอง (KB)'}<input inputMode="numeric" min="1" max="5120" required type="number" value={sizeKb} onChange={(event) => setSizeKb(event.target.value)} /></label>
-        <label className="span-full">หมายเหตุ<textarea required value={photoNote} onChange={(event) => setPhotoNote(event.target.value)} /></label>
-        <button className="secondary-action span-full" disabled={busy} type="submit">เพิ่ม Placeholder รูปโรค</button>
-      </form>
-      {incident.photos.length > 0 ? <div className="disease-photo-gallery">{incident.photos.map((photo) => <article key={`${photo.photoId}:${photo.version}`}>
-        <div className={`synthetic-photo synthetic-photo--${photo.placeholderKind.toLowerCase()}`} aria-label={placeholderLabels[photo.placeholderKind]}><strong>{isProduction ? 'OPERATIONAL METADATA' : 'SIMULATED/TEST ONLY'}</strong><span>{placeholderLabels[photo.placeholderKind]}</span><small>ไม่มี binary image</small></div>
-        <div className="disease-photo-meta">
-          <span className={`photo-state photo-state--${photo.uploadState.toLowerCase()}`}>{photoStateLabels[photo.uploadState]}</span>
-          <strong>{photo.mimeType} · {Math.round(photo.sizeBytes / 1024)} KB</strong>
-          <small>{photo.note}</small><small>Retry {photo.retryCount}/3 · {photo.lifecycleMode} · EXIF/GPS: ไม่มี</small>
-          {photo.lastError ? <small className="form-error">{photo.lastError}</small> : null}
-          <div className="form-actions">
-            {photo.uploadState === 'PENDING' ? <button disabled={busy} type="button" onClick={() => void onAdvancePhoto(incident, photo.photoId, 'START_UPLOAD')}>{isProduction ? 'เริ่ม Upload' : 'เริ่ม Upload จำลอง'}</button> : null}
-            {photo.uploadState === 'UPLOADING' ? <><button className="primary-action" disabled={busy} type="button" onClick={() => void onAdvancePhoto(incident, photo.photoId, 'MARK_UPLOADED')}>{isProduction ? 'ทำเครื่องหมายอัปโหลดสำเร็จ' : 'จำลองสำเร็จ'}</button><button disabled={busy} type="button" onClick={() => void onAdvancePhoto(incident, photo.photoId, 'MARK_FAILED')}>{isProduction ? 'ทำเครื่องหมายล้มเหลว' : 'จำลองล้มเหลว'}</button></> : null}
-            {photo.uploadState === 'FAILED' ? <button disabled={busy || photo.retryCount >= 3} type="button" onClick={() => void onAdvancePhoto(incident, photo.photoId, 'RETRY')}>{isProduction ? 'Retry' : 'Retry จำลอง'}</button> : null}
-          </div>
-        </div>
-      </article>)}</div> : <p className="result-count">ยังไม่มี Placeholder ในเคสนี้</p>}
-    </section> : null}
+    {incident.photos.length > 0 ? <p className="form-warning">เคสนี้มี metadata รูปแบบเก่า {incident.photos.length} รายการ; ระบบ Live-only ไม่อนุญาตให้สร้าง Placeholder เพิ่ม</p> : null}
 
     {isAgronomist && incident.status !== 'CLOSED' ? <section className="specialist-panel" aria-label={`Agronomist controls สำหรับ ${incident.observedSymptom}`}>
       <h3>Agronomist controls</h3>
@@ -160,8 +101,7 @@ function DiseaseIncidentCard({
           <h4>สร้างงานรักษา</h4><p>Target ถูกล็อกกับ {tree?.tagCode ?? incident.positionId}; ระบบตรวจ Farm + Zone + Row + Position ซ้ำอีกชั้น</p>
           <label>Assignee suggestion<input value={assignedUserId} onChange={(event) => setAssignedUserId(event.target.value)} placeholder="เว้นว่างเพื่อสร้าง Draft รอมอบหมาย" /></label>
           <label>Due date<input type="date" value={followUpDate} onChange={(event) => setFollowUpDate(event.target.value)} /></label>
-          <div className="form-actions"><button disabled={busy || !tree} type="button" onClick={() => void createTreatment()}>สร้างงานรักษา</button><button className="primary-action" disabled={busy || !tree} type="button" onClick={() => tree && void onRunDemo(incident, tree)}>{isProduction ? 'สร้าง Workflow อัตโนมัติ' : 'One-click Mock Demo'}</button></div>
-          <small>{isProduction ? 'สร้าง Placeholder metadata → Uploaded → Treatment Work Order; การรับงาน/ส่งตรวจ/Verification ใช้ Workflow ปกติ' : 'One-click จะสร้าง Placeholder → Uploaded → Treatment Work Order; การรับงาน/ส่งตรวจ/Verification ใช้ Workflow ปกติ'}</small>
+          <div className="form-actions"><button disabled={busy || !tree} type="button" onClick={() => void createTreatment()}>สร้างงานรักษา</button></div>
         </div>}
         <label>Outcome<input value={outcome} onChange={(event) => setOutcome(event.target.value)} /></label>
         <label>วันติดตามถัดไป<input type="date" value={followUpDate} onChange={(event) => setFollowUpDate(event.target.value)} /></label>
@@ -177,11 +117,11 @@ export function DiseasePage() {
   const { incidentId } = useParams()
   const location = useLocation()
   const {
-    mode, currentFarm, listTreePositions, listWorkOrders, listDiseaseIncidents,
+    currentFarm, listTreePositions, listWorkOrders, listDiseaseIncidents,
     createDiseaseIncident, assessDiseaseIncident, followUpDiseaseIncident,
-    addDiseasePhotoMock, advanceDiseasePhotoMock, createTreatmentWorkOrder,
+    createTreatmentWorkOrder,
   } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const isProduction = true
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [incidents, setIncidents] = useState<readonly DiseaseIncidentRecord[]>([])
   const [assigneeSuggestion, setAssigneeSuggestion] = useState<string | null>(null)
@@ -197,7 +137,6 @@ export function DiseasePage() {
   const [message, setMessage] = useState<string>()
   const isAgronomist = currentFarm?.role === 'AGRONOMIST'
   const canReport = currentFarm ? canObserveDisease(currentFarm.role) : false
-  const mayAddPhoto = currentFarm ? canAddDiseasePhoto(currentFarm.role) : false
 
   const reload = useCallback(async () => {
     const [nextTrees, nextIncidents, nextWorkOrders] = await Promise.all([listTreePositions(), listDiseaseIncidents(), listWorkOrders()])
@@ -256,18 +195,7 @@ export function DiseasePage() {
 
   const assess = (item: DiseaseIncidentRecord, input: DiseaseAssessmentInput) => runMutation(item, () => assessDiseaseIncident(item.incidentId, crypto.randomUUID(), input), isProduction ? 'Agronomist บันทึก diagnosis และ treatment ใน Firebase แล้ว' : 'Agronomist บันทึก diagnosis และ treatment จำลองแล้ว', 'บันทึก assessment ไม่สำเร็จ')
   const followUp = (item: DiseaseIncidentRecord, input: DiseaseFollowUpInput) => runMutation(item, () => followUpDiseaseIncident(item.incidentId, crypto.randomUUID(), input), input.closeIncident ? 'ปิด incident แล้ว' : 'บันทึก follow-up แล้ว', 'บันทึก follow-up ไม่สำเร็จ')
-  const addPhoto = (item: DiseaseIncidentRecord, draft: DiseasePhotoMockDraft) => runMutation(item, () => addDiseasePhotoMock(item.incidentId, crypto.randomUUID(), draft), isProduction ? 'เพิ่ม Photo Metadata ใน Firebase แล้ว · สถานะ Pending' : 'เพิ่ม Synthetic Placeholder แล้ว · สถานะ Pending', 'เพิ่ม Placeholder ไม่สำเร็จ')
-  const advancePhoto = (item: DiseaseIncidentRecord, photoId: string, action: DiseasePhotoAction) => runMutation(item, () => advanceDiseasePhotoMock(item.incidentId, photoId, crypto.randomUUID(), action), isProduction ? `เปลี่ยนสถานะรูปด้วย ${action} ใน Firebase แล้ว` : `เปลี่ยนสถานะรูปจำลองด้วย ${action} แล้ว`, isProduction ? 'เปลี่ยนสถานะรูปไม่สำเร็จ' : 'เปลี่ยนสถานะรูปจำลองไม่สำเร็จ')
   const createTreatment = (item: DiseaseIncidentRecord, input: TreatmentWorkOrderInput) => runMutation(item, () => createTreatmentWorkOrder(item.incidentId, crypto.randomUUID(), input), 'สร้าง Treatment Work Order และลิงก์ Audit สองทางแล้ว', 'สร้างงานรักษาไม่สำเร็จ')
-  const runDemo = (item: DiseaseIncidentRecord, tree: TreePositionSummary) => runMutation(item, async () => {
-    const added = await addDiseasePhotoMock(item.incidentId, crypto.randomUUID(), { placeholderKind: 'LEAF_SPOT', mimeType: 'image/webp', sizeBytes: 640 * 1024, note: isProduction ? 'One-click disease evidence metadata' : 'One-click synthetic disease evidence · SIMULATED/TEST ONLY' })
-    const photo = added.photos[0]
-    if (!photo) throw new Error('ไม่พบ Placeholder ที่เพิ่งสร้าง')
-    await advanceDiseasePhotoMock(item.incidentId, photo.photoId, crypto.randomUUID(), 'START_UPLOAD')
-    await advanceDiseasePhotoMock(item.incidentId, photo.photoId, crypto.randomUUID(), 'MARK_UPLOADED')
-    await createTreatmentWorkOrder(item.incidentId, crypto.randomUUID(), { positionId: tree.positionId, zoneCode: tree.zoneCode, rowCode: tree.rowCode, assignedUserId: assigneeSuggestion, dueDate: item.followUpDate || '2026-09-05' })
-  }, isProduction ? 'สร้าง Workflow ใน Firebase สำเร็จ: Photo Metadata และ Treatment Work Order แล้ว' : 'One-click Mock Demo สำเร็จ: Photo Uploaded และสร้าง Treatment Work Order แล้ว', isProduction ? 'สร้าง Workflow ไม่สำเร็จ' : 'One-click Mock Demo ไม่สำเร็จ')
-
   return <section className="page-stack">
     <PageHeader eyebrow={isProduction ? 'Firebase Production · Disease tracking' : 'Mock MVP · Disease tracking'} title={incidentId ? 'รายละเอียดอาการและการติดตาม' : 'อาการ โรค และการติดตาม'} description="Observed symptom → Photo Metadata → Treatment Work Order · แยก Farm และมี Audit" />
     {isProduction
@@ -295,7 +223,7 @@ export function DiseasePage() {
     {loading ? <div className="loading-inline" role="status">กำลังอ่าน Disease Incident…</div> : null}
     {error ? <p className="form-error" role="alert">{error}</p> : null}{message ? <p className="success-notice" role="status">{message}</p> : null}
     {!loading && !error ? <p className="result-count">{filtered.length} เคส · {currentFarm?.farmCode} · {isProduction ? 'Firebase Production' : 'ข้อมูลจำลองเท่านั้น'}</p> : null}
-    <div className="work-list">{filtered.map((item) => <DiseaseIncidentCard assigneeSuggestion={assigneeSuggestion} busy={busyId === item.incidentId} canAddPhoto={mayAddPhoto} incident={item} isAgronomist={isAgronomist} isProduction={isProduction} key={`${item.incidentId}:${item.version}`} onAddPhoto={addPhoto} onAdvancePhoto={advancePhoto} onAssess={assess} onCreateTreatment={createTreatment} onFollowUp={followUp} onRunDemo={runDemo} tree={treeByPosition.get(item.positionId)} />)}
+    <div className="work-list">{filtered.map((item) => <DiseaseIncidentCard assigneeSuggestion={assigneeSuggestion} busy={busyId === item.incidentId} incident={item} isAgronomist={isAgronomist} isProduction={isProduction} key={`${item.incidentId}:${item.version}`} onAssess={assess} onCreateTreatment={createTreatment} onFollowUp={followUp} tree={treeByPosition.get(item.positionId)} />)}
       {!loading && !error && filtered.length === 0 ? <article className="empty-state"><h2>{incidentId ? 'ไม่พบ Disease Incident นี้' : 'ไม่มีเคสในตัวกรองนี้'}</h2><p>{incidentId ? 'ระบบไม่เปิดข้อมูลจากสวนอื่นหรือรหัสที่ไม่มีสิทธิ์' : 'ลองเลือกตัวกรองอื่นหรือรายงาน observed symptom ใหม่'}</p>{incidentId ? <Link className="secondary-action" to="/disease">กลับรายการโรค</Link> : null}</article> : null}
     </div>
   </section>

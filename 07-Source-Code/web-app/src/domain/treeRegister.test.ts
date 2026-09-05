@@ -1,5 +1,6 @@
 import {
   buildQrPayload,
+  canDeleteTreePositions,
   emptyTreeBaselineMeasurements,
   generateTagCode,
   normalizeRowCode,
@@ -8,13 +9,16 @@ import {
   parseTagCode,
   positionIdFromQrInput,
   previewTreeRegisterCsv,
+  splitTreeImportCandidates,
+  treeImportBatchIdempotencyKey,
   treeRegisterCsvHeaders,
-  treeRegisterImportLimit,
+  treeRegisterImportBatchSize,
   treeRegisterRegistrationCsvHeaders,
   treeRegisterThaiCsvHeaders,
   treeRegisterThaiRegistrationCsvHeaders,
   validateTreeCycleInput,
 } from './treeRegister'
+import type { FarmAccess } from './farm'
 
 function csvRow(overrides: Record<string, string> = {}): string {
   const values: Record<string, string> = {
@@ -144,6 +148,35 @@ describe('Tree Tag and QR invariants', () => {
       `https://wrong.invalid/t/${positionId}`,
       'https://qr.invalid/app',
     )).toThrow(/base URL/u)
+  })
+})
+
+describe('Tree Register deletion permissions', () => {
+  const access: FarmAccess = {
+    organizationId: 'org_demo',
+    organizationName: 'องค์กรตัวอย่าง',
+    organizationCode: 'DEMO',
+    farmId: 'farm_demo',
+    farmCode: 'DEMO-F01',
+    farmSequence: 'F01',
+    farmName: 'สวนตัวอย่าง',
+    farmStatus: 'ACTIVE',
+    membershipStatus: 'ACTIVE',
+    role: 'WORKER',
+    isOrganizationOwner: false,
+    isMock: true,
+  }
+
+  it('allows only a trusted farm owner or MasterAdmin', () => {
+    expect(canDeleteTreePositions({ ...access, isOrganizationOwner: true })).toBe(true)
+    expect(canDeleteTreePositions(access, true)).toBe(true)
+    expect(canDeleteTreePositions({ ...access, role: 'FARM_MANAGER' })).toBe(false)
+    expect(canDeleteTreePositions(access)).toBe(false)
+  })
+
+  it('fails closed for inactive farms or revoked membership', () => {
+    expect(canDeleteTreePositions({ ...access, isOrganizationOwner: true, farmStatus: 'SUSPENDED' })).toBe(false)
+    expect(canDeleteTreePositions({ ...access, isOrganizationOwner: true, membershipStatus: 'REVOKED' })).toBe(false)
   })
 })
 
@@ -318,14 +351,23 @@ describe('Tree Register CSV validation', () => {
     )
   })
 
-  it('rejects rows over the 50-position atomic import limit during Preview', () => {
-    const rows = Array.from({ length: treeRegisterImportLimit + 1 }, (_, index) => csvRow({
+  it('accepts files over 50 positions and splits uploads into batches of 50', () => {
+    const rows = Array.from({ length: 242 }, (_, index) => csvRow({
       treeSequence: String(index + 1),
       tagCode: `DEMO-F01-Z01-R01-T${String(index + 1).padStart(3, '0')}`,
     }))
     const preview = previewTreeRegisterCsv(csv(...rows), 'DEMO', 'F01')
-    expect(preview.candidates).toHaveLength(treeRegisterImportLimit)
-    expect(preview.rejects).toHaveLength(1)
-    expect(preview.rejects[0]?.errors.join(' ')).toMatch(/ไม่เกิน 50/u)
+    expect(preview.candidates).toHaveLength(242)
+    expect(preview.rejects).toHaveLength(0)
+    expect(splitTreeImportCandidates(preview.candidates).map((batch) => batch.length)).toEqual([
+      treeRegisterImportBatchSize,
+      treeRegisterImportBatchSize,
+      treeRegisterImportBatchSize,
+      treeRegisterImportBatchSize,
+      42,
+    ])
+    expect(treeImportBatchIdempotencyKey(preview.idempotencyKey, 0)).toBe(
+      `${preview.idempotencyKey}_batch_000001`,
+    )
   })
 })

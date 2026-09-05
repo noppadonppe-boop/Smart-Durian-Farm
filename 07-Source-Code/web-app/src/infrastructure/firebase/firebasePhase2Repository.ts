@@ -49,14 +49,14 @@ import { rootCollection, rootDoc } from './firebaseDataRoot'
 function requiredString(data: DocumentData, field: string): string {
   const value: unknown = data[field]
   if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`Invalid test-data document field: ${field}`)
+    throw new Error(`Invalid Firebase document field: ${field}`)
   }
   return value
 }
 
 function stringField(data: DocumentData, field: string): string {
   const value: unknown = data[field]
-  if (typeof value !== 'string') throw new Error(`Invalid test-data document field: ${field}`)
+  if (typeof value !== 'string') throw new Error(`Invalid Firebase document field: ${field}`)
   return value
 }
 
@@ -121,6 +121,40 @@ function profileFromData(data: DocumentData): FarmProfile {
     updatedBy: requiredString(data, 'updatedBy'),
     ...classification,
   }
+}
+
+export function isOperationalFarmProfile(
+  profile: Pick<FarmProfile, 'classification' | 'exampleData'>,
+): boolean {
+  return profile.classification === 'OPERATIONAL' && profile.exampleData === false
+}
+
+async function readFarmProfiles(
+  firestore: Firestore,
+  organizationId: string,
+): Promise<readonly FarmProfile[]> {
+  const snapshot = await getDocs(query(
+    rootCollection(
+      firestore,
+      'organizations',
+      organizationId,
+      'farms',
+    ),
+    orderBy('farmSequence', 'asc'),
+  ))
+  return snapshot.docs.map((farmDocument) => profileFromData(farmDocument.data()))
+}
+
+/**
+ * The user-management farm selector must use the same Firebase Farm Profile
+ * source as Farm Management, but it must never expose DEMO/mock profiles.
+ */
+export async function listOperationalFarmProfiles(
+  firestore: Firestore,
+  organizationId: string,
+): Promise<readonly FarmProfile[]> {
+  const profiles = await readFarmProfiles(firestore, organizationId)
+  return profiles.filter(isOperationalFarmProfile)
 }
 
 function farmAuditFromData(data: DocumentData): FarmAuditEvent {
@@ -260,7 +294,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
     )
     const membershipSnapshot = await getDocs(membershipQuery)
 
-    return Promise.all(
+    const farms = await Promise.all(
       membershipSnapshot.docs.map(async (membershipDocument) => {
         const member = memberFromData(membershipDocument.data())
         const farmReference = rootDoc(
@@ -289,7 +323,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
             getDoc(organizationMemberReference),
           ])
         if (!farmDocument.exists() || !organizationDocument.exists()) {
-          throw new Error('ข้อมูลสมาชิกอ้างถึงสวนหรือองค์กรที่ไม่มีในข้อมูลจำลอง')
+          throw new Error('ข้อมูลสมาชิกอ้างถึงสวนหรือองค์กรที่ไม่มีใน Firebase')
         }
 
         const farm = farmDocument.data()
@@ -316,22 +350,15 @@ export class FirebasePhase2Repository implements Phase2Repository {
         }
       }),
     )
+    return this.exampleData ? farms : farms.filter((farm) => !farm.isMock)
   }
 
   async listFarmProfiles(
     context: FarmManagementContext,
   ): Promise<readonly FarmProfile[]> {
     assertOrganizationOwner(context)
-    const snapshot = await getDocs(query(
-      rootCollection(
-        this.firestore,
-        'organizations',
-        context.organizationId,
-        'farms',
-      ),
-      orderBy('farmSequence', 'asc'),
-    ))
-    return snapshot.docs.map((farmDocument) => profileFromData(farmDocument.data()))
+    const profiles = await readFarmProfiles(this.firestore, context.organizationId)
+    return this.exampleData ? profiles : profiles.filter(isOperationalFarmProfile)
   }
 
   async getFarmProfile(

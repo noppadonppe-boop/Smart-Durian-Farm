@@ -20,7 +20,7 @@ function compareCodes(left: string, right: string): number {
 
 export function TreeCreatePage() {
   const navigate = useNavigate()
-  const { currentFarm, createTreePosition, listTreePositions, mode } = usePhase2()
+  const { currentFarm, createTreePosition, listTreePositions } = usePhase2()
   const [positions, setPositions] = useState<readonly TreePositionSummary[]>([])
   const [locationsLoading, setLocationsLoading] = useState(true)
   const [zoneCode, setZoneCode] = useState('')
@@ -171,9 +171,7 @@ export function TreeCreatePage() {
         title="ลงทะเบียน"
         description={`กรอกข้อมูล 10 ช่องตามแม่แบบ Excel สำหรับ ${currentFarm.farmName} (${currentFarm.farmCode})`}
       />
-      {mode === 'firebase-live' && !currentFarm.isMock
-        ? <aside className="operational-data-banner"><strong>ข้อมูลภาคสนาม</strong><span>ข้อมูลจะบันทึกใน Firebase ของสวนปัจจุบัน รหัสป้ายห้ามซ้ำภายในสวน</span></aside>
-        : <aside className="field-validation-banner"><strong>โหมดทดสอบระบบ</strong><span>ข้อมูลจากโหมดนี้ยังถูกจัดเป็น SIMULATED/TEST ONLY</span></aside>}
+      <aside className="operational-data-banner"><strong>ข้อมูลภาคสนาม</strong><span>ข้อมูลจะบันทึกใน Firebase ของสวนปัจจุบัน รหัสป้ายห้ามซ้ำภายในสวน</span></aside>
 
       <form className="tree-form tree-register-form" onSubmit={(event) => void submit(event)}>
         <section className="tree-form-section" aria-labelledby="registration-fields-title">

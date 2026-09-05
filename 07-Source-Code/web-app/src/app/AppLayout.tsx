@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import {
@@ -10,6 +10,11 @@ import {
 import { usePhase2 } from './usePhase2'
 import { navigationItems, userManualNavigationItem } from './navigation'
 import { useAuth } from '../security/AuthContext'
+import { PendingTaskBadge } from '../components/PendingTaskBadge'
+import {
+  firebaseConnectivityCheckIntervalMs,
+  probeFirebaseConnectivity,
+} from '../services/firebaseConnectivity'
 
 const NoFarmPage = lazy(async () => ({
   default: (await import('../pages/NoFarmPage')).NoFarmPage,
@@ -50,14 +55,26 @@ export function AppLayout() {
     identity,
     currentFarm: farm,
     farmsLoading,
-    mode,
-    authMode,
     pendingOperations,
+    listOfflineOperations,
+    syncOfflineOperation,
+    listQueuedWorkPhotoBatches,
+    retryQueuedWorkPhotoBatch,
     signOut,
   } = usePhase2()
   const [syncState, setSyncState] = useState<SyncState>('synced')
+  const [connectivityDetail, setConnectivityDetail] = useState('กำลังตรวจสอบ Firebase')
+  const [lastConnectivityCheck, setLastConnectivityCheck] = useState<Date>()
+  const [checkingConnectivity, setCheckingConnectivity] = useState(false)
+  const checkingConnectivityRef = useRef(false)
+  const automaticReplayRef = useRef(false)
   const [colorScheme, setColorScheme] = useState<'system' | 'light' | 'dark'>('system')
-  const { userProfile, isSystemAdmin, loading: authLoading } = useAuth()
+  const {
+    userProfile,
+    isSystemAdmin,
+    loading: authLoading,
+    pendingUsersCount,
+  } = useAuth()
   const location = useLocation()
 
   useEffect(() => {
@@ -80,9 +97,84 @@ export function AppLayout() {
     }
   }, [colorScheme])
 
-  const toggleSyncState = () => {
-    setSyncState((current) => (current === 'synced' ? 'offline' : 'synced'))
-  }
+  const checkConnectivity = useCallback(async () => {
+    if (checkingConnectivityRef.current) return
+    checkingConnectivityRef.current = true
+    setCheckingConnectivity(true)
+    try {
+      const result = await probeFirebaseConnectivity()
+      setSyncState(result.syncState)
+      setConnectivityDetail(result.detail)
+      setLastConnectivityCheck(result.checkedAt)
+    } finally {
+      checkingConnectivityRef.current = false
+      setCheckingConnectivity(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') return
+    const markOffline = () => {
+      setSyncState('offline')
+      setConnectivityDetail('อุปกรณ์ไม่ได้เชื่อมต่อเครือข่าย')
+      setLastConnectivityCheck(new Date())
+    }
+    const checkOnline = () => { void checkConnectivity() }
+    void checkConnectivity()
+    const intervalId = window.setInterval(() => { void checkConnectivity() }, firebaseConnectivityCheckIntervalMs)
+    window.addEventListener('offline', markOffline)
+    window.addEventListener('online', checkOnline)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('offline', markOffline)
+      window.removeEventListener('online', checkOnline)
+    }
+  }, [checkConnectivity])
+
+  useEffect(() => {
+    if (syncState !== 'synced' || !identity || !farm || !lastConnectivityCheck) return
+    if (automaticReplayRef.current) return
+    automaticReplayRef.current = true
+    let active = true
+    const replay = async () => {
+      try {
+        const operations = await listOfflineOperations()
+        for (const operation of operations.filter((item) => item.status === 'PENDING')) {
+          if (!active) return
+          try {
+            await syncOfflineOperation(operation.operationId)
+          } catch {
+            // เก็บรายการเดิมและลองรายการถัดไป เพื่อไม่ให้คิวหนึ่งบล็อกทั้งสวน
+          }
+        }
+        const photoBatches = await listQueuedWorkPhotoBatches()
+        for (const batch of photoBatches) {
+          if (!active) return
+          try {
+            await retryQueuedWorkPhotoBatch(batch.batchId)
+          } catch {
+            // เก็บ binary batch เดิมไว้ Retry รอบถัดไป
+          }
+        }
+      } finally {
+        automaticReplayRef.current = false
+      }
+    }
+    void replay()
+    return () => {
+      active = false
+      automaticReplayRef.current = false
+    }
+  }, [
+    farm,
+    identity,
+    lastConnectivityCheck,
+    listOfflineOperations,
+    listQueuedWorkPhotoBatches,
+    retryQueuedWorkPhotoBatch,
+    syncOfflineOperation,
+    syncState,
+  ])
 
   if (identity === undefined || farmsLoading) {
     return (
@@ -143,11 +235,7 @@ export function AppLayout() {
             <div className="brand-text">
               <strong>Smart Durian Farm</strong>
               <span className="brand-env">
-                KDOMS · {mode === 'firebase-live'
-                  ? 'Firebase Live'
-                  : authMode === 'firebase-live'
-                  ? 'Phone Auth'
-                  : 'Mock'}
+                KDOMS · Firebase Live
               </span>
             </div>
           </div>
@@ -163,14 +251,18 @@ export function AppLayout() {
               className={`sync-control sync-control--${syncState}`}
               type="button"
               aria-pressed={syncState === 'offline'}
-              onClick={toggleSyncState}
+              onClick={() => { void checkConnectivity() }}
             >
               <span aria-hidden="true">●</span>
-              {syncState === 'synced'
-                ? currentPendingCount > 0
-                  ? `ซิงก์ · ค้าง ${currentPendingCount}`
-                  : 'ซิงก์แล้ว'
-                : `ออฟไลน์ · ค้าง ${currentPendingCount}`}
+              <span className="sync-control__label">
+                {checkingConnectivity
+                  ? 'กำลังตรวจ Firebase…'
+                  : syncState === 'synced'
+                  ? currentPendingCount > 0
+                    ? `ซิงก์ · ค้าง ${currentPendingCount}`
+                    : 'ซิงก์แล้ว'
+                  : `ออฟไลน์ · ค้าง ${currentPendingCount}`}
+              </span>
             </button>
             <button
               aria-label={`ธีมปัจจุบัน: ${colorScheme === 'system' ? 'อัตโนมัติ' : colorScheme === 'dark' ? 'มืด' : 'สว่าง'} · กดเพื่อเปลี่ยน`}
@@ -183,55 +275,53 @@ export function AppLayout() {
             >
               <span aria-hidden="true">◐</span>
             </button>
-            {userProfile?.photoURL && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '0.5rem' }}>
-                <button
-                  type="button"
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', width: '32px', height: '32px' }}
-                  onClick={() => {
-                    if (confirm('กด OK เพื่อออกจากระบบ')) {
-                      void signOut()
-                    }
-                  }}
-                  title="โปรไฟล์ (กดเพื่อออกจากระบบ)"
-                >
-                  <img src={userProfile.photoURL} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </button>
-              </div>
-            )}
+            <div className="profile-control">
+              <NavLink
+                aria-label="โปรไฟล์และข้อมูลส่วนตัว"
+                className="profile-control__link"
+                to="/profile"
+                title="โปรไฟล์และข้อมูลส่วนตัว"
+              >
+                {userProfile?.photoURL ? (
+                  <img src={userProfile.photoURL} alt="" />
+                ) : (
+                  <span>{userProfile?.firstName ? userProfile.firstName.charAt(0) : '👤'}</span>
+                )}
+              </NavLink>
+            </div>
           </div>
         </div>
 
-        <div className={mode === 'firebase-live' && farm && !farm.isMock ? 'operational-banner' : 'mock-banner'} role="status">
-          {mode === 'firebase-live' && farm && !farm.isMock
-            ? 'Firebase Live · ข้อมูล Operational อยู่ที่ durian-smartfarm/root และแยกตาม Farm'
-            : mode === 'firebase-live'
-              ? <>Firebase Live · SIMULATED/TEST ONLY · สวนนี้เป็นชุดทดสอบที่แยกจากข้อมูลจริง</>
-              : <>
-                SIMULATED/TEST ONLY · ข้อมูลจำลองเท่านั้น ·{' '}{authMode === 'firebase-live'
-                  ? 'Firebase Authentication จริง; Firestore/Storage ยังไม่ใช่ Production'
-                  : 'ข้อมูลจำลองแยกจาก Production'}
-              </>}
+        <div className="operational-banner" role="status">
+          Firebase Live · ข้อมูล Operational อยู่ที่ durian-smartfarm/root และแยกตาม Farm
         </div>
       </header>
 
       <aside className="app-sidebar" aria-label="เมนูหลักบนจอใหญ่">
         <nav>
           <div className="identity-card" style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-            <span>{userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : identity.displayName}</span>
+            <span>{userProfile ? `${userProfile.firstName} ${userProfile.lastName}`.trim() : identity.displayName}</span>
             <small>{userProfile ? userProfile.role.join(', ') : (farm ? roleLabels[farm.role] : '')}</small>
-            <button onClick={() => void signOut()} type="button">ออกจากระบบ</button>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', alignItems: 'center' }}>
+              <NavLink to="/profile" style={{ fontSize: '0.78rem', color: '#2d6a4f', textDecoration: 'underline' }}>
+                แก้ไขโปรไฟล์
+              </NavLink>
+              <button onClick={() => void signOut()} type="button">ออกจากระบบ</button>
+            </div>
           </div>
           {navigationItems.map((item) => (
             <NavLink className={navigationClass} end={item.to === '/'} key={item.to} to={item.to}>
               <span aria-hidden="true">{item.icon}</span>
               {item.label}
+              {isSystemAdmin && item.to === '/more' ? (
+                <PendingTaskBadge count={pendingUsersCount} />
+              ) : null}
             </NavLink>
           ))}
         </nav>
         <div className="app-sidebar__footer">
           <nav aria-label="เมนูผู้ดูแลและคู่มือ">
-            {(isSystemAdmin || (authMode === 'mock' && Boolean(farm?.isOrganizationOwner))) && (
+            {(isSystemAdmin || farm.isOrganizationOwner) && (
               <NavLink className={navigationClass} to="/farm-management">
                 <span aria-hidden="true">🏡</span>
                 จัดการสวน
@@ -241,6 +331,7 @@ export function AppLayout() {
               <NavLink className={navigationClass} to="/user-management">
                 <span aria-hidden="true">👥</span>
                 จัดการผู้ใช้งาน
+                <PendingTaskBadge count={pendingUsersCount} />
               </NavLink>
             )}
             <NavLink
@@ -269,7 +360,15 @@ export function AppLayout() {
             สิทธิ์ {roleLabels[farm.role]} เป็นโหมดอ่านอย่างเดียวในสวนนี้
           </div>
         ) : null}
-        <Outlet key={farm?.farmId ?? 'no-farm'} context={{ farm, syncState, permissions, toggleSyncState }} />
+        <Outlet key={farm?.farmId ?? 'no-farm'} context={{
+          farm,
+          syncState,
+          permissions,
+          checkConnectivity,
+          checkingConnectivity,
+          connectivityDetail,
+          lastConnectivityCheck,
+        }} />
       </main>
 
       <nav className="app-bottom-nav" aria-label="เมนูหลักบนมือถือ">
@@ -277,6 +376,9 @@ export function AppLayout() {
           <NavLink className={navigationClass} end={item.to === '/'} key={item.to} to={item.to}>
             <span aria-hidden="true">{item.icon}</span>
             <small>{item.shortLabel}</small>
+            {isSystemAdmin && item.to === '/more' ? (
+              <PendingTaskBadge count={pendingUsersCount} placement="corner" />
+            ) : null}
           </NavLink>
         ))}
       </nav>

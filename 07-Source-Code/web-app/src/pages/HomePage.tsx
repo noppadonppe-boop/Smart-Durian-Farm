@@ -14,7 +14,7 @@ interface LayoutContext {
 
 export function HomePage() {
   const { farm, syncState } = useOutletContext<LayoutContext>()
-  const { getFarmDashboard, mode, authMode } = usePhase2()
+  const { getFarmDashboard } = usePhase2()
   const [dashboard, setDashboard] = useState<FarmDashboardView>()
   const [error, setError] = useState<string>()
 
@@ -31,9 +31,7 @@ export function HomePage() {
   return (
     <section className="page-stack dashboard-page">
       <PageHeader
-        eyebrow={mode === 'firebase-live'
-          ? 'Firebase Production Dashboard'
-          : 'Mock Dashboard'}
+        eyebrow="Firebase Production Dashboard"
         title="ภาพรวมสวนที่เปิดอยู่"
         description="แสดงเฉพาะข้อมูลและหัวข้อที่บทบาทปัจจุบันได้รับสิทธิ์ พร้อมสถานะ Offline/Sync ที่มองเห็นได้"
       />
@@ -88,13 +86,7 @@ export function HomePage() {
           <li>Dashboard, Queue, Conflict, Audit และ Export อ่าน/เขียนผ่าน Firebase ตามสิทธิ์</li>
           <li>Portfolio รวมเฉพาะสวนที่ Owner มี Farm access</li>
           <li>ข้อมูลตั้งต้นจัดการโดยผู้ดูแลระบบ</li>
-          <li>
-            {mode === 'firebase-live'
-              ? 'Authentication, Firestore และ Storage เชื่อม Firebase project durian-smartfarm'
-              : authMode === 'mock'
-                ? 'Unit test ใช้ Mock adapter โดยไม่เชื่อม Firebase'
-                : 'Firebase Live'}
-          </li>
+          <li>Authentication, Firestore และ Storage เชื่อม Firebase project durian-smartfarm</li>
         </ul>
       </section>
     </section>

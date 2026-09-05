@@ -15,6 +15,7 @@
     "build:firebase-live": "npm run prepare:firebase-auth-allowlist && tsc -b && vite build --mode firebase-live",
     "deploy:firebase-live": "npm run build:firebase-live && firebase deploy --only firestore,hosting --project durian-smartfarm",
     "deploy:firebase-storage": "firebase deploy --only storage --project durian-smartfarm",
+    "deploy:firebase-functions": "firebase deploy --only functions:updateMasterAdminAccess --project durian-smartfarm",
     "performance:budget": "node scripts/check-performance-budget.mjs",
     "preview": "vite preview",
     "preview:slow": "node scripts/serve-throttled-preview.mjs",

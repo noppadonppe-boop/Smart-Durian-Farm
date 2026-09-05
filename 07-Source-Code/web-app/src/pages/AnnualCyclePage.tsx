@@ -22,7 +22,7 @@ function suggestedDraft(periodStart: string, previousAnnualCycleId: string | nul
     name: `รอบบริหารสวน ${periodStart.slice(0, 4)}`,
     periodStart,
     timezone: 'Asia/Bangkok',
-    notes: 'SIMULATED/TEST ONLY',
+    notes: '',
     previousAnnualCycleId,
   }
 }
@@ -140,7 +140,7 @@ export function AnnualCyclePage() {
       responsibleRole,
       plannedQuantity: null,
       plannedUnit: '',
-      notes: 'SIMULATED/TEST ONLY',
+      notes: '',
     }
     void run(
       () => createAnnualPlanItem(selected.annualCycleId, crypto.randomUUID(), draft),
@@ -153,7 +153,7 @@ export function AnnualCyclePage() {
   return (
     <section className="page-stack annual-cycle-page">
       <PageHeader
-        eyebrow="Annual Farm Management Cycle · SIMULATED/TEST ONLY"
+        eyebrow="Annual Farm Management Cycle · Firebase Production"
         title="รอบบริหารสวนรายปี"
         description="หนึ่งรอบต่อหนึ่งสวน ค่าเริ่มต้นมิถุนายน–พฤษภาคม และ Owner กำหนดวันเริ่มเฉพาะสวนได้"
         backTo="/more"

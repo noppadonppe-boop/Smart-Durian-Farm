@@ -5,6 +5,9 @@ import { usePhase2 } from '../app/usePhase2'
 import {
   canManageTreeRegister,
   previewTreeRegisterCsv,
+  splitTreeImportCandidates,
+  treeImportBatchIdempotencyKey,
+  treeRegisterImportBatchSize,
   type TreeImportPreview,
   type TreeImportResult,
 } from '../domain/treeRegister'
@@ -15,7 +18,7 @@ import {
 import { PageHeader } from './PageHeader'
 
 export function TreeImportPage() {
-  const { currentFarm, importTreePositions, mode } = usePhase2()
+  const { currentFarm, importTreePositions } = usePhase2()
   const [csv, setCsv] = useState('')
   const [fileName, setFileName] = useState('')
   const [fileDetail, setFileDetail] = useState('')
@@ -24,6 +27,11 @@ export function TreeImportPage() {
   const [error, setError] = useState<string>()
   const [saving, setSaving] = useState(false)
   const [reading, setReading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{
+    completedBatches: number
+    totalBatches: number
+    completedPositions: number
+  }>()
 
   const canCommit = useMemo(
     () => Boolean(
@@ -45,6 +53,7 @@ export function TreeImportPage() {
     setError(undefined)
     setResult(undefined)
     setPreview(undefined)
+    setUploadProgress(undefined)
     setReading(true)
     try {
       const content = await readTreeRegisterSpreadsheet(file)
@@ -63,6 +72,7 @@ export function TreeImportPage() {
   const runPreview = () => {
     setError(undefined)
     setResult(undefined)
+    setUploadProgress(undefined)
     const next = previewTreeRegisterCsv(
       csv,
       currentFarm.organizationCode,
@@ -84,10 +94,43 @@ export function TreeImportPage() {
     if (!preview || !canCommit) return
     setSaving(true)
     setError(undefined)
+    setResult(undefined)
+    const batches = splitTreeImportCandidates(preview.candidates)
+    let completedBatches = 0
+    let importedCount = 0
+    let existingCount = 0
+    let wasRetry = true
+    const positionIds: string[] = []
+    setUploadProgress({ completedBatches, totalBatches: batches.length, completedPositions: 0 })
     try {
-      setResult(await importTreePositions(preview.idempotencyKey, preview.candidates))
+      for (const [batchIndex, candidates] of batches.entries()) {
+        const batchResult = await importTreePositions(
+          treeImportBatchIdempotencyKey(preview.idempotencyKey, batchIndex),
+          candidates,
+        )
+        importedCount += batchResult.importedCount
+        existingCount += batchResult.existingCount
+        wasRetry = wasRetry && batchResult.wasRetry
+        positionIds.push(...batchResult.positionIds)
+        completedBatches += 1
+        setUploadProgress({
+          completedBatches,
+          totalBatches: batches.length,
+          completedPositions: importedCount + existingCount,
+        })
+      }
+      setResult({
+        idempotencyKey: preview.idempotencyKey,
+        importedCount,
+        existingCount,
+        positionIds,
+        wasRetry,
+      })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Import ไม่สำเร็จและไม่มีข้อมูลบางส่วนถูกสร้าง')
+      const detail = cause instanceof Error ? cause.message : 'นำเข้าชุดปัจจุบันไม่สำเร็จ'
+      setError(completedBatches > 0
+        ? `หยุดหลังอัปโหลดสำเร็จ ${completedBatches} จาก ${batches.length} ชุด (${importedCount + existingCount} ตำแหน่ง): ${detail} กรุณาใช้ไฟล์เดิมกดยืนยันอีกครั้ง ระบบจะข้ามชุดที่สำเร็จแล้วโดยไม่สร้างข้อมูลซ้ำ`
+        : detail)
     } finally {
       setSaving(false)
     }
@@ -101,9 +144,7 @@ export function TreeImportPage() {
         description={`รับ Excel (.xlsx) หรือ CSV จาก Excel/Google Sheets เฉพาะข้อมูลภาคสนามของ ${currentFarm.farmCode}`}
       />
 
-      {mode === 'firebase-live' && !currentFarm.isMock
-        ? <div className="operational-data-banner" role="note"><strong>นำเข้าข้อมูลภาคสนาม</strong><span>ไฟล์ที่ยืนยันจะเขียนลง Firebase ของ {currentFarm.farmCode} โปรดตรวจข้อมูลตัวอย่างและสำรองไฟล์ต้นฉบับไว้</span></div>
-        : <div className="field-validation-banner" role="note"><strong>โหมดทดสอบระบบ</strong><span>ไฟล์จะถูกตรวจและบันทึกเป็น SIMULATED/TEST ONLY ในสภาพแวดล้อมนี้</span></div>}
+      <div className="operational-data-banner" role="note"><strong>นำเข้าข้อมูลภาคสนาม</strong><span>ไฟล์ที่ยืนยันจะเขียนลง Firebase ของ {currentFarm.farmCode} โปรดตรวจข้อมูลตัวอย่างและสำรองไฟล์ต้นฉบับไว้</span></div>
 
       <section className="template-panel" aria-labelledby="template-title">
         <div>
@@ -129,7 +170,7 @@ export function TreeImportPage() {
 
       <div className="import-safety" role="note">
         <strong>ตรวจตัวอย่างก่อนเขียนทุกครั้ง</strong>
-        <span>ถ้ามีแม้แต่หนึ่งแถวผิดหรือรหัสป้ายเคยถูกใช้ ระบบยกเลิกทั้งชุดและไม่สร้างข้อมูลบางส่วน</span>
+        <span>นำเข้าได้ไม่จำกัดจำนวนแถว โดยระบบตรวจทั้งไฟล์ก่อนและอัปโหลดครั้งละ {treeRegisterImportBatchSize} ตำแหน่ง แต่ละชุดป้องกันข้อมูลซ้ำและเริ่มต่อได้ด้วยไฟล์เดิมหากการเชื่อมต่อหยุดกลางทาง</span>
       </div>
 
       <section className="import-source" aria-labelledby="import-source-title">
@@ -147,7 +188,7 @@ export function TreeImportPage() {
         {fileName ? <small>ไฟล์ที่เลือก: {fileName} · {fileDetail}</small> : null}
         <label>
           ข้อมูลที่อ่านได้ (หัวคอลัมน์ตามแม่แบบ)
-          <textarea onChange={(event) => { setCsv(event.target.value); setFileName(''); setFileDetail('วาง CSV'); setPreview(undefined); setResult(undefined) }} placeholder="วางหัวคอลัมน์ CSV และแถวข้อมูลภาคสนามที่นี่" rows={10} value={csv} />
+          <textarea onChange={(event) => { setCsv(event.target.value); setFileName(''); setFileDetail('วาง CSV'); setPreview(undefined); setResult(undefined); setUploadProgress(undefined) }} placeholder="วางหัวคอลัมน์ CSV และแถวข้อมูลภาคสนามที่นี่" rows={10} value={csv} />
         </label>
         <button className="primary-action" disabled={!csv.trim()} onClick={runPreview} type="button">ตรวจตัวอย่างและข้อมูลซ้ำ</button>
       </section>
@@ -177,13 +218,19 @@ export function TreeImportPage() {
             <div className="form-warning" role="status">ยังไม่มีแถวข้อมูลภาคสนามสำหรับนำเข้า กรุณากรอกข้อมูลตั้งแต่แถว 2</div>
           )}
           <button className="primary-action" disabled={!canCommit || saving} onClick={() => void commit()} type="button">{saving ? 'กำลังนำเข้า…' : `ยืนยันนำเข้า ${preview.candidates.length} ตำแหน่ง`}</button>
+          {uploadProgress ? (
+            <small role="status">
+              อัปโหลดแล้ว {uploadProgress.completedPositions} จาก {preview.candidates.length} ตำแหน่ง · ชุด {uploadProgress.completedBatches} จาก {uploadProgress.totalBatches}
+            </small>
+          ) : null}
         </section>
       ) : null}
 
       {error ? <div className="form-error" role="alert">{error}</div> : null}
       {result ? (
         <div className="success-notice" role="status">
-          <strong>{result.wasRetry ? 'ตรวจพบการ Retry เดิม — ไม่สร้างข้อมูลซ้ำ' : `นำเข้าสำเร็จ ${result.importedCount} ตำแหน่ง`}</strong>
+          <strong>{result.wasRetry ? `ตรวจพบไฟล์เดิมครบ ${result.existingCount} ตำแหน่ง — ไม่สร้างข้อมูลซ้ำ` : `นำเข้าสำเร็จครบ ${result.importedCount + result.existingCount} ตำแหน่ง`}</strong>
+          {!result.wasRetry && result.existingCount > 0 ? <span>เริ่มต่อจากครั้งก่อน {result.existingCount} ตำแหน่ง และเพิ่มใหม่ {result.importedCount} ตำแหน่ง</span> : null}
           <span>รหัสป้องกันข้อมูลซ้ำ: {result.idempotencyKey}</span>
           <Link to="/trees">เปิดทะเบียนต้น</Link>
         </div>

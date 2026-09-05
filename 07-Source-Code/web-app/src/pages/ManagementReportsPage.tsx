@@ -46,7 +46,6 @@ function defaultAnchor(periodStart: string, periodEndExclusive: string): string 
 
 export function ManagementReportsPage() {
   const {
-    mode,
     currentFarm,
     identity,
     annualCycleSnapshot,
@@ -54,7 +53,6 @@ export function ManagementReportsPage() {
     generateManagementReport,
     createLaborCost,
     createOperatingExpense,
-    resetManagementReportingMockData,
   } = usePhase2()
   const selectedCycle = annualCycleSnapshot.selectedCycle
   const [kind, setKind] = useState<ReportPeriodKind>('MONTHLY')
@@ -118,7 +116,7 @@ export function ManagementReportsPage() {
         referenceId: formText(form, 'referenceId'),
         notes: formText(form, 'notes'),
       })
-      setMessage('บันทึกต้นทุนแรงงานแบบจำลองและ Audit แล้ว')
+      setMessage('บันทึกต้นทุนแรงงานและ Audit แล้ว')
       await load()
       formElement.reset()
     } catch (caught) {
@@ -145,7 +143,7 @@ export function ManagementReportsPage() {
         allocationReferenceId: formText(form, 'allocationReferenceId'),
         notes: formText(form, 'notes'),
       })
-      setMessage('บันทึกค่าใช้จ่ายแบบจำลองและ Audit แล้ว')
+      setMessage('บันทึกค่าใช้จ่ายและ Audit แล้ว')
       await load()
       formElement.reset()
     } catch (caught) {
@@ -167,19 +165,6 @@ export function ManagementReportsPage() {
     setMessage('สร้าง CSV ในเครื่องแล้ว · ไม่มี public link')
   }
 
-  const reset = async () => {
-    setSaving(true); setError(undefined); setMessage(undefined)
-    try {
-      await resetManagementReportingMockData()
-      setMessage('Reset Management Reporting Mock Data Pack v1.0.0 แล้ว')
-      await load()
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Reset ไม่สำเร็จ')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return <section className="page-stack management-report-page">
     <PageHeader
       eyebrow="DEC-049 · Farm-scoped management reporting"
@@ -187,13 +172,13 @@ export function ManagementReportsPage() {
       description="รายสัปดาห์ รายเดือน ราย 3 เดือน และรายปี · แยกผลผลิต ยอดขาย ต้นทุนแรงงาน วัสดุ ค่าใช้จ่ายดำเนินงาน และสินทรัพย์ลงทุน"
       backTo="/more"
     />
-    <div className="field-validation-banner" role="note">
-      <strong>SIMULATED/TEST ONLY · {currentFarm.farmCode}</strong>
-      <span>ต้นทุนเพื่อการบริหารสวน ไม่ใช่ Payroll/บัญชี/ภาษี · ไม่มีข้อมูลจริงหรือการส่งออกภายนอก</span>
+    <div className="operational-data-banner" role="note">
+      <strong>Firebase Production · {currentFarm.farmCode}</strong>
+      <span>ต้นทุนเพื่อการบริหารสวน ไม่ใช่ Payroll/บัญชี/ภาษี</span>
     </div>
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {message ? <div className="success-notice" role="status">{message}</div> : null}
-    {annualCyclesLoading || loading ? <div className="loading-inline" role="status">กำลังสร้างรายงานจากข้อมูลจำลอง…</div> : null}
+    {annualCyclesLoading || loading ? <div className="loading-inline" role="status">กำลังสร้างรายงานจาก Firebase…</div> : null}
 
     <section className="report-control-panel" aria-labelledby="report-filter-title">
       <div><span className="status-pill">Report period</span><h2 id="report-filter-title">เลือกงวดรายงาน</h2></div>
@@ -245,33 +230,32 @@ export function ManagementReportsPage() {
     </> : null}
 
     {selectedCycle && (canRecordLaborCost(currentFarm) || canRecordOperatingExpense(currentFarm)) ? <section className="report-entry-section" aria-labelledby="cost-entry-title">
-      <div className="section-heading"><div><span className="status-pill">Append-only mock entry</span><h2 id="cost-entry-title">บันทึกต้นทุนและค่าใช้จ่าย</h2></div></div>
-      <p>บันทึกใหม่อย่างตรวจสอบย้อนหลังได้ ไม่มีปุ่มแก้หรือลบ และไม่ใช้ข้อมูลบุคคลจริง</p>
+      <div className="section-heading"><div><span className="status-pill">Append-only entry</span><h2 id="cost-entry-title">บันทึกต้นทุนและค่าใช้จ่าย</h2></div></div>
+      <p>บันทึกใหม่อย่างตรวจสอบย้อนหลังได้ และไม่มีปุ่มแก้หรือลบ</p>
       <div className="report-entry-grid">
         {canRecordLaborCost(currentFarm) ? <details open><summary>+ ค่าแรงงาน</summary><form className="commercial-form" onSubmit={(event) => { void submitLabor(event) }}>
           <label>วันที่<input name="incurredOn" type="date" required defaultValue={anchorDate} /></label>
-          <label>ทีม/ผู้ปฏิบัติงานแบบย่อ<input name="workerReference" required defaultValue="ทีมงานจำลอง C" /></label>
+          <label>ทีม/ผู้ปฏิบัติงานแบบย่อ<input name="workerReference" required /></label>
           <label>ฐานค่าจ้าง<select name="basis" defaultValue="DAY">{laborCostBases.map((value) => <option value={value} key={value}>{laborCostBasisLabels[value]}</option>)}</select></label>
           <label>จำนวนหน่วย<input name="quantity" type="number" min="0.001" step="0.001" required defaultValue="1" /></label>
           <label>อัตราต่อหน่วย (บาท)<input name="rateBaht" type="number" min="0" step="0.01" required defaultValue="550" /></label>
           <label>อ้างอิง<select name="referenceType" defaultValue="FARM_OPERATION">{laborReferenceTypes.map((value) => <option value={value} key={value}>{laborReferenceTypeLabels[value]}</option>)}</select></label>
           <label>รหัสอ้างอิง<input name="referenceId" required defaultValue={currentFarm.farmId} /></label>
-          <label className="span-full">หมายเหตุ<input name="notes" defaultValue="SIMULATED/TEST ONLY — ไม่ใช่ Payroll" /></label>
+          <label className="span-full">หมายเหตุ<input name="notes" /></label>
           <button className="primary-action span-full" disabled={saving} type="submit">บันทึกค่าแรง</button>
         </form></details> : null}
         {canRecordOperatingExpense(currentFarm) ? <details open><summary>+ ค่าใช้จ่ายอื่น</summary><form className="commercial-form" onSubmit={(event) => { void submitExpense(event) }}>
           <label>วันที่<input name="incurredOn" type="date" required defaultValue={anchorDate} /></label>
           <label>หมวด<select name="category" defaultValue="WATER_ELECTRICITY">{expenseCategories.map((value) => <option value={value} key={value}>{expenseCategoryLabels[value]}</option>)}</select></label>
-          <label className="span-full">รายละเอียด<input name="description" required defaultValue="ค่าใช้จ่ายดำเนินงานจำลอง" /></label>
+          <label className="span-full">รายละเอียด<input name="description" required /></label>
           <label>จำนวนเงิน (บาท)<input name="amountBaht" type="number" min="0.01" step="0.01" required defaultValue="1000" /></label>
           <label>จัดสรรให้<select name="allocationScope" defaultValue="FARM">{Object.entries(expenseAllocationScopeLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
           <label>รหัสขอบเขต<input name="allocationReferenceId" defaultValue={currentFarm.farmId} /></label>
-          <label className="span-full">หมายเหตุ<input name="notes" defaultValue="SIMULATED/TEST ONLY" /></label>
+          <label className="span-full">หมายเหตุ<input name="notes" /></label>
           <button className="primary-action span-full" disabled={saving} type="submit">บันทึกค่าใช้จ่าย</button>
         </form></details> : null}
       </div>
     </section> : null}
 
-    {mode === 'mock' ? <section className="phase2-test-controls"><span className="status-pill">Resettable fixture</span><h2>รีเซ็ตข้อมูลรายงานและต้นทุน</h2><p>คืนค่าเฉพาะ Management Reporting Mock Data Pack v1.0.0 ไม่แตะ Annual Cycle หรือข้อมูลจริง</p><button className="secondary-action" disabled={saving} type="button" onClick={() => { void reset() }}>Reset Mock Pack</button></section> : null}
   </section>
 }

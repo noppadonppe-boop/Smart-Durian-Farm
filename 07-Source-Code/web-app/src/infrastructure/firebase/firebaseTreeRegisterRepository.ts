@@ -3,7 +3,9 @@ import {
   collection,
   doc,
   getDoc,
+  getDocFromCache,
   getDocs,
+  getDocsFromCache,
   orderBy,
   query,
   serverTimestamp,
@@ -21,6 +23,7 @@ import type {
 import type { CanonicalRole } from '../../domain/farm'
 import {
   canManageTreeRegister,
+  canDeleteTreePositions,
   createOpaquePositionId,
   generateTagCode,
   generateLegacyTagCode,
@@ -34,8 +37,10 @@ import {
   positionStatuses,
   rowCountingDirections,
   treeStatuses,
+  treeRegisterImportBatchSize,
   validateTreeCycleInput,
   type IdentityConfidence,
+  type DeleteTreePositionsResult,
   type MeasurementConfidence,
   type PlantingCycleRecord,
   type PositionStatus,
@@ -379,6 +384,34 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     }
   }
 
+  private async getCachedTreePosition(
+    organizationId: string,
+    farmId: string,
+    positionId: string,
+  ): Promise<TreePositionDetail | undefined> {
+    const reference = rootDoc(
+      this.firestore,
+      'organizations', organizationId,
+      'farms', farmId,
+      'treePositions', positionId,
+    )
+    const positionDocument = await getDocFromCache(reference)
+    if (!positionDocument.exists()) return undefined
+    const [cyclesSnapshot, eventsSnapshot] = await Promise.all([
+      getDocsFromCache(query(collection(reference, 'plantingCycles'), orderBy('cycleNumber'))),
+      getDocsFromCache(query(collection(reference, 'events'), orderBy('createdAt', 'desc'))),
+    ])
+    const cycles = cyclesSnapshot.docs.map((cycleDocument) => cycleFromData(cycleDocument.data()))
+    const currentCycleNumber = requiredInteger(positionDocument.data(), 'currentCycleNumber')
+    const currentCycle = cycles.find((cycle) => cycle.cycleNumber === currentCycleNumber)
+    if (!currentCycle) return undefined
+    return {
+      ...this.summaryFromData(positionDocument.data(), currentCycle),
+      plantingCycles: cycles,
+      timeline: eventsSnapshot.docs.map((eventDocument) => eventFromData(eventDocument.data())),
+    }
+  }
+
   async resolvePositionRoute(
     context: TreeMutationContext,
     positionId: string,
@@ -406,6 +439,14 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       if (error instanceof FirebaseError && error.code === 'permission-denied') {
         return { status: 'ACCESS_DENIED' }
       }
+      if (error instanceof FirebaseError && error.code === 'unavailable') {
+        const cached = await this.getCachedTreePosition(
+          context.farm.organizationId,
+          context.farm.farmId,
+          positionId,
+        )
+        return cached ? { status: 'FOUND', position: cached } : { status: 'UNKNOWN' }
+      }
       throw error
     }
   }
@@ -416,7 +457,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     tagCode: string,
   ): Promise<TreePositionDetail | undefined> {
     const normalized = normalizeTagCode(tagCode)
-    const tagDocument = await getDoc(rootDoc(
+    const tagReference = rootDoc(
       this.firestore,
       'organizations',
       organizationId,
@@ -424,13 +465,22 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
       farmId,
       'treeTags',
       normalized,
-    ))
-    if (!tagDocument.exists()) return undefined
-    return this.getTreePosition(
-      organizationId,
-      farmId,
-      requiredString(tagDocument.data(), 'positionId'),
     )
+    let tagDocument
+    try {
+      tagDocument = await getDoc(tagReference)
+    } catch (error) {
+      if (!(error instanceof FirebaseError) || error.code !== 'unavailable') throw error
+      tagDocument = await getDocFromCache(tagReference)
+    }
+    if (!tagDocument.exists()) return undefined
+    const positionId = requiredString(tagDocument.data(), 'positionId')
+    try {
+      return await this.getTreePosition(organizationId, farmId, positionId)
+    } catch (error) {
+      if (!(error instanceof FirebaseError) || error.code !== 'unavailable') throw error
+      return this.getCachedTreePosition(organizationId, farmId, positionId)
+    }
   }
 
   async createTreePosition(
@@ -615,6 +665,92 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
     return this.requirePosition(context, positionId)
   }
 
+  async deleteTreePositions(
+    context: TreeMutationContext,
+    positionIds: readonly string[],
+  ): Promise<DeleteTreePositionsResult> {
+    if (!canDeleteTreePositions(context.farm, context.isSystemAdmin)) {
+      throw new Error('เฉพาะ MasterAdmin หรือเจ้าของสวนที่ใช้งานอยู่เท่านั้นที่ลบรายการต้นไม้ได้')
+    }
+    const uniqueIds = [...new Set(positionIds)]
+    if (uniqueIds.length === 0) throw new Error('กรุณาเลือกรายการที่ต้องการลบ')
+    if (uniqueIds.length > 50) throw new Error('ลบได้ครั้งละไม่เกิน 50 รายการ')
+    if (uniqueIds.some((positionId) => !isOpaquePositionId(positionId))) {
+      throw new Error('พบ Position ID ที่ไม่ถูกต้อง')
+    }
+
+    const farmCollection = (...segments: string[]) => rootCollection(
+      this.firestore,
+      'organizations',
+      context.farm.organizationId,
+      'farms',
+      context.farm.farmId,
+      ...segments,
+    )
+    const positionDocuments = await Promise.all(uniqueIds.map(async (positionId) => {
+      const reference = treePositionReference(this.firestore, context, positionId)
+      const snapshot = await getDoc(reference)
+      if (!snapshot.exists()) throw new Error('ไม่พบตำแหน่งปลูกในสวนปัจจุบัน')
+      const data = snapshot.data()
+      if (
+        requiredString(data, 'organizationId') !== context.farm.organizationId ||
+        requiredString(data, 'farmId') !== context.farm.farmId
+      ) {
+        throw new Error('ห้ามลบตำแหน่งข้ามสวน')
+      }
+      return { positionId, reference, data }
+    }))
+
+    const positionChildren = await Promise.all(positionDocuments.map(async (position) => {
+      const [cycles, events] = await Promise.all([
+        getDocs(collection(position.reference, 'plantingCycles')),
+        getDocs(collection(position.reference, 'events')),
+      ])
+      return { ...position, cycles, events }
+    }))
+
+    const childDocuments = positionChildren.flatMap(({ cycles, events }) => [
+      ...cycles.docs,
+      ...events.docs,
+    ])
+    for (let start = 0; start < childDocuments.length; start += 450) {
+      const childBatch = writeBatch(this.firestore)
+      childDocuments.slice(start, start + 450).forEach((document) => childBatch.delete(document.ref))
+      await childBatch.commit()
+    }
+
+    const batch = writeBatch(this.firestore)
+    positionChildren.forEach(({ positionId, reference, data }) => {
+      const tagCode = requiredString(data, 'tagCode')
+      batch.delete(reference)
+      batch.delete(rootDoc(this.firestore, 'positionRoutes', positionId))
+      batch.delete(this.tagReference(context, tagCode))
+      const auditId = `tree_delete_${crypto.randomUUID()}`
+      batch.set(doc(farmCollection('treeDeletionAuditEvents'), auditId), {
+        recordType: 'TREE_POSITION_DELETION_AUDIT',
+        auditEventId: auditId,
+        organizationId: context.farm.organizationId,
+        farmId: context.farm.farmId,
+        positionId,
+        tagCode,
+        actorUserId: context.actor.userId,
+        actorDisplayName: context.actor.displayName,
+        authority: context.isSystemAdmin ? 'MASTER_ADMIN' : 'FARM_OWNER',
+        reason: 'ลบจากรายการทะเบียนต้นโดยผู้มีสิทธิ์',
+        positionSnapshot: {
+          zoneCode: requiredString(data, 'zoneCode'),
+          rowCode: requiredString(data, 'rowCode'),
+          treeSequence: requiredInteger(data, 'treeSequence'),
+          currentCycleNumber: requiredInteger(data, 'currentCycleNumber'),
+          exampleData: data.exampleData === true,
+        },
+        createdAt: serverTimestamp(),
+      })
+    })
+    await batch.commit()
+    return { deletedPositionIds: uniqueIds, deletedCount: uniqueIds.length }
+  }
+
   async reportDamagedTag(
     context: TreeMutationContext,
     positionId: string,
@@ -654,7 +790,9 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
   ): Promise<TreeImportResult> {
     requireManager(context)
     if (candidates.length === 0) throw new Error('ไม่มีแถวที่ผ่านการตรวจสำหรับ Import')
-    if (candidates.length > 50) throw new Error('Phase 3 local import จำกัดครั้งละไม่เกิน 50 ตำแหน่ง')
+    if (candidates.length > treeRegisterImportBatchSize) {
+      throw new Error(`อัปโหลดทะเบียนต้นได้ชุดละไม่เกิน ${treeRegisterImportBatchSize} ตำแหน่ง`)
+    }
     const importReference = rootDoc(
       this.firestore,
       'organizations',
@@ -707,7 +845,7 @@ export class FirebaseTreeRegisterRepository implements TreeRegisterRepository {
         candidate.tagCode,
         eventId,
         'TREE_POSITION_IMPORTED',
-        `นำเข้าจากไฟล์ทะเบียนต้น แถว ${candidate.sourceRow} แบบทั้งชุด`,
+        `นำเข้าจากไฟล์ทะเบียนต้น แถว ${candidate.sourceRow} ในชุดอัปโหลด`,
       )
     })
     batch.set(importReference, {

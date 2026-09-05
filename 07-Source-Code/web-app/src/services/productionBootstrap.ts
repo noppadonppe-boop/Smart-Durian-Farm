@@ -1,6 +1,5 @@
-import { getDoc, runTransaction, serverTimestamp } from 'firebase/firestore'
+import { runTransaction, serverTimestamp } from 'firebase/firestore'
 
-import { appEnvironment } from '../config/environment'
 import {
   deriveFarmCode,
   normalizeFarmProfileDraft,
@@ -21,17 +20,10 @@ export interface OperationalWorkspaceInput {
   subdistrict: string
   locationNote: string
 }
-
 export interface OperationalWorkspaceResult {
   organizationId: string
   farmId: string
   farmCode: string
-}
-
-export interface TestSeedResult {
-  modules: readonly string[]
-  skippedStorageUploads: boolean
-  counts: Record<string, unknown>
 }
 
 function normalizeOrganizationName(value: string): string {
@@ -210,85 +202,3 @@ export async function bootstrapOperationalWorkspace(
   }
 }
 
-export async function seedFirebaseLiveTestPack(): Promise<TestSeedResult> {
-  const identity = identityForCurrentUser()
-  const { firestore, storage } = createFirebaseLiveClients()
-  if (!(await getDoc(rootDocument(firestore))).exists()) {
-    throw new Error('กรุณาสร้างพื้นที่ใช้งานจริงก่อน Seed ชุดทดสอบ')
-  }
-
-  const [
-    seedModule,
-    foundation,
-    annualCycles,
-    work,
-    commercial,
-    operations,
-    diseaseAnalysis,
-    managementReporting,
-  ] = await Promise.all([
-    // JavaScript module is shared with the Admin SDK seed script.
-    import('../../scripts/mock-seed/modules.mjs'),
-    import('../../scripts/seed-data/phase2-demo-seed.json'),
-    import('../../scripts/seed-data/annual-cycle-mock-data-pack-v1.0.json'),
-    import('../../scripts/seed-data/phase4-mock-data-pack-v1.0.json'),
-    import('../../scripts/seed-data/phase5-mock-data-pack-v1.0.json'),
-    import('../../scripts/seed-data/phase6-mock-data-pack-v1.0.json'),
-    import('../../scripts/seed-data/disease-analysis-p1-mock-data-pack-v1.0.json'),
-    import('../../scripts/seed-data/management-reporting-mock-data-pack-v1.0.json'),
-  ])
-
-  const packs = {
-    foundation: foundation.default,
-    annualCycles: annualCycles.default,
-    work: work.default,
-    commercial: commercial.default,
-    operations: operations.default,
-    diseaseAnalysis: diseaseAnalysis.default,
-    managementReporting: managementReporting.default,
-  }
-  const users = packs.foundation.users
-  const userMappings = new Map(users.map((candidate) => [
-    candidate.userId,
-    {
-      ...candidate,
-      firebaseUserId: candidate.isOrganizationOwner ? identity.userId : candidate.userId,
-    },
-  ]))
-  const moduleOrder = [
-    'foundation',
-    'annual-cycles',
-    'trees',
-    'work',
-    'commercial',
-    'management-reporting',
-    'operations',
-    'disease-analysis',
-  ] as const
-  const counts: Record<string, unknown> = {}
-  const seeders = seedModule.seeders as Record<
-    string,
-    (context: Record<string, unknown>) => Promise<unknown>
-  >
-  const context = {
-    firestore,
-    storage,
-    packs,
-    rootSegments: ['durian-smartfarm', 'root'],
-    userMappings,
-    skipRootDocument: true,
-    skipStorageUploads: !appEnvironment.firebase.storageReady,
-  }
-
-  for (const moduleName of moduleOrder) {
-    const seed = seeders[moduleName]
-    if (!seed) throw new Error(`ไม่พบ Seeder สำหรับ ${moduleName}`)
-    counts[moduleName] = await seed(context)
-  }
-
-  return {
-    modules: moduleOrder,
-    skippedStorageUploads: !appEnvironment.firebase.storageReady,
-    counts,
-  }
-}

@@ -1,3 +1,4 @@
+// Mock implementations are test doubles only; AppEnvironment below is always Live.
 export type DataAdapterMode = 'mock' | 'firebase-live'
 export type AuthAdapterMode = 'mock' | 'firebase-live'
 
@@ -19,21 +20,6 @@ export interface AppEnvironment {
   }
 }
 
-function adapterMode(value: string | undefined): DataAdapterMode {
-  // Mock adapters exist only for the Vitest process. Every browser build uses
-  // Firebase Live even if a stale local environment variable says otherwise.
-  if (import.meta.env.MODE === 'test' && value === 'mock') return 'mock'
-  return 'firebase-live'
-}
-
-function authAdapterMode(
-  value: string | undefined,
-  dataAdapter: DataAdapterMode,
-): AuthAdapterMode {
-  if (dataAdapter === 'firebase-live') return 'firebase-live'
-  return import.meta.env.MODE === 'test' && value === 'mock' ? 'mock' : 'firebase-live'
-}
-
 function commaSeparatedValues(value: string | undefined): readonly string[] {
   return (value ?? '')
     .split(',')
@@ -46,11 +32,9 @@ function positiveInteger(value: string | undefined, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
-const dataAdapter = adapterMode(import.meta.env.VITE_DATA_ADAPTER)
-
 export const appEnvironment: AppEnvironment = Object.freeze({
-  dataAdapter,
-  authAdapter: authAdapterMode(import.meta.env.VITE_AUTH_ADAPTER, dataAdapter),
+  dataAdapter: 'firebase-live',
+  authAdapter: 'firebase-live',
   qrBaseUrl: import.meta.env.VITE_QR_BASE_URL ?? 'https://durian-smartfarm.web.app',
   firebase: {
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'durian-smartfarm',

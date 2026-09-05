@@ -17,7 +17,7 @@ function formText(form: FormData, name: string): string {
   return typeof value === 'string' ? value : ''
 }
 export function InventoryPage() {
-  const { currentFarm, mode, listCommercialSnapshot, recordInventoryMovement, resetPhase5MockData } = usePhase2()
+  const { currentFarm, listCommercialSnapshot, recordInventoryMovement } = usePhase2()
   const [snapshot, setSnapshot] = useState<CommercialSnapshot>()
   const [selectedItemId, setSelectedItemId] = useState('')
   const [selectedLotId, setSelectedLotId] = useState('')
@@ -84,12 +84,6 @@ export function InventoryPage() {
     }
   }
 
-  const reset = () => {
-    setError(undefined)
-    void resetPhase5MockData().then(async () => { setMessage('Reset กลับ Mock Data Pack v1.0.0 แล้ว'); await load() })
-      .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : 'Reset ไม่สำเร็จ'))
-  }
-
   const firstItem = snapshot?.inventoryItems.find((item) => item.status === 'ACTIVE')
   const activeItems = snapshot?.inventoryItems.filter((item) => item.status === 'ACTIVE') ?? []
   const selectedItem = activeItems.find((item) => item.itemId === selectedItemId) ?? firstItem
@@ -103,9 +97,7 @@ export function InventoryPage() {
 
   return <section className="page-stack commercial-page">
     <PageHeader eyebrow="Phase 5 · Farm-scoped Inventory" title="สต็อก วัสดุ และต้นทุนตรง" description="รับเข้า เบิกใช้ ปรับยอดพร้อมเหตุผลและ Reference; ปฏิเสธสต็อกติดลบและการแปลงหน่วยที่ไม่ได้กำหนด" backTo="/more" />
-    {mode === 'firebase-live' && !currentFarm.isMock
-      ? <div className="operational-data-banner" role="note"><strong>Firebase Production · {currentFarm.farmCode}</strong><span>ไม่มีการโอนข้ามสวน และไม่ใช่ระบบบัญชี</span></div>
-      : <div className="field-validation-banner" role="note"><strong>SIMULATED/TEST ONLY · {currentFarm.farmCode}</strong><span>ไม่มีการโอนข้ามสวน และไม่ใช่ระบบบัญชี</span></div>}
+    <div className="operational-data-banner" role="note"><strong>Firebase Production · {currentFarm.farmCode}</strong><span>ไม่มีการโอนข้ามสวน และไม่ใช่ระบบบัญชี</span></div>
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {message ? <div className="success-notice" role="status">{message}</div> : null}
     {snapshot ? <>
@@ -137,17 +129,16 @@ export function InventoryPage() {
       {canManageCommercial(currentFarm.role) && selectedItem && selectedLot ? <details className="inventory-form-panel" open><summary>+ บันทึก Inventory Movement</summary><form className="commercial-form" onSubmit={(event) => { void onMovement(event) }}>
         <label>Item<select name="itemId" value={selectedItem.itemId} onChange={(event) => selectItem(event.target.value)}>{activeItems.map((item) => <option value={item.itemId} key={item.itemId}>{item.itemCode} · {item.name}</option>)}</select></label>
         <label>Lot<select name="lotId" value={selectedLot.lotId} onChange={(event) => setSelectedLotId(event.target.value)}>{selectedItem.lots.map((lot) => <option value={lot.lotId} key={lot.lotId}>{lot.lotCode} ({selectedItem.baseUnit})</option>)}</select><small>แสดงเฉพาะล็อตของ Item ที่เลือก</small></label>
-        <label>วันที่เคลื่อนไหว<input name="effectiveOn" type="date" required defaultValue={mode === 'firebase-live' && !currentFarm.isMock ? '' : '2026-08-31'} /></label>
+        <label>วันที่เคลื่อนไหว<input name="effectiveOn" type="date" required /></label>
         <label>ประเภท<select name="movementType" defaultValue="ISSUE"><option value="RECEIPT">รับเข้า</option><option value="ISSUE">เบิกใช้</option>{canApproveCommercialCorrection(currentFarm.role) ? <option value="ADJUSTMENT">ปรับยอดโดย Owner/Manager</option> : null}</select></label>
         <label>จำนวน<input name="quantity" type="number" step="0.001" required defaultValue="1" /><small>Adjustment ใช้ค่าลบได้; Receipt/Issue ใช้ค่าบวก</small></label>
         <label>หน่วย<input name="unit" readOnly value={selectedItem.baseUnit} /><small>กำหนดจากหน่วยฐานของ Item เพื่อไม่คาดเดาการแปลง</small></label>
         <label>Reference type<select name="referenceType" defaultValue="WORK_ORDER"><option value="PURCHASE_REFERENCE">เอกสารรับเข้า</option><option value="WORK_ORDER">Work Order</option><option value="CARE_EVENT">Care Event</option>{canApproveCommercialCorrection(currentFarm.role) ? <option value="COUNT_CORRECTION">ตรวจนับ/Correction</option> : null}</select></label>
-        <label>Reference ID<input name="referenceId" required defaultValue={mode === 'firebase-live' && !currentFarm.isMock ? '' : 'work_demo_tree_000001'} /></label>
-        {canAccessFinancialData(currentFarm) ? <label>ต้นทุนต่อหน่วย (บาท)<input name="directUnitCostBaht" type="number" min="0" step="0.01" defaultValue={mode === 'firebase-live' && !currentFarm.isMock ? '' : '42.5'} /><small>Owner only</small></label> : null}
-        <label className="span-full">เหตุผล<input name="reason" required defaultValue={mode === 'firebase-live' && !currentFarm.isMock ? 'บันทึกการเคลื่อนไหวตามเอกสารอ้างอิง' : 'SIMULATED/TEST ONLY — เบิกใช้กับงานจำลอง'} /></label>
+        <label>Reference ID<input name="referenceId" required /></label>
+        {canAccessFinancialData(currentFarm) ? <label>ต้นทุนต่อหน่วย (บาท)<input name="directUnitCostBaht" type="number" min="0" step="0.01" /><small>Owner only</small></label> : null}
+        <label className="span-full">เหตุผล<input name="reason" required /></label>
         <button className="primary-action span-full" disabled={saving} type="submit">{saving ? 'กำลังบันทึก…' : 'บันทึก Movement'}</button>
       </form></details> : null}
-      {mode === 'mock' ? <section className="phase2-test-controls"><span className="status-pill">Resettable fixture</span><h2>รีเซ็ตข้อมูล Phase 5</h2><p>ลบเฉพาะ mutation ในหน่วยความจำและโหลด Pack v1.0.0 เดิมกลับมา ไม่แตะข้อมูลจริง</p><button className="secondary-action" disabled={saving} type="button" onClick={reset}>Reset Mock Data Pack</button></section> : null}
     </> : <div className="loading-inline" role="status">กำลังอ่านสต็อก…</div>}
   </section>
 }

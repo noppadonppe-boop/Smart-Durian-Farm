@@ -4,40 +4,28 @@ import { usePhase2 } from '../app/usePhase2'
 import { permissionsFor, roleLabels } from '../domain/farm'
 import { canReadCommercial } from '../domain/commercialTraceability'
 import { canViewManagementReports } from '../domain/managementReporting'
+import { useAuth } from '../security/AuthContext'
+import { PendingTaskBadge } from '../components/PendingTaskBadge'
 import { PageHeader } from './PageHeader'
 
 export function MorePage() {
+  const { isSystemAdmin, pendingUsersCount } = useAuth()
   const {
-    mode,
-    authMode,
     currentFarm,
     identity,
-    pendingOperations,
-    addDemoPendingOperation,
-    clearDemoPendingOperations,
   } = usePhase2()
   if (!currentFarm || !identity) return null
   const permissions = permissionsFor(currentFarm)
-  const currentPending = pendingOperations.filter(
-    (operation) => operation.farmId === currentFarm.farmId,
-  )
-
   const boundaries = [
     [
       'Authentication',
-      authMode === 'firebase-live'
-        ? 'Google/Phone Authentication และข้อมูลสวนผ่าน Firebase Live'
-        : 'Unit test ใช้ Mock authentication',
+      'Google/Phone Authentication และข้อมูลสวนผ่าน Firebase Live',
     ],
     ['บทบาทปัจจุบัน', `${roleLabels[currentFarm.role]} · ${currentFarm.farmCode}`],
-    ['ข้อมูล', mode === 'firebase-live' ? 'ข้อมูล Production แยกตาม Organization/Farm' : 'ข้อมูลจำลองเท่านั้น · แยกตาม Organization/Farm'],
+    ['ข้อมูล', 'ข้อมูล Production แยกตาม Organization/Farm'],
     [
       'การเชื่อมระบบจริง',
-      authMode === 'firebase-live'
-        ? mode === 'firebase-live'
-          ? 'เชื่อม Firebase Authentication, Firestore และ Storage ตามสิทธิ์'
-          : 'เชื่อมเฉพาะ Firebase Authentication · ข้อมูลยังอยู่ใน Mock adapter'
-        : 'ยังไม่เชื่อมต่อ · ใช้ Mock Data จนกว่าจะพร้อมเปิดแอปจริง',
+      'เชื่อม Firebase Authentication, Firestore และ Storage ตามสิทธิ์',
     ],
   ] as const
 
@@ -173,12 +161,34 @@ export function MorePage() {
             <h3 className="admin-group__title">สิทธิ์ ความปลอดภัย และระบบ</h3>
           </div>
           <div className="admin-links">
+            {isSystemAdmin ? (
+              <Link className="admin-link-card--system" to="/user-management">
+                <span aria-hidden="true">👥</span>
+                <div>
+                  <strong>จัดการผู้ใช้งาน</strong>
+                  <small>
+                    MasterAdmin · อนุมัติคำขอ กำหนดสวนและสิทธิ์
+                    {pendingUsersCount > 0 ? ' · มีคำขอรอดำเนินการ' : ''}
+                  </small>
+                </div>
+                <PendingTaskBadge count={pendingUsersCount} placement="corner" />
+                <span aria-hidden="true">›</span>
+              </Link>
+            ) : null}
+            <Link className="admin-link-card--system" to="/profile">
+              <span aria-hidden="true">👤</span>
+              <div>
+                <strong>โปรไฟล์และข้อมูลส่วนตัว</strong>
+                <small>แก้ไขชื่อ-นามสกุล และข้อมูลติดต่อ</small>
+              </div>
+              <span aria-hidden="true">›</span>
+            </Link>
             {permissions.canManageMemberships ? (
               <Link className="admin-link-card--system" to="/members">
                 <span aria-hidden="true">👥</span>
                 <div>
-                  <strong>สมาชิกและสิทธิ์</strong>
-                  <small>Owner only · มี Audit ทุกการเปลี่ยน</small>
+                  <strong>จัดการผู้ใช้งานในสวน</strong>
+                  <small>สมาชิกและสิทธิ์ · Owner only · มี Audit ทุกการเปลี่ยน</small>
                 </div>
                 <span aria-hidden="true">›</span>
               </Link>
@@ -201,16 +211,6 @@ export function MorePage() {
               </div>
               <span aria-hidden="true">›</span>
             </Link>
-            {import.meta.env.DEV && mode === 'mock' ? (
-              <Link className="admin-link-card--system" to="/dev/scenarios">
-                <span aria-hidden="true">🧪</span>
-                <div>
-                  <strong>Mock Scenario Center</strong>
-                  <small>Development only · deterministic scenarios</small>
-                </div>
-                <span aria-hidden="true">›</span>
-              </Link>
-            ) : null}
             <Link className="admin-link-card--system" to="/manual">
               <span aria-hidden="true">📖</span>
               <div>
@@ -241,30 +241,6 @@ export function MorePage() {
         </div>
       </div>
 
-      <section className="phase2-test-controls" aria-labelledby="pending-test-title">
-        <div>
-          <span className="status-pill">Validation control</span>
-          <h2 id="pending-test-title">ทดสอบรายการค้างส่งกับ Farm Switcher</h2>
-          <p>
-            สร้างรายการจำลองที่ล็อกกับ {currentFarm.farmCode} แล้วลองเปลี่ยนสวน
-            ระบบต้องเตือนและห้ามเปลี่ยน farm scope ของรายการเดิม
-          </p>
-        </div>
-        <div className="dialog-actions">
-          <button className="secondary-action" onClick={addDemoPendingOperation} type="button">
-            เพิ่มรายการค้างส่งจำลอง
-          </button>
-          <button
-            className="secondary-action"
-            disabled={pendingOperations.length === 0}
-            onClick={clearDemoPendingOperations}
-            type="button"
-          >
-            ล้างรายการจำลองทั้งหมด
-          </button>
-        </div>
-        <p>{currentPending.length} รายการค้างในสวนนี้ · {pendingOperations.length} รายการรวมทุกสวน</p>
-      </section>
     </section>
   )
 }

@@ -48,4 +48,38 @@ describe('MockTreeQrAssetRepository', () => {
     expect((await repository.listQrAssets(farm)).map((asset) => asset.format)).toEqual(['TAG', 'URL'])
     expect((await repository.listQrAssets(context('farm_demo_south_02'))).length).toBe(0)
   })
+
+  it('deletes every QR format for selected positions in the current farm', async () => {
+    const repository = new MockTreeQrAssetRepository()
+    const farm = context()
+    const selectedPositionId = 'pos_demo_a01f783bc219'
+    const otherPositionId = 'pos_demo_b02f783bc219'
+    const baseDraft = {
+      tagCode: 'DEMO-F01-Z01-R01-T001',
+      svg: '<svg />',
+    }
+    await repository.createQrAsset(farm, {
+      ...baseDraft,
+      positionId: selectedPositionId,
+      format: 'TAG',
+      payload: 'DEMO-F01-Z01-R01-T001',
+    })
+    await repository.createQrAsset(farm, {
+      ...baseDraft,
+      positionId: selectedPositionId,
+      format: 'URL',
+      payload: `https://example.invalid/t/${selectedPositionId}`,
+    })
+    await repository.createQrAsset(farm, {
+      ...baseDraft,
+      positionId: otherPositionId,
+      format: 'TAG',
+      payload: 'DEMO-F01-Z01-R01-T002',
+    })
+
+    await expect(repository.deleteQrAssets(farm, [selectedPositionId])).resolves.toBe(2)
+    await expect(repository.listQrAssets(farm)).resolves.toMatchObject([
+      { positionId: otherPositionId },
+    ])
+  })
 })

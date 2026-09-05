@@ -19,13 +19,6 @@ import {
   type ValueQuality,
 } from '../domain/commercialTraceability'
 import {
-  aiCaptureMethodLabels,
-  aiCaptureMethods,
-  runDeterministicFruitCount,
-  type AiCaptureMethod,
-  type DeterministicFruitCountResult,
-} from '../domain/fruitCountingFeasibility'
-import {
   navigationIntentFromState,
   positionIdsForAnchor,
   selectionFromNavigationState,
@@ -55,7 +48,6 @@ function formSignature(form: FormData): string {
 export function ProductionPage() {
   const location = useLocation()
   const {
-    mode,
     currentFarm,
     annualCycleSnapshot,
     listTreePositions,
@@ -67,7 +59,7 @@ export function ProductionPage() {
     createSalesLot,
     correctSalesLot,
   } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const isProduction = true
   const [snapshot, setSnapshot] = useState<CommercialSnapshot>()
   const [trees, setTrees] = useState<readonly TreePositionSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,10 +70,8 @@ export function ProductionPage() {
   const [observationStage, setObservationStage] = useState<CropStage>('MID_SEASON')
   const [countMethod, setCountMethod] = useState<CountMethod>('SAMPLE')
   const [valueQuality, setValueQuality] = useState<ValueQuality>('ESTIMATED')
-  const [aiCaptureMethod, setAiCaptureMethod] = useState<AiCaptureMethod>('MULTI_VIEW')
-  const [aiCountResult, setAiCountResult] = useState<DeterministicFruitCountResult>()
-  const [observedCount, setObservedCount] = useState(isProduction ? '' : '120')
-  const [confidenceNote, setConfidenceNote] = useState(isProduction ? 'ผู้บันทึกต้องตรวจทานจำนวนก่อนยืนยัน' : 'SIMULATED/TEST ONLY — ข้อมูลจำลองสำหรับทดสอบ workflow')
+  const [observedCount, setObservedCount] = useState('')
+  const [confidenceNote, setConfidenceNote] = useState('ผู้บันทึกต้องตรวจทานจำนวนก่อนยืนยัน')
   const [observationScopeKind, setObservationScopeKind] = useState<'TREE' | 'ZONE'>('ZONE')
   const [observationPositionIds, setObservationPositionIds] = useState<readonly string[]>([])
   const [harvestPositionIds, setHarvestPositionIds] = useState<readonly string[]>([])
@@ -195,10 +185,8 @@ export function ProductionPage() {
   const onObservation = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const submittedCountingMode = formText(form, 'countingMode') as FruitCountingMode
-    const submittedValueQuality = submittedCountingMode === 'AI_ASSISTED'
-      ? 'ESTIMATED'
-      : formText(form, 'valueQuality') as ValueQuality
+    const submittedCountingMode: FruitCountingMode = 'MANUAL'
+    const submittedValueQuality = formText(form, 'valueQuality') as ValueQuality
     const zoneCodes = selectionZoneCodes(trees, observationPositionIds)
     const signature = `${formSignature(form)}:${observationScopeKind}:${observationPositionIds.join(',')}`
     void submit(() => createFruitObservation(idempotency('fruit', signature), {
@@ -208,9 +196,7 @@ export function ProductionPage() {
       positionIds: observationPositionIds,
       zoneCodes,
       countingMode: submittedCountingMode,
-      sourceCountSessionId: submittedCountingMode === 'AI_ASSISTED'
-        ? aiCountResult?.countSessionId ?? null
-        : null,
+      sourceCountSessionId: null,
       countMethod: formText(form, 'countMethod') as CountMethod,
       observedCount: submittedValueQuality === 'UNKNOWN' ? null : numberOrNull(form, 'observedCount'),
       droppedCount: submittedValueQuality === 'UNKNOWN' ? null : numberOrNull(form, 'droppedCount'),
@@ -220,39 +206,8 @@ export function ProductionPage() {
     }), isProduction ? 'บันทึก Fruit Observation ใน Firebase แล้ว' : 'บันทึก Fruit Observation จำลองแล้ว')
   }
 
-  const onCountingModeChange = (nextMode: FruitCountingMode) => {
-    setCountingMode(nextMode)
-    setAiCountResult(undefined)
-    if (nextMode === 'AI_ASSISTED') {
-      setValueQuality('ESTIMATED')
-      if (countMethod === 'FULL_COUNT' || countMethod === 'UNKNOWN') setCountMethod('SAMPLE')
-      setConfidenceNote(isProduction ? 'รอผลการประเมินแบบกฎคงที่และการตรวจทานโดยคน' : 'SIMULATED/TEST ONLY — รอผล AI จำลองและการตรวจทานโดยคน')
-    } else {
-      setConfidenceNote(isProduction ? 'ผู้บันทึกต้องตรวจทานจำนวนก่อนยืนยัน' : 'SIMULATED/TEST ONLY — ข้อมูลจำลองสำหรับทดสอบ workflow')
-    }
-  }
-
   const onObservationStageChange = (nextStage: CropStage) => {
     setObservationStage(nextStage)
-    setAiCountResult(undefined)
-    if (nextStage === 'FLOWERING' && countingMode === 'AI_ASSISTED') onCountingModeChange('MANUAL')
-  }
-
-  const onRunAiMock = () => {
-    setError(undefined)
-    setMessage(undefined)
-    try {
-      const result = runDeterministicFruitCount(
-        observationStage,
-        aiCaptureMethod,
-        `aifc-mock-${crypto.randomUUID()}`,
-      )
-      setAiCountResult(result)
-      setObservedCount(String(result.proposedReviewedCount))
-      setConfidenceNote(`${result.limitationNote} · ผู้บันทึกต้องตรวจและแก้จำนวนก่อนยืนยัน`)
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : isProduction ? 'การประเมินจำนวนไม่สำเร็จ' : 'AI จำลองช่วยนับไม่สำเร็จ')
-    }
   }
 
   const onHarvest = (event: FormEvent<HTMLFormElement>) => {
@@ -393,8 +348,8 @@ export function ProductionPage() {
             <label>รหัสรอบ<input name="cycleCode" required defaultValue={isProduction ? '' : `CROP-${currentFarm.farmCode}-DEMO-02`} /></label>
             <label>ชื่อรอบ<input name="name" required defaultValue={isProduction ? 'รอบผลผลิตใหม่' : 'รอบผลผลิตจำลองใหม่'} /></label>
             <label>Stage<select name="stage" defaultValue="FLOWERING">{cropStages.map((stage) => <option key={stage} value={stage}>{cropStageLabels[stage]}</option>)}</select></label>
-            <label>Zone (คั่นด้วย comma)<input name="zoneCodes" required defaultValue={isProduction ? '' : 'Z01'} /></label>
-            <label>Variety reference<input name="varietyReference" required defaultValue={isProduction ? '' : 'VARIETY-DEMO-ONLY'} /></label>
+            <label>Zone (คั่นด้วย comma)<input name="zoneCodes" required /></label>
+            <label>Variety reference<input name="varietyReference" required /></label>
             <label>วันที่คาดเก็บเกี่ยว<input name="expectedHarvestDate" type="date" /></label>
             <button className="primary-action" disabled={submitting} type="submit">{isProduction ? 'สร้างรอบผลผลิต' : 'สร้างรอบจำลอง'}</button>
           </form></details>
@@ -426,24 +381,12 @@ export function ProductionPage() {
               selectionMode={observationScopeKind === 'ZONE' ? 'ZONE' : 'MULTIPLE'}
               title="เลือกขอบเขตการสังเกตผล"
             /> : null}</div>
-            <label>วิธีได้มาของจำนวน<select name="countingMode" value={countingMode} onChange={(event) => onCountingModeChange(event.target.value as FruitCountingMode)}><option value="MANUAL">คนนับ</option><option value="AI_ASSISTED" disabled={observationStage === 'FLOWERING'}>AI ช่วยนับ + คนตรวจ</option></select></label>
-            <label>คุณภาพค่า<select name="valueQuality" value={countingMode === 'AI_ASSISTED' ? 'ESTIMATED' : valueQuality} disabled={countingMode === 'AI_ASSISTED'} onChange={(event) => setValueQuality(event.target.value as ValueQuality)}><option value="MEASURED">วัดจริง</option><option value="ESTIMATED">ประมาณการ</option><option value="UNKNOWN">ยังไม่ทราบ</option></select></label>
-            <label>ขอบเขตการนับ<select name="countMethod" value={countMethod} onChange={(event) => setCountMethod(event.target.value as CountMethod)}><option value="FULL_COUNT" disabled={countingMode === 'AI_ASSISTED'}>นับครบ</option><option value="SAMPLE">สุ่มตัวอย่าง</option><option value="ESTIMATE">ประมาณ</option><option value="UNKNOWN" disabled={countingMode === 'AI_ASSISTED'}>ยังไม่ทราบ</option></select></label>
-            {countingMode === 'AI_ASSISTED' ? <section className="ai-count-panel span-full" aria-label={isProduction ? 'Fruit Count Assistance' : 'AI Fruit Counting จำลอง'}>
-              <strong>{isProduction ? 'Fruit Count Assistance · Deterministic Rules' : 'AI Fruit Counting · SIMULATED/TEST ONLY'}</strong>
-              <p>{isProduction ? 'ระบบจะเสนอจำนวนตามกฎคงที่เพื่อช่วยกรอกข้อมูลเท่านั้น ไม่ใช่การวินิจฉัย และต้องให้คนตรวจทานก่อนบันทึก' : 'ระบบจำลองผลอย่างคงที่เพื่อทดสอบขั้นตอนเท่านั้น ไม่ได้อ่านภาพจริง และต้องให้คนตรวจทานก่อนบันทึก'}</p>
-              <label>{isProduction ? 'ชุดข้อมูลอ้างอิง' : 'ชุดภาพจำลอง'}<select value={aiCaptureMethod} onChange={(event) => { setAiCaptureMethod(event.target.value as AiCaptureMethod); setAiCountResult(undefined) }}>{aiCaptureMethods.map((method) => <option key={method} value={method}>{aiCaptureMethodLabels[method]}</option>)}</select></label>
-              <button className="secondary-action" type="button" onClick={onRunAiMock}>{isProduction ? 'คำนวณจำนวนเพื่อช่วยกรอก' : 'ให้ AI จำลองช่วยนับ'}</button>
-              {aiCountResult ? <div className="ai-count-summary" role="status">
-                <span>พบในภาพ {aiCountResult.aiVisibleCount}</span>
-                <span>หลังตัดซ้ำ {aiCountResult.trackedCount}</span>
-                <span>ไม่แน่ใจ {aiCountResult.uncertainCount}</span>
-                <strong>เสนอให้คนตรวจ {aiCountResult.proposedReviewedCount} ผล</strong>
-              </div> : <small>{isProduction ? 'กรุณาคำนวณก่อน แล้วตรวจหรือแก้จำนวนผลด้านล่าง' : 'กรุณารัน AI จำลองก่อน แล้วตรวจหรือแก้จำนวนผลด้านล่าง'}</small>}
-            </section> : null}
+            <label>วิธีได้มาของจำนวน<select name="countingMode" value={countingMode} onChange={() => setCountingMode('MANUAL')}><option value="MANUAL">คนนับ</option></select></label>
+            <label>คุณภาพค่า<select name="valueQuality" value={valueQuality} onChange={(event) => setValueQuality(event.target.value as ValueQuality)}><option value="MEASURED">วัดจริง</option><option value="ESTIMATED">ประมาณการ</option><option value="UNKNOWN">ยังไม่ทราบ</option></select></label>
+            <label>ขอบเขตการนับ<select name="countMethod" value={countMethod} onChange={(event) => setCountMethod(event.target.value as CountMethod)}><option value="FULL_COUNT">นับครบ</option><option value="SAMPLE">สุ่มตัวอย่าง</option><option value="ESTIMATE">ประมาณ</option><option value="UNKNOWN">ยังไม่ทราบ</option></select></label>
             <label>จำนวนผล<input aria-label="จำนวนผล" name="observedCount" type="number" min="0" inputMode="numeric" value={observedCount} onChange={(event) => setObservedCount(event.target.value)} /></label>
-            <label>ผลร่วง<input name="droppedCount" type="number" min="0" inputMode="numeric" defaultValue={isProduction ? '' : '3'} /></label>
-            <label>วันที่สังเกต<input name="observedAt" type="date" required defaultValue={isProduction ? '' : '2026-08-31'} /></label>
+            <label>ผลร่วง<input name="droppedCount" type="number" min="0" inputMode="numeric" /></label>
+            <label>วันที่สังเกต<input name="observedAt" type="date" required /></label>
             <label className="span-full">ฐานข้อมูล/ข้อจำกัด<textarea name="confidenceNote" required value={confidenceNote} onChange={(event) => setConfidenceNote(event.target.value)} /></label>
             <button className="primary-action span-full" disabled={submitting} type="submit">บันทึก Fruit Observation</button>
           </form></details>
@@ -455,8 +398,8 @@ export function ProductionPage() {
             setFormOpenOverride((current) => ({ observation: current?.observation ?? observationFormOpen, harvest: open }))
           }} open={harvestFormOpen}><summary>+ สร้าง Harvest Lot</summary><form className="commercial-form" onSubmit={onHarvest}>
             <label>Crop Cycle<select name="cropCycleId" defaultValue={activeCycle?.cropCycleId}>{snapshot.cropCycles.filter((item) => item.status === 'ACTIVE').map((cycle) => <option key={cycle.cropCycleId} value={cycle.cropCycleId}>{cycle.cycleCode}</option>)}</select></label>
-            <label>รหัส Harvest Lot<input name="lotCode" required defaultValue={isProduction ? '' : `H-${currentFarm.farmCode}-DEMO-02`} /></label>
-            <label>วันที่เก็บเกี่ยว<input name="harvestedOn" type="date" required defaultValue={isProduction ? '' : '2026-08-31'} /></label>
+            <label>รหัส Harvest Lot<input name="lotCode" required /></label>
+            <label>วันที่เก็บเกี่ยว<input name="harvestedOn" type="date" required /></label>
             <div className="span-full">{currentFarm ? <OrchardTargetSelector
               defaultView="CHECKLIST"
               disabledReason={(tree) => tree.currentCycle.treeStatus === 'empty' ? 'ตำแหน่งไม่มีต้น จึงใช้เป็นแหล่งเก็บเกี่ยวไม่ได้' : undefined}
@@ -467,25 +410,25 @@ export function ProductionPage() {
               selectionMode="MULTIPLE"
               title="เลือกต้นหรือพื้นที่ต้นทางของ Harvest Lot"
             /> : null}</div>
-            <label>จำนวนผล<input name="quantityFruit" type="number" min="0" defaultValue={isProduction ? '' : '40'} /></label>
-            <label>น้ำหนัก kg<input name="totalWeightKg" type="number" min="0" step="0.001" defaultValue={isProduction ? '' : '100'} /></label>
+            <label>จำนวนผล<input name="quantityFruit" type="number" min="0" /></label>
+            <label>น้ำหนัก kg<input name="totalWeightKg" type="number" min="0" step="0.001" /></label>
             <label>คุณภาพค่า<select name="valueQuality" defaultValue="MEASURED"><option value="MEASURED">วัดจริง</option><option value="ESTIMATED">ประมาณการ</option><option value="UNKNOWN">ยังไม่ทราบ</option></select></label>
-            <label>หมายเหตุ<input name="note" defaultValue={isProduction ? '' : 'SIMULATED/TEST ONLY'} /></label>
+            <label>หมายเหตุ<input name="note" /></label>
             <button className="primary-action span-full" disabled={submitting} type="submit">สร้าง Harvest Lot</button>
           </form></details>
           <details><summary>+ สร้าง Sales Lot</summary><form className="commercial-form" onSubmit={onSale}>
             <label>Harvest Lot<select name="harvestLotId" defaultValue={availableHarvests[0]?.harvestLotId}>{availableHarvests.map((lot) => <option key={lot.harvestLotId} value={lot.harvestLotId}>{lot.lotCode} · เหลือ {(lot.totalWeightKg ?? 0) - lot.soldWeightKg} kg</option>)}</select></label>
-            <label>รหัส Sales Lot<input name="lotCode" required defaultValue={isProduction ? '' : `S-${currentFarm.farmCode}-DEMO-02`} /></label>
-            <label>วันที่ขาย<input name="soldOn" type="date" required defaultValue={isProduction ? '' : '2026-08-31'} /></label>
-            <label>จำนวนผล<input name="quantityFruit" type="number" min="0" defaultValue={isProduction ? '' : '20'} /></label>
-            <label>น้ำหนัก kg<input name="weightKg" type="number" min="0.001" step="0.001" required defaultValue={isProduction ? '' : '50'} /></label>
+            <label>รหัส Sales Lot<input name="lotCode" required /></label>
+            <label>วันที่ขาย<input name="soldOn" type="date" required /></label>
+            <label>จำนวนผล<input name="quantityFruit" type="number" min="0" /></label>
+            <label>น้ำหนัก kg<input name="weightKg" type="number" min="0.001" step="0.001" required /></label>
             {canAccessCommercialFinancialData(currentFarm) ? <>
-              <label>Customer reference<input name="customerReference" required defaultValue={isProduction ? '' : 'BUYER-DEMO-002'} /></label>
-              <label>บาท/kg<input name="unitPriceBahtPerKg" type="number" min="0" step="0.01" required defaultValue={isProduction ? '' : '150'} /></label>
-              <label>มัดจำ<input name="depositBaht" type="number" min="0" step="0.01" required defaultValue={isProduction ? '' : '1000'} /></label>
-              <label>รับแล้ว<input name="receivedBaht" type="number" min="0" step="0.01" required defaultValue={isProduction ? '' : '0'} /></label>
+              <label>Customer reference<input name="customerReference" required /></label>
+              <label>บาท/kg<input name="unitPriceBahtPerKg" type="number" min="0" step="0.01" required /></label>
+              <label>มัดจำ<input name="depositBaht" type="number" min="0" step="0.01" required /></label>
+              <label>รับแล้ว<input name="receivedBaht" type="number" min="0" step="0.01" required /></label>
             </> : <p className="span-full">บันทึกเฉพาะข้อมูลล็อตเชิงปฏิบัติการ; ราคาและการรับเงินให้เจ้าขององค์กรบันทึก</p>}
-            <label className="span-full">หมายเหตุ<input name="note" defaultValue={isProduction ? 'customer reference only' : 'SIMULATED/TEST ONLY — customer reference only'} /></label>
+            <label className="span-full">หมายเหตุ<input name="note" /></label>
             <button className="primary-action span-full" type="submit" disabled={submitting || availableHarvests.length === 0}>สร้าง Sales Lot</button>
           </form></details>
         </section> : null}

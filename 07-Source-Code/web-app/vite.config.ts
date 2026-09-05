@@ -6,8 +6,6 @@ export default defineConfig(({ mode }) => ({
   define:
     mode === 'test'
       ? {
-          'import.meta.env.VITE_DATA_ADAPTER': JSON.stringify('mock'),
-          'import.meta.env.VITE_AUTH_ADAPTER': JSON.stringify('mock'),
           'import.meta.env.VITE_QR_BASE_URL': JSON.stringify('http://localhost:5173'),
           'import.meta.env.VITE_FIREBASE_PROJECT_ID': JSON.stringify('demo-smart-durian'),
           'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(

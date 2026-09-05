@@ -21,7 +21,6 @@ import {
   assertWorkAction,
   careEventTypes,
   canCreateWork,
-  canAddDiseasePhoto,
   createOpaqueRecordId,
   diseasePhotoMimeTypes,
   diseasePhotoPlaceholderKinds,
@@ -29,11 +28,9 @@ import {
   diseaseSeverities,
   diseaseStatuses,
   specialistApprovalForCare,
-  nextDiseasePhotoState,
   validateDiseaseAssessment,
   validateDiseaseDraft,
   validateDiseaseFollowUp,
-  validateDiseasePhotoMockDraft,
   validatePreparedWorkPhotoUpload,
   validateWorkDraft,
   validateWorkInstructionPhotos,
@@ -49,8 +46,6 @@ import {
   type DiseaseFollowUpInput,
   type DiseaseIncidentDraft,
   type DiseaseIncidentRecord,
-  type DiseasePhotoAction,
-  type DiseasePhotoMockDraft,
   type DiseasePhotoMockEvidence,
   type InAppNotification,
   type TreatmentWorkOrderInput,
@@ -1042,143 +1037,6 @@ export class FirebaseWorkCareDiseaseRepository implements WorkCareDiseaseReposit
       context, operationId, scope, incidentId,
     ))
     await batch.commit()
-    return (await this.getDiseaseIncident(context, incidentId))!
-  }
-
-  async addDiseasePhotoMock(
-    context: WorkMutationContext,
-    incidentId: string,
-    idempotencyKey: string,
-    draft: DiseasePhotoMockDraft,
-  ): Promise<DiseaseIncidentRecord> {
-    if (!canAddDiseasePhoto(context.farm.role)) throw new Error('ไม่มีสิทธิ์เพิ่มภาพประกอบเคสโรค')
-    const operationId = normalizedOperationId('disease_photo_add', idempotencyKey)
-    const incidentRef = diseaseReference(this.firestore, context, incidentId)
-    const deterministicPhotoId = `diseasephoto_${operationId}`.slice(0, 200)
-    const photoRef = doc(incidentRef, 'photos', deterministicPhotoId)
-    const existingPhoto = await getDoc(photoRef)
-    if (existingPhoto.exists()) {
-      if (requiredString(existingPhoto.data(), 'lastOperationId') !== operationId) {
-        throw new Error('Duplicate Disease photo operation')
-      }
-      return (await this.getDiseaseIncident(context, incidentId))!
-    }
-    const currentIncident = await this.getDiseaseIncident(context, incidentId)
-    if (!currentIncident) throw new Error('ไม่พบ Disease Incident ในสวนปัจจุบัน')
-    const valid = validateDiseasePhotoMockDraft(context, currentIncident, draft)
-    await runTransaction(this.firestore, async (transaction) => {
-      const [incidentSnapshot, photoSnapshot] = await Promise.all([
-        transaction.get(incidentRef),
-        transaction.get(photoRef),
-      ])
-      if (photoSnapshot.exists()) {
-        if (requiredString(photoSnapshot.data(), 'lastOperationId') !== operationId) {
-          throw new Error('Duplicate Disease photo operation')
-        }
-        return
-      }
-      if (!incidentSnapshot.exists()) throw new Error('ไม่พบ Disease Incident ในสวนปัจจุบัน')
-      const incident = parseDisease(incidentSnapshot.data())
-      if (incident.status === 'CLOSED') throw new Error('เคสที่ปิดแล้วเพิ่มภาพไม่ได้')
-      const photo: DiseasePhotoMockEvidence = {
-        ...valid,
-        photoId: deterministicPhotoId,
-        organizationId: incident.organizationId,
-        farmId: incident.farmId,
-        incidentId,
-        positionId: incident.positionId,
-        source: 'SYNTHETIC_PLACEHOLDER',
-        classification: this.exampleData ? 'SIMULATED/TEST ONLY' : 'OPERATIONAL',
-        uploadState: 'PENDING',
-        retryCount: 0,
-        lastError: '',
-        containsExifOrGps: false,
-        externalStorage: false,
-        lifecycleMode: 'DRY_RUN',
-        version: 1,
-        createdBy: context.actor.userId,
-        createdAtLabel: this.exampleData ? 'ข้อมูลจำลอง' : 'Firebase',
-      }
-      const version = incident.version + 1
-      const eventId = createOpaqueRecordId('diseaseevt')
-      transaction.update(incidentRef, {
-        version,
-        lastEventId: eventId,
-        updatedBy: context.actor.userId,
-        updatedAt: serverTimestamp(),
-      })
-      transaction.set(photoRef, {
-        ...photo,
-        lastOperationId: operationId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      transaction.set(doc(incidentRef, 'events', eventId), diseaseEventData(
-        context,
-        incidentId,
-        eventId,
-        'PHOTO_PLACEHOLDER_ADDED',
-        `${photo.classification} · ${photo.placeholderKind} · ${photo.mimeType} · ${photo.sizeBytes} bytes`,
-        version,
-      ))
-    })
-    return (await this.getDiseaseIncident(context, incidentId))!
-  }
-
-  async advanceDiseasePhotoMock(
-    context: WorkMutationContext,
-    incidentId: string,
-    photoId: string,
-    idempotencyKey: string,
-    action: DiseasePhotoAction,
-  ): Promise<DiseaseIncidentRecord> {
-    if (!canAddDiseasePhoto(context.farm.role)) throw new Error('ไม่มีสิทธิ์เปลี่ยนสถานะภาพประกอบเคสโรค')
-    const operationId = normalizedOperationId(`disease_photo_${action.toLowerCase()}`, idempotencyKey)
-    const incidentRef = diseaseReference(this.firestore, context, incidentId)
-    const photoRef = doc(incidentRef, 'photos', photoId)
-    await runTransaction(this.firestore, async (transaction) => {
-      const [incidentSnapshot, photoSnapshot] = await Promise.all([
-        transaction.get(incidentRef),
-        transaction.get(photoRef),
-      ])
-      if (!incidentSnapshot.exists()) throw new Error('ไม่พบ Disease Incident ในสวนปัจจุบัน')
-      const incident = parseDisease(incidentSnapshot.data())
-      if (incident.status === 'CLOSED') throw new Error('เคสที่ปิดแล้วเปลี่ยนสถานะภาพไม่ได้')
-      if (!photoSnapshot.exists()) throw new Error('ไม่พบภาพจำลองใน Disease Incident ปัจจุบัน')
-      if (requiredString(photoSnapshot.data(), 'lastOperationId') === operationId) return
-      const photo = parseDiseasePhoto(photoSnapshot.data())
-      Object.assign(photo, nextDiseasePhotoState(photo, action))
-      const version = incident.version + 1
-      const eventId = createOpaqueRecordId('diseaseevt')
-      const eventType: Record<DiseasePhotoAction, DiseaseAuditEvent['eventType']> = {
-        START_UPLOAD: 'PHOTO_UPLOAD_STARTED',
-        MARK_UPLOADED: 'PHOTO_UPLOAD_COMPLETED',
-        MARK_FAILED: 'PHOTO_UPLOAD_FAILED',
-        RETRY: 'PHOTO_UPLOAD_RETRIED',
-      }
-      transaction.update(incidentRef, {
-        version,
-        lastEventId: eventId,
-        updatedBy: context.actor.userId,
-        updatedAt: serverTimestamp(),
-      })
-      transaction.update(photoRef, {
-        uploadState: photo.uploadState,
-        retryCount: photo.retryCount,
-        lastError: photo.lastError,
-        version: photo.version,
-        lastOperationId: operationId,
-        updatedAt: serverTimestamp(),
-      })
-      transaction.set(doc(incidentRef, 'events', eventId), diseaseEventData(
-        context,
-        incidentId,
-        eventId,
-        eventType[action],
-        `${photo.photoId} → ${photo.uploadState} · Synthetic DRY_RUN`,
-        version,
-      ))
-    })
     return (await this.getDiseaseIncident(context, incidentId))!
   }
 

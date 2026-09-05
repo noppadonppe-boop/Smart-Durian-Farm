@@ -217,6 +217,12 @@ export interface TreePositionDraft extends TagParts {
 export interface TreeMutationContext {
   actor: AuthenticatedIdentity
   farm: FarmAccess
+  isSystemAdmin?: boolean
+}
+
+export interface DeleteTreePositionsResult {
+  deletedPositionIds: readonly string[]
+  deletedCount: number
 }
 
 export interface UpdatePlantingCycleInput {
@@ -448,6 +454,14 @@ export function canManageTreeRegister(access: FarmAccess): boolean {
   )
 }
 
+export function canDeleteTreePositions(access: FarmAccess, isSystemAdmin = false): boolean {
+  return (
+    access.farmStatus === 'ACTIVE' &&
+    access.membershipStatus === 'ACTIVE' &&
+    (isSystemAdmin || access.isOrganizationOwner)
+  )
+}
+
 export const treeRegisterCsvHeaders = [
   'recordType',
   'organizationCode',
@@ -500,7 +514,27 @@ export const treeRegisterCsvHeaders = [
   'notes',
 ] as const
 
-export const treeRegisterImportLimit = 50
+export const treeRegisterImportBatchSize = 50
+
+export function splitTreeImportCandidates(
+  candidates: readonly TreeImportCandidate[],
+): readonly (readonly TreeImportCandidate[])[] {
+  const batches: TreeImportCandidate[][] = []
+  for (let start = 0; start < candidates.length; start += treeRegisterImportBatchSize) {
+    batches.push(candidates.slice(start, start + treeRegisterImportBatchSize))
+  }
+  return batches
+}
+
+export function treeImportBatchIdempotencyKey(
+  importIdempotencyKey: string,
+  batchIndex: number,
+): string {
+  if (!Number.isInteger(batchIndex) || batchIndex < 0) {
+    throw new Error('ลำดับชุดนำเข้าต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป')
+  }
+  return `${importIdempotencyKey}_batch_${String(batchIndex + 1).padStart(6, '0')}`
+}
 
 export type TreeCsvHeader = (typeof treeRegisterCsvHeaders)[number]
 
@@ -1217,14 +1251,6 @@ export function previewTreeRegisterCsv(
     : treeRegisterCsvHeaders.indexOf('tagCode')
   rows.slice(1).forEach((cells, index) => {
     const sourceRow = index + 2
-    if (index >= treeRegisterImportLimit) {
-      rejects.push({
-        sourceRow,
-        tagCode: cells[tagColumnIndex] ?? '',
-        errors: [`นำเข้าได้ไม่เกิน ${treeRegisterImportLimit} ตำแหน่งต่อไฟล์`],
-      })
-      return
-    }
     const paddedCells = (thaiRegistrationHeaderValid || legacyThaiRegistrationHeaderValid) && cells.length < header.length
       ? [...cells, ...Array.from({ length: header.length - cells.length }, () => '')]
       : cells

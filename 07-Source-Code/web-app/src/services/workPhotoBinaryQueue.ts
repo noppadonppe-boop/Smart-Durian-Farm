@@ -154,8 +154,7 @@ function validateBatch(batch: WorkPhotoBinaryBatch): WorkPhotoBinaryBatch {
     ) throw new Error('ไฟล์ใน Durable Photo Queue ไม่ผ่านนโยบายชนิดหรือขนาดต้นฉบับ')
     if (candidate.uploadedEvidence) {
       const evidence = candidate.uploadedEvidence
-      const validPath = evidence.storagePath === `${expectedStoragePathPrefix(batch)}${candidate.photoId}` ||
-        evidence.storagePath === `mock://${expectedStoragePathPrefix(batch)}${candidate.photoId}`
+      const validPath = evidence.storagePath === `${expectedStoragePathPrefix(batch)}${candidate.photoId}`
       if (
         evidence.photoId !== candidate.photoId || evidence.phase !== candidate.phase ||
         evidence.uploadState !== 'UPLOADED' || !validPath

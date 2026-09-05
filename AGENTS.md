@@ -2,10 +2,10 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 5.2 |
-| สถานะ | DEC-053 Approved — ปุ่มกลับจาก Orchard Layout ต้องไปเมนูต้นไม้; DEC-052/051 ยังคงมีผล |
+| เวอร์ชัน | 5.7 |
+| สถานะ | DEC-058 Approved — แถวคำขอค้างเป็นสีแดงและตารางผู้ใช้ไม่มี horizontal scroll; DEC-057/056/055/054/053/052/051 ยังคงมีผล |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-09-04 |
+| วันที่ปรับปรุง | 2026-09-05 |
 | Production Source | `00-Project-Management/Owner-Review-Decision_Firebase-Live-Operational-Go-Live_2026-09-04.md`, `00-Project-Management/Decision-Log.md` DEC-051 |
 | Annual Cycle Source | `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Annual-Farm-Management-Cycle-Architecture_v0.1.md`, `08-Testing/Annual-Farm-Management-Cycle-Validation-Report_v1.0.md` |
 | Reporting Source | `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`, `06-System-Architecture/Management-Reporting-and-Cost-Architecture_v0.1.md`, `08-Testing/Management-Reporting-and-Cost-Validation-Report_v0.1.md`, `08-Testing/Owner-Only-Financial-Access-Validation-Report_v1.0.md` |
@@ -17,6 +17,27 @@
 
 ## 2. ระยะที่อนุญาตในปัจจุบัน
 
+- **คำสั่งล่าสุด DEC-058 (2026-09-05):** หน้า `จัดการผู้ใช้งาน` ต้องเน้นรายการ
+  ที่ทำให้เกิดการแจ้งเตือนด้วยสีแดง และปรับตารางให้แสดงข้อมูลภายในความกว้าง
+  หน้าจอโดยไม่ต้องเลื่อนซ้าย–ขวา; บน Desktop แต่ละรายการต้องอยู่บรรทัดเดียว
+  แบบ Compact พร้อมคง action อนุมัติ/ปฏิเสธที่ใช้งานได้
+- **คำสั่งล่าสุด DEC-057 (2026-09-05):** หน้า `จัดการผู้ใช้งาน` ให้ trusted
+  MasterAdmin แต่งตั้งผู้ใช้ที่อนุมัติแล้วเป็น MasterAdmin และปลดกลับเป็น Canonical
+  Farm Role ได้ โดยตั้ง/ถอน Firebase custom claim `masterAdmin=true` ผ่าน trusted
+  backend พร้อม Audit; ห้ามเชื่อ Role string จาก client, ห้ามปลดตนเอง และห้ามปลด
+  root `seedOwnerUid`; การปลดต้องระบุ Farm/Role ปลายทาง
+- **คำสั่งล่าสุด DEC-056 (2026-09-05):** เมนู `จัดการผู้ใช้งาน` ของ trusted
+  MasterAdmin ต้องแสดง Badge ตัวเลขสีแดงตามจำนวนคำขอที่มีสถานะรอดำเนินการ
+  แบบอัปเดตตามข้อมูลล่าสุด และซ่อน Badge เมื่อไม่มีรายการค้าง
+- **คำสั่งล่าสุด DEC-055 (2026-09-05):** การนำเข้าทะเบียนต้นไม่มีเพดานจำนวน
+  แถวต่อไฟล์ ให้ตรวจข้อมูลทั้งไฟล์ก่อน แล้วแบ่งอัปโหลดครั้งละ 50 ตำแหน่ง โดยแต่ละ
+  ชุดต้องคง Farm scope และ idempotency เพื่อใช้ไฟล์เดิมเริ่มต่อได้โดยไม่สร้างข้อมูลซ้ำ
+- **คำสั่งล่าสุด DEC-054 (2026-09-05):** หน้า `รายการต้นไม้` ต้องมี checkbox
+  สำหรับ Farm Owner หรือ trusted MasterAdmin และแสดงปุ่มลบเมื่อเลือกรายการ;
+  trusted MasterAdmin ต้องลบตำแหน่งและประวัติรอบปลูกได้โดยตรง ต้องลบ QR metadata
+  และไฟล์ QR ใน Storage ของตำแหน่งนั้นด้วยเพื่อไม่ให้เหลือไฟล์เปลืองพื้นที่ พร้อม
+  confirmation, deletion audit และ Farm scope; เมื่อลบ Tag index แล้วอนุญาตให้สร้าง
+  Tag รหัสเดิมใหม่ได้หากไม่ซ้ำกับตำแหน่งที่ยังมีอยู่
 - **คำสั่งล่าสุด DEC-053 (2026-09-04):** ปุ่ม `กลับ` จากหน้า
   `แปลนสวนและเลือกตำแหน่ง` ต้องกลับไปเมนู `ต้นไม้` (`/trees`)
 - **คำสั่งล่าสุด DEC-052 (2026-09-04):** หน้าแปลนตำแหน่งต้นต้องเลือกแสดงแถว

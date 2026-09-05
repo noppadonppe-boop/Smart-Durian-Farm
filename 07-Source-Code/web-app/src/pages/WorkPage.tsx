@@ -15,8 +15,7 @@ const filters: readonly (WorkOrderStatus | 'ALL')[] = [
 ]
 
 export function WorkPage() {
-  const { currentFarm, identity, listWorkOrders, mode } = usePhase2()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
+  const { currentFarm, identity, listWorkOrders } = usePhase2()
   const [orders, setOrders] = useState<readonly WorkOrderRecord[]>([])
   const [filter, setFilter] = useState<WorkOrderStatus | 'ALL'>('ALL')
   const [error, setError] = useState<string>()
@@ -45,11 +44,11 @@ export function WorkPage() {
       />
 
       <div className="page-actions">
-        {canCreate ? <Link className="primary-action" to="/work/new">{isProduction ? 'สร้างงาน' : 'สร้างงานจำลอง'}</Link> : null}
+        {canCreate ? <Link className="primary-action" to="/work/new">สร้างงาน</Link> : null}
         <Link className="secondary-action" to="/notifications">คิวเร่งด่วน/ติดตาม</Link>
         <Link className="secondary-action" to="/care">Care Events</Link>
         <Link className="secondary-action" to="/disease">ติดตามโรค</Link>
-        {canViewDiseaseAnalysis ? <Link className="secondary-action" to="/disease-analysis-readiness">{isProduction ? 'ศูนย์วิเคราะห์โรค' : 'ศูนย์วิเคราะห์โรคจำลอง'}</Link> : null}
+        {canViewDiseaseAnalysis ? <Link className="secondary-action" to="/disease-analysis-readiness">ศูนย์วิเคราะห์โรค</Link> : null}
       </div>
 
       <div className="work-filter" aria-label="กรองสถานะงาน">
@@ -68,7 +67,7 @@ export function WorkPage() {
 
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <p className="result-count">
-        {visible.length} งาน · ผู้ใช้ {identity?.displayName ?? 'TBD'} · {isProduction ? 'Firebase Production' : 'ข้อมูลจำลองเท่านั้น'}
+        {visible.length} งาน · ผู้ใช้ {identity?.displayName ?? 'TBD'} · Firebase Production
       </p>
 
       <div className="work-list">
@@ -87,7 +86,7 @@ export function WorkPage() {
             <dl className="work-card__meta">
               <div><dt>Target</dt><dd>{order.target.kind} · {order.target.positionIds.length} ต้น</dd></div>
               <div><dt>ประเภท</dt><dd>{order.careType ? careTypeLabels[order.careType] : order.category}</dd></div>
-              <div><dt>ครบกำหนด</dt><dd>{order.dueDate}{isProduction ? '' : ' · วันที่จำลอง'}</dd></div>
+              <div><dt>ครบกำหนด</dt><dd>{order.dueDate}</dd></div>
             </dl>
           </Link>
         ))}

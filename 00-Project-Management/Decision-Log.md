@@ -2,10 +2,10 @@
 
 | รายการ | ค่า |
 |---|---|
-| เวอร์ชัน | 5.2 |
-| สถานะ | DEC-053 Approved — Orchard Layout Back Navigation ไปเมนูต้นไม้ |
+| เวอร์ชัน | 5.7 |
+| สถานะ | DEC-058 Approved — Pending User Row Highlight and No Horizontal Table Scroll |
 | เจ้าของเอกสาร | Project Owner |
-| วันที่ปรับปรุง | 2026-09-04 |
+| วันที่ปรับปรุง | 2026-09-05 |
 | Source of Truth | `AGENTS.md`, `01-Requirements/KDOMS_Development_Mock_Data_and_Pilot_Knowledge_v1.0.md`, `01-Requirements/KDOMS_Scope_Knowledge_v0.2.md`, `01-Requirements/KDOMS_Farm_Profile_and_Management_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Annual_Farm_Management_Cycle_Knowledge_v0.1.md`, `01-Requirements/KDOMS_Management_Reporting_and_Cost_Knowledge_v0.1.md`, `00-Project-Management/Annual-Farm-Management-Cycle-Implementation-Prompt_v1.0.md`, `00-Project-Management/Management-Reporting-and-Cost-Implementation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Management-Reporting-and-Cost_2026-09-01.md`, `00-Project-Management/Phase-2-Farm-Management-Remediation-Prompt_v1.0.md`, `00-Project-Management/Owner-Review-Addendum_Tree-Register-Operational-Data-Entry_2026-09-01.md`, `01-Requirements/KDOMS_AI_Fruit_Counting_Feasibility_Knowledge_v0.1.md`, `00-Project-Management/AI-Fruit-Counting-Feasibility-Plan_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Disease-Analysis-P1_2026-09-01.md`, `06-System-Architecture/Disease-Analysis-P1-Deterministic-Mock-Architecture_v0.1.md`, `08-Testing/Disease-Analysis-P1-Validation-Report_v0.1.md`, `00-Project-Management/Owner-Review-Addendum_Development-Mock_Data_and_Pilot_Timing_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-0_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-1_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-2_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Phase-3-Field-Validation-Pack_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-3_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-4_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-5_2026-08-31.md`, `00-Project-Management/Owner-Review-Addendum_Gate-6_2026-08-31.md`, `00-Project-Management/Owner-Review-Decision_Phase-7-External-PA1_2026-08-31.md`, `00-Project-Management/Phase-7-Plan.md`, `09-Deployment/phase7-pa1-local-rehearsal-approval-v1.1.json`, `08-Testing/Phase-7-PA1-Local-Emulator-Rehearsal-Report_v1.1.md`, `06-System-Architecture/Phase-7-Work-Photo-Durable-Queue-and-Lifecycle-Architecture_v1.0.md`, `10-Operations/Phase-7-Photo-Data-Governance-Decision-Sheet_v1.0.md` |
 
 > Owner อนุมัติ Gate 0 และ Gate 1 เมื่อ 2026-08-31 พร้อมเลือก Phone + SMS OTP
@@ -175,6 +175,11 @@
 | DEC-051 | Firebase Live Operational Go-Live | Approved | Browser runtime ใช้ Firebase project `durian-smartfarm` เท่านั้น; อนุมัติ Admin Google/Phone sign-in, trusted System Admin, Operational bootstrap, Firestore/Hosting deployment และข้อมูลจริงในโมดูล Web App ปัจจุบันทั้งหมด; ยกเลิก runtime/scripts/tests ที่เรียก local Firebase test services; deterministic Mock seed ยังใช้ใน Firebase Live ได้เฉพาะ DEMO Farm และต้องคง `SIMULATED/TEST ONLY` | Project Owner exact instructions, 2026-09-04; `Owner-Review-Decision_Firebase-Live-Operational-Go-Live_2026-09-04.md`; supersede ข้อห้าม Production/deployment เดิมเฉพาะขอบเขต Web App แต่คง Multi-Farm, Audit, Owner-only Financial, Human Review, no automatic chemical advice และไม่เปลี่ยน Deferred physical evidence เป็น Passed |
 | DEC-052 | Orchard Layout Direction Selector และ Tree Circle/TAG | Approved | หน้า `แปลนต้น` ต้องเลือกแสดง Row เป็นแนวตั้งหรือแนวนอนได้; ตำแหน่งต้นแสดงเป็นวงกลมพร้อม Human-readable TAG/หมายเลขใต้ต้น; การสลับทิศทางเป็น presentation เท่านั้นและต้องไม่เปลี่ยนลำดับ `treeSequence`, opaque Position ID หรือ selection | Project Owner exact instruction และภาพตัวอย่าง, 2026-09-04; คงหลาย Zone แบบ data-driven, checklist view, Farm/Workflow eligibility, Cross-Farm denial และ QR confirmation ตาม DEC-045/047 |
 | DEC-053 | Orchard Layout Back Navigation | Approved | ปุ่ม `กลับ` จากหน้า `แปลนสวนและเลือกตำแหน่ง` ต้องเปิดเมนู `ต้นไม้` ที่ `/trees` ไม่ย้อนกลับไปหน้า `เพิ่มเติม` | Project Owner exact instruction, 2026-09-04; เป็นการแก้ navigation ภายใน Web App ไม่มีผลต่อ Farm scope, selection หรือข้อมูล |
+| DEC-054 | Tree Register Bulk Delete | Approved | หน้า `รายการต้นไม้` แสดง checkbox และปุ่มลบเมื่อเลือกอย่างน้อยหนึ่งรายการ เฉพาะ trusted MasterAdmin หรือ Farm Owner; trusted MasterAdmin ลบตำแหน่งและประวัติรอบปลูกได้โดยตรง พร้อมลบ QR metadata, ไฟล์ QR ใน Firebase Storage และ Tag index แบบ cascade; Tag รหัสเดิมสร้างใหม่ได้หากไม่ซ้ำกับตำแหน่งที่ยังอยู่ พร้อม confirmation และ deletion audit | Project Owner exact instructions และภาพตัวอย่าง, 2026-09-05; เป็นข้อยกเว้นแบบจำกัดจาก archive-before-delete ไม่อนุญาต Cross-Farm delete และต้องไม่เหลือ QR object/Tag index ของตำแหน่งที่ลบ |
+| DEC-055 | Unlimited Batched Tree Register Import | Approved | การนำเข้าทะเบียนต้นไม่มีเพดานจำนวนแถวต่อไฟล์; ตรวจรูปแบบและข้อมูลซ้ำภายในไฟล์ทั้งหมดก่อน แล้วแบ่งเขียนครั้งละ 50 ตำแหน่ง แต่ละชุดใช้ idempotency key คงที่เพื่อ Retry/เริ่มต่อจากไฟล์เดิมโดยไม่สร้างข้อมูลซ้ำ | Project Owner exact instruction และภาพผลตรวจไฟล์ 242 แถว, 2026-09-05; คงข้อจำกัดขนาดไฟล์เพื่อความปลอดภัย, Farm scope, Tag/Position uniqueness, สิทธิ์ และ audit เดิม |
+| DEC-056 | MasterAdmin Pending Request Badge | Approved | เมนู `จัดการผู้ใช้งาน` ของ trusted MasterAdmin แสดง Badge ตัวเลขสีแดงเท่ากับจำนวน Access Request สถานะ `PENDING`; อัปเดตตามข้อมูลล่าสุด แสดงในเมนูที่นำไปยัง Task ค้าง และซ่อนเมื่อจำนวนเป็นศูนย์ | Project Owner exact instruction และภาพตัวอย่าง, 2026-09-05; เป็นการแจ้งเตือนใน UI เท่านั้น ไม่เปลี่ยนสิทธิ์, Farm scope หรือสถานะของคำขอ |
+| DEC-057 | MasterAdmin Grant/Revoke from User Management | Approved | หน้า `จัดการผู้ใช้งาน` ต้องให้ trusted MasterAdmin แต่งตั้งผู้ใช้ที่อนุมัติแล้วเป็น MasterAdmin และปลดกลับเป็น Canonical Farm Role ได้ โดยสิทธิ์จริงต้องตั้ง/ถอน Firebase custom claim `masterAdmin=true` ผ่าน trusted backend พร้อม Audit; ห้ามเชื่อ Role string จาก client, ห้ามปลดตนเอง และห้ามปลด root `seedOwnerUid` | Project Owner exact instruction และภาพตัวอย่าง, 2026-09-05; การปลดต้องระบุ Farm/Role ปลายทางและคง Multi-Farm scope; การเปลี่ยน claim มีผลหลังผู้ใช้รับ ID token ใหม่ |
+| DEC-058 | Pending User Row Highlight and Responsive Table | Approved | หน้า `จัดการผู้ใช้งาน` เน้นรายการที่มีคำขอ `PENDING` ด้วยสีแดง; ตาราง Desktop แสดงหนึ่งรายการต่อหนึ่งบรรทัดแบบ Compact และตัดข้อความยาวด้วย ellipsis ภายในความกว้างจอโดยไม่เลื่อนซ้าย–ขวา ส่วนจอเล็กปรับรูปแบบเพื่อให้ข้อมูลและ action อนุมัติ/ปฏิเสธยังใช้งานได้ | Project Owner exact instruction และภาพตัวอย่างพร้อมคำสั่งปรับความสูงแถว, 2026-09-05; เป็นการปรับ presentation เท่านั้น ไม่เปลี่ยนจำนวน Badge, authorization, Farm assignment หรือสถานะคำขอ |
 
 ## สถานะมาตรฐาน
 
@@ -282,3 +287,19 @@
   คง selection, Position identity, Multi-Farm และ Workflow eligibility เดิม
 - DEC-053 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner ให้ปุ่มกลับของหน้า
   Orchard Layout ไป `/trees`; ไม่เปลี่ยนขอบเขตข้อมูลหรือ Gate
+- DEC-054 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner สำหรับการเลือกและลบ
+  รายการทะเบียนต้นโดย trusted MasterAdmin/Farm Owner; trusted MasterAdmin ต้องลบ
+  ประวัติรอบปลูก, QR metadata/Storage object และ Tag index แบบ cascade โดยคง
+  Audit/Farm scope และอนุญาตสร้างรหัส Tag เดิมใหม่เมื่อไม่ซ้ำกับรายการที่ยังอยู่
+- DEC-055 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner ให้การนำเข้าทะเบียนต้น
+  รับจำนวนแถวได้ไม่จำกัดและแบ่งอัปโหลดชุดละ 50 โดยคงการตรวจทั้งไฟล์, Farm scope
+  และ idempotent retry; ข้อจำกัดขนาดไฟล์เชิงความปลอดภัยยังคงมีผล
+- DEC-056 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner ให้ trusted MasterAdmin
+  เห็น Badge ตัวเลขสีแดงตามจำนวนคำขอ `PENDING` บนเมนูจัดการผู้ใช้งาน โดยซ่อน
+  เมื่อไม่มีรายการค้าง และไม่เปลี่ยน authorization หรือสถานะคำขอ
+- DEC-057 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner ให้ trusted MasterAdmin
+  แต่งตั้งและปลด MasterAdmin จากหน้าจัดการผู้ใช้ โดยใช้ Firebase custom claim ผ่าน
+  trusted backend พร้อม Audit และคง root owner/self-revocation safeguards
+- DEC-058 เป็น `Approved` จากคำสั่งล่าสุดของ Project Owner ให้แถวคำขอที่ทำให้เกิด
+  การแจ้งเตือนเป็นสีแดง และให้ตารางจัดการผู้ใช้แสดงข้อมูลโดยไม่มี horizontal scroll;
+  Desktop ใช้หนึ่งรายการต่อหนึ่งบรรทัดแบบ Compact พร้อมคง action และข้อมูลเดิม

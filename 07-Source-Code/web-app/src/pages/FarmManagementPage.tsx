@@ -9,9 +9,8 @@ import { PageHeader } from './PageHeader'
 import '../components/FarmManagement.css'
 
 export function FarmManagementPage() {
-  const { currentFarm, listFarmProfiles, mode } = usePhase2()
+  const { currentFarm, listFarmProfiles } = usePhase2()
   const { isSystemAdmin } = useAuth()
-  const isProduction = mode === 'firebase-live' && !currentFarm?.isMock
   const [profiles, setProfiles] = useState<readonly FarmProfile[]>([])
   const [error, setError] = useState<string>()
   const isOwner = currentFarm?.isOrganizationOwner === true
@@ -56,9 +55,7 @@ export function FarmManagementPage() {
         description="เพิ่ม แก้ไข ระงับ เปิดใช้งานใหม่ และเก็บถาวร โดยรักษาประวัติทุกครั้ง"
         action={<Link className="primary-action action-link" to="/farm-management/new">เพิ่มสวน</Link>}
       />
-      {isProduction
-        ? <div className="operational-data-banner" role="status">Firebase Production · จัดการ Farm Profile ในองค์กรปัจจุบัน</div>
-        : <div className="mock-scope-note" role="status">SIMULATED/TEST ONLY · Farm Profile Mockup 4 สวน · ข้อมูลจำลองเท่านั้น</div>}
+      <div className="operational-data-banner" role="status">Firebase Production · แสดงเฉพาะ Farm Profile ใช้งานจริงในองค์กรปัจจุบัน</div>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       <div className="farm-management-list" aria-label="รายการสวนในองค์กร">
         {profiles.map((profile) => (

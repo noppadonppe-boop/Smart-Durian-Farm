@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react'
-import { onSnapshot, query, getDocs, deleteDoc } from 'firebase/firestore'
+import { onSnapshot, query, deleteDoc } from 'firebase/firestore'
 import { createFirebaseLiveClients } from '../infrastructure/firebase/firebaseClient'
-import type { AccessRequestRecord, UserProfile } from '../domain/auth'
+import { listOperationalFarmProfiles } from '../infrastructure/firebase/firebasePhase2Repository'
+import { formatPhoneNumber, type AccessRequestRecord, type UserProfile } from '../domain/auth'
 import { canonicalRoles, type CanonicalRole } from '../domain/farm'
+import { usePhase2 } from '../app/usePhase2'
 import { rootCollection, rootDoc } from '../infrastructure/firebase/firebaseDataRoot'
 import { useAuth } from '../security/AuthContext'
 import {
+  adminUpdateUserProfile,
   approveFirebaseAccessRequest,
   rejectFirebaseAccessRequest,
+  updateFirebaseMasterAdminAccess,
   updateFirebaseUserAccess,
 } from '../services/accessRequestService'
+import './UserManagementPage.css'
 
 interface UserProfileWithDoc extends UserProfile {
   docId: string
@@ -17,8 +22,11 @@ interface UserProfileWithDoc extends UserProfile {
 
 interface FarmOption {
   organizationId: string
+  organizationName: string
   farmId: string
+  farmName: string
   label: string
+  status?: string
 }
 
 interface RequestSelection {
@@ -26,20 +34,35 @@ interface RequestSelection {
   role: CanonicalRole
 }
 
+type EditableRole = CanonicalRole | 'MasterAdmin'
+
+interface EditSelection {
+  farmKey: string
+  role: EditableRole
+}
+
 export function UserManagementPage() {
   const { isSystemAdmin } = useAuth()
+  const { currentFarm } = usePhase2()
   const [users, setUsers] = useState<UserProfileWithDoc[]>([])
   const [accessRequests, setAccessRequests] = useState<AccessRequestRecord[]>([])
   const [farms, setFarms] = useState<FarmOption[]>([])
+  const [farmDirectory, setFarmDirectory] = useState<FarmOption[]>([])
   const [requestSelections, setRequestSelections] = useState<Record<string, RequestSelection>>({})
   const [requestBusy, setRequestBusy] = useState<string>()
   const [requestError, setRequestError] = useState<string>()
   const [editingUser, setEditingUser] = useState<UserProfileWithDoc>()
-  const [editSelection, setEditSelection] = useState<RequestSelection>({
+  const [editingProfileUser, setEditingProfileUser] = useState<UserProfileWithDoc>()
+  const [hideDuplicates, setHideDuplicates] = useState(true)
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+  })
+  const [editSelection, setEditSelection] = useState<EditSelection>({
     farmKey: '',
     role: 'WORKER',
   })
-  const [hideDuplicates, setHideDuplicates] = useState(false)
   const { firestore } = createFirebaseLiveClients()
 
   useEffect(() => {
@@ -71,39 +94,29 @@ export function UserManagementPage() {
 
   useEffect(() => {
     const fetchFarms = async () => {
+      if (!currentFarm) {
+        setFarmDirectory([])
+        setFarms([])
+        return
+      }
       try {
-        const organizationSnapshot = await getDocs(query(rootCollection(firestore, 'organizations')))
-        const farmGroups = await Promise.all(organizationSnapshot.docs.map(async (d) => {
-            const data = d.data() as { organizationId?: string; organizationName?: string }
-            const id = data.organizationId || d.id
-            const farmSnapshot = await getDocs(rootCollection(
-              firestore, 'organizations', id, 'farms',
-            ))
-            return farmSnapshot.docs.flatMap((farmDocument) => {
-              const farm = farmDocument.data() as {
-                farmId?: string
-                farmCode?: string
-                farmName?: string
-                status?: string
-              }
-              const farmId = farm.farmId || farmDocument.id
-              if (farm.status !== 'ACTIVE') return []
-              return [{
-                organizationId: id,
-                farmId,
-                label: `${data.organizationName ?? id} · ${farm.farmCode ?? farmId} · ${farm.farmName ?? ''}`,
-              }]
-            })
-          }))
-        setFarms(
-          farmGroups.flat().sort((left, right) => left.label.localeCompare(right.label, 'th')),
-        )
+        const profiles = await listOperationalFarmProfiles(firestore, currentFarm.organizationId)
+        const directory = profiles.map((profile) => ({
+          organizationId: profile.organizationId,
+          organizationName: currentFarm.organizationName,
+          farmId: profile.farmId,
+          farmName: profile.farmName,
+          label: `${profile.farmName} · ${currentFarm.organizationName}`,
+          status: profile.status,
+        }))
+        setFarmDirectory(directory)
+        setFarms(directory.filter((farm) => farm.status === 'ACTIVE'))
       } catch (err) {
         setRequestError(`โหลดรายการสวนไม่สำเร็จ: ${err instanceof Error ? err.message : String(err)}`)
       }
     }
     void fetchFarms()
-  }, [firestore])
+  }, [currentFarm, firestore])
 
   const deleteUser = async (docId: string, displayName: string) => {
     if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรายการของ "${displayName}" (ID: ${docId}) ออกจากฐานข้อมูล?`)) {
@@ -129,6 +142,19 @@ export function UserManagementPage() {
       ...current,
       [uid]: { ...selectionFor(uid), ...updates },
     }))
+  }
+
+  const assignedProjectNames = (assignedProjects?: string[]) => {
+    if (!assignedProjects?.length) return 'ยังไม่ได้ Assign สวน'
+    const names = assignedProjects.map((projectId) => {
+      const farm = farmDirectory.find((item) => (
+        item.farmId === projectId || `${item.organizationId}/${item.farmId}` === projectId
+      ))
+      if (farm) return farm.farmName
+      const organization = farmDirectory.find((item) => item.organizationId === projectId)
+      return organization ? `ทุกสวนใน ${organization.organizationName}` : 'สวนที่ยังไม่พบชื่อ'
+    })
+    return [...new Set(names)].join(', ')
   }
 
   const approveRequest = async (request: AccessRequestRecord) => {
@@ -186,7 +212,9 @@ export function UserManagementPage() {
       farmKey: request.organizationId && request.farmId
         ? `${request.organizationId}/${request.farmId}`
         : '',
-      role: request.assignedRole ?? profileRole ?? 'WORKER',
+      role: user.role.includes('MasterAdmin')
+        ? 'MasterAdmin'
+        : request.assignedRole ?? profileRole ?? 'WORKER',
     })
     setRequestError(undefined)
   }
@@ -207,15 +235,62 @@ export function UserManagementPage() {
     setRequestBusy(editingUser.uid)
     setRequestError(undefined)
     try {
-      await updateFirebaseUserAccess({
-        uid: editingUser.uid,
-        organizationId: farm.organizationId,
-        farmId: farm.farmId,
-        role: editSelection.role,
-      })
+      if (editSelection.role === 'MasterAdmin' || editingUser.role.includes('MasterAdmin')) {
+        await updateFirebaseMasterAdminAccess({
+          uid: editingUser.uid,
+          masterAdmin: editSelection.role === 'MasterAdmin',
+          organizationId: farm.organizationId,
+          farmId: farm.farmId,
+          fallbackRole: editSelection.role === 'MasterAdmin'
+            ? (accessRequests.find((item) => item.uid === editingUser.uid)?.assignedRole ?? 'WORKER')
+            : editSelection.role,
+        })
+      } else {
+        await updateFirebaseUserAccess({
+          uid: editingUser.uid,
+          organizationId: farm.organizationId,
+          farmId: farm.farmId,
+          role: editSelection.role,
+        })
+      }
       setEditingUser(undefined)
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : 'แก้ไขสิทธิ์ผู้ใช้ไม่สำเร็จ')
+    } finally {
+      setRequestBusy(undefined)
+    }
+  }
+
+  const startEditingProfile = (user: UserProfileWithDoc) => {
+    const matchingRequest = accessRequests.find((r) => r.uid === user.uid)
+    const phone = user.phoneNumber || matchingRequest?.maskedPhone || ''
+    setEditingProfileUser(user)
+    setProfileForm({
+      firstName: user.firstName === 'ผู้ใช้ยืนยันผ่าน' ? '' : user.firstName || '',
+      lastName: user.lastName === 'Firebase' ? '' : user.lastName || '',
+      phoneNumber: phone,
+    })
+    setRequestError(undefined)
+  }
+
+  const saveUserProfile = async () => {
+    if (!editingProfileUser) return
+    if (!profileForm.firstName.trim()) {
+      setRequestError('กรุณากรอกชื่อ')
+      return
+    }
+    setRequestBusy(editingProfileUser.uid)
+    setRequestError(undefined)
+    try {
+      await adminUpdateUserProfile({
+        uid: editingProfileUser.uid,
+        firstName: profileForm.firstName,
+        lastName: profileForm.lastName,
+        phoneNumber: profileForm.phoneNumber,
+      })
+      setEditingProfileUser(undefined)
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'บันทึกข้อมูลผู้ใช้ไม่สำเร็จ')
     } finally {
       setRequestBusy(undefined)
     }
@@ -236,6 +311,7 @@ export function UserManagementPage() {
 
   const displayedUsers = hideDuplicates
     ? users.filter((u, _idx, self) => {
+        if (pendingRequests.some((request) => request.uid === u.uid)) return true
         const email = (u.email || '').toLowerCase().trim()
         if (!email) return true
         const sameEmailList = self.filter(x => (x.email || '').toLowerCase().trim() === email)
@@ -249,13 +325,18 @@ export function UserManagementPage() {
       })
     : users
 
+  const pendingRequestsWithoutProfile = pendingRequests.filter(
+    (request) => !displayedUsers.some((user) => user.uid === request.uid),
+  )
+
   return (
     <div className="admin-container" style={{ padding: '1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#1b4332' }}>จัดการผู้ใช้งาน (MasterAdmin)</h1>
           <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.9rem' }}>
-            ทั้งหมด {users.length} รายการ (แสดงผล {displayedUsers.length} รายการ)
+            ทั้งหมด {users.length + pendingRequestsWithoutProfile.length} รายการ
+            {' '}· รออนุมัติ {pendingRequests.length} รายการ
           </p>
         </div>
 
@@ -271,76 +352,7 @@ export function UserManagementPage() {
         )}
       </div>
 
-      <section style={{ marginBottom: '1.25rem' }} aria-labelledby="pending-access-title">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem' }}>
-          <h2 id="pending-access-title" style={{ margin: '0 0 0.75rem' }}>คำขอเข้าใช้งานที่รอดำเนินการ</h2>
-          <strong>{pendingRequests.length} คำขอ</strong>
-        </div>
-        {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
-        {pendingRequests.length === 0 ? (
-          <div className="empty-state"><p>ยังไม่มีคำขอสถานะ Pending</p></div>
-        ) : (
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            {pendingRequests.map((request) => {
-              const selection = selectionFor(request.uid)
-              return (
-                <article key={request.requestId} style={{ background: '#fff', border: '1px solid #dbe4dc', borderRadius: '8px', padding: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                    <div>
-                      <strong>{request.displayName}</strong>
-                      <div>{request.email || request.maskedPhone || request.uid}</div>
-                      <small>{request.providerIds.join(', ')} · Pending</small>
-                    </div>
-                    <div style={{ display: 'grid', gap: '0.5rem', minWidth: 'min(100%, 320px)' }}>
-                      <label>
-                        สวน
-                        <select
-                          value={selection.farmKey}
-                          onChange={(event) => updateRequestSelection(request.uid, { farmKey: event.target.value })}
-                        >
-                          <option value="">เลือกสวน</option>
-                          {farms.map((farm) => (
-                            <option key={`${farm.organizationId}/${farm.farmId}`} value={`${farm.organizationId}/${farm.farmId}`}>
-                              {farm.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        สิทธิ์ในสวน
-                        <select
-                          value={selection.role}
-                          onChange={(event) => updateRequestSelection(request.uid, { role: event.target.value as CanonicalRole })}
-                        >
-                          {canonicalRoles.map((role) => <option key={role} value={role}>{role}</option>)}
-                        </select>
-                      </label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          className="primary-action"
-                          disabled={requestBusy === request.uid || !selection.farmKey}
-                          onClick={() => void approveRequest(request)}
-                          type="button"
-                        >
-                          อนุมัติและ Assign สวน
-                        </button>
-                        <button
-                          className="secondary-action"
-                          disabled={requestBusy === request.uid}
-                          onClick={() => void rejectRequest(request)}
-                          type="button"
-                        >
-                          ปฏิเสธ
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        )}
-      </section>
+      {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
 
       {editingUser ? (
         <section
@@ -388,9 +400,10 @@ export function UserManagementPage() {
                 value={editSelection.role}
                 onChange={(event) => setEditSelection((current) => ({
                   ...current,
-                  role: event.target.value as CanonicalRole,
+                  role: event.target.value as EditableRole,
                 }))}
               >
+                <option value="MasterAdmin">MasterAdmin</option>
                 {canonicalRoles.map((role) => <option key={role} value={role}>{role}</option>)}
               </select>
             </label>
@@ -418,40 +431,127 @@ export function UserManagementPage() {
         </section>
       ) : null}
 
+      {editingProfileUser ? (
+        <section
+          aria-labelledby="edit-profile-title"
+          style={{
+            background: '#fff',
+            border: '2px solid #3b82f6',
+            borderRadius: '10px',
+            display: 'grid',
+            gap: '0.75rem',
+            marginBottom: '1.25rem',
+            padding: '1rem',
+          }}
+        >
+          <div>
+            <h2 id="edit-profile-title" style={{ margin: 0, color: '#1e40af' }}>แก้ไขข้อมูลผู้ใช้งาน</h2>
+            <p style={{ margin: '0.25rem 0 0', color: '#64748b' }}>
+              UID: {editingProfileUser.uid} {editingProfileUser.email ? `· ${editingProfileUser.email}` : ''}
+            </p>
+          </div>
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <label>
+              ชื่อ <span style={{ color: '#ef4444' }}>*</span>
+              <input
+                type="text"
+                value={profileForm.firstName}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="กรอกชื่อ"
+                required
+              />
+            </label>
+            <label>
+              นามสกุล
+              <input
+                type="text"
+                value={profileForm.lastName}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="กรอกนามสกุล"
+              />
+            </label>
+            <label>
+              เบอร์โทรศัพท์
+              <input
+                type="tel"
+                value={profileForm.phoneNumber}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                placeholder="เช่น 081-234-5678"
+              />
+            </label>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <button
+              className="primary-action"
+              disabled={requestBusy === editingProfileUser.uid}
+              onClick={() => void saveUserProfile()}
+              type="button"
+            >
+              บันทึกข้อมูลผู้ใช้
+            </button>
+            <button
+              className="secondary-action"
+              disabled={requestBusy === editingProfileUser.uid}
+              onClick={() => setEditingProfileUser(undefined)}
+              type="button"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </section>
+      ) : null}
+
       {hasDuplicateEmails && !hideDuplicates && (
         <div style={{ background: '#fffbeb', border: '1px solid #fef08a', borderRadius: '6px', padding: '0.6rem 1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#854d0e' }}>
           💡 <strong>ข้อสังเกต:</strong> พบรายการที่มีอีเมลเดียวกันมากกว่า 1 แถว เนื่องจากระบบมีเอกสารเดิม (เช่น ตอนสมัครสมาชิกที่ตำแหน่งระบุว่า &quot;รอผู้ดูแลอนุมัติ&quot;) และเอกสารใหม่ (เช่น ตอนเริ่มต้นระบบระบุตำแหน่งเป็น &quot;ผู้ดูแลระบบ&quot;) ในฐานข้อมูล Firestore — ท่านสามารถกดปุ่ม <strong>&quot;ลบ&quot;</strong> ที่แถวที่ไม่ต้องการ เพื่อลบเอกสารซ้ำซ้อนออกจากฐานข้อมูลได้โดยตรง
         </div>
       )}
 
-      <div style={{ overflowX: 'auto', background: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+      <div className="user-management-table-shell">
+        <table className="user-management-table">
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-              <th style={{ padding: '8px 12px', width: '44px', textAlign: 'center' }}>รูป</th>
+              <th style={{ padding: '8px 12px', textAlign: 'center' }}>รูป</th>
               <th style={{ padding: '8px 12px' }}>ชื่อ-นามสกุล / อีเมล</th>
               <th style={{ padding: '8px 12px' }}>ตำแหน่ง</th>
-              <th style={{ padding: '8px 12px', width: '120px' }}>สถานะ</th>
-              <th style={{ padding: '8px 12px', width: '160px' }}>สิทธิ์ (Roles)</th>
-              <th style={{ padding: '8px 12px', minWidth: '180px' }}>โครงการ/สวนที่รับผิดชอบ</th>
-              <th style={{ padding: '8px 12px', width: '150px', textAlign: 'center' }}>จัดการ</th>
+              <th style={{ padding: '8px 12px' }}>สถานะ</th>
+              <th style={{ padding: '8px 12px' }}>สิทธิ์ (Roles)</th>
+              <th style={{ padding: '8px 12px' }}>โครงการ/สวนที่รับผิดชอบ</th>
+              <th style={{ padding: '8px 12px', textAlign: 'center' }}>จัดการ</th>
             </tr>
           </thead>
           <tbody>
             {displayedUsers.map(u => {
               const emailKey = (u.email || '').toLowerCase().trim()
               const isDuplicate = emailKey && (emailCounts[emailKey] || 0) > 1
+              const matchingRequest = accessRequests.find((r) => r.uid === u.uid)
+              const pendingRequest = pendingRequests.find((request) => request.uid === u.uid)
+              const pendingSelection = pendingRequest ? selectionFor(pendingRequest.uid) : undefined
+              const phone = u.phoneNumber || matchingRequest?.maskedPhone || ''
+              const isPlaceholderName =
+                (u.firstName === 'ผู้ใช้ยืนยันผ่าน' && (u.lastName === 'Firebase' || !u.lastName)) ||
+                u.firstName === 'ผู้ใช้ยืนยันผ่าน Firebase' ||
+                (!u.firstName && !u.lastName)
+
+              const displayTitle = isPlaceholderName && phone
+                ? formatPhoneNumber(phone)
+                : `${u.firstName || ''} ${u.lastName || ''}`.trim() || formatPhoneNumber(phone) || 'ผู้ใช้ไม่มีชื่อ'
+
+              const displayContact = u.email
+                ? u.email
+                : (!isPlaceholderName && phone ? formatPhoneNumber(phone) : '')
 
               return (
                 <tr
+                  className={pendingRequest ? 'user-management-row--pending' : undefined}
                   key={u.docId}
                   style={{
-                    backgroundColor: isDuplicate && !hideDuplicates ? '#fffdf7' : undefined,
+                    backgroundColor: isDuplicate && !hideDuplicates && !pendingRequest ? '#fffdf7' : undefined,
                     borderBottom: '1px solid #f1f5f9',
-                    height: '42px',
+                    height: '36px',
                   }}
                 >
-                  <td style={{ padding: '4px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <td data-label="รูป" style={{ padding: '4px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
                     {u.photoURL ? (
                       <img
                         src={u.photoURL}
@@ -462,9 +562,13 @@ export function UserManagementPage() {
                       <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#cbd5e1', display: 'inline-block', verticalAlign: 'middle' }} />
                     )}
                   </td>
-                  <td style={{ padding: '4px 12px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                    <strong style={{ color: '#1e293b' }}>{u.firstName} {u.lastName}</strong>
-                    <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>({u.email})</span>
+                  <td data-label="ผู้ใช้งาน" style={{ padding: '4px 12px', verticalAlign: 'middle' }}>
+                    <strong style={{ color: '#1e293b' }}>{displayTitle}</strong>
+                    {displayContact ? (
+                      <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
+                        ({displayContact})
+                      </span>
+                    ) : null}
                     {isDuplicate && !hideDuplicates && (
                       <span
                         style={{
@@ -482,47 +586,179 @@ export function UserManagementPage() {
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: '4px 12px', verticalAlign: 'middle', whiteSpace: 'nowrap', color: '#334155' }}>
+                  <td data-label="ตำแหน่ง" style={{ padding: '4px 12px', verticalAlign: 'middle', color: '#334155' }}>
                     {u.position || '-'}
                   </td>
-                  <td style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
-                    {u.status === 'pending' ? 'รออนุมัติ' : u.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ'}
+                  <td data-label="สถานะ" style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
+                    {pendingRequest || u.status === 'pending' ? 'รออนุมัติ' : u.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ'}
                   </td>
-                  <td style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
-                    {u.role?.join(', ') || 'ยังไม่กำหนด'}
+                  <td data-label="สิทธิ์" style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
+                    {pendingRequest && pendingSelection ? (
+                      <select
+                        aria-label={`สิทธิ์ของ ${displayTitle}`}
+                        value={pendingSelection.role}
+                        onChange={(event) => updateRequestSelection(pendingRequest.uid, { role: event.target.value as CanonicalRole })}
+                        style={{ fontSize: '0.78rem', minHeight: '28px', padding: '2px 6px' }}
+                      >
+                        {canonicalRoles.map((role) => <option key={role} value={role}>{role}</option>)}
+                      </select>
+                    ) : u.role?.join(', ') || 'ยังไม่กำหนด'}
                   </td>
-                  <td style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
-                    {u.assignedProjects?.length ? u.assignedProjects.join(', ') : 'ยังไม่ได้ Assign สวน'}
+                  <td data-label="สวนที่รับผิดชอบ" style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
+                    {pendingRequest && pendingSelection ? (
+                      <select
+                        aria-label={`สวนของ ${displayTitle}`}
+                        value={pendingSelection.farmKey}
+                        onChange={(event) => updateRequestSelection(pendingRequest.uid, { farmKey: event.target.value })}
+                        style={{ fontSize: '0.78rem', maxWidth: '260px', minHeight: '28px', padding: '2px 6px' }}
+                      >
+                        <option value="">เลือกสวน</option>
+                        {farms.map((farm) => (
+                          <option key={`${farm.organizationId}/${farm.farmId}`} value={`${farm.organizationId}/${farm.farmId}`}>
+                            {farm.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : assignedProjectNames(u.assignedProjects)}
                   </td>
-                  <td style={{ padding: '4px 8px', verticalAlign: 'middle', textAlign: 'center' }}>
-                    {!u.role?.includes('MasterAdmin') && u.status === 'approved' ? (
+                  <td data-label="จัดการ" style={{ padding: '3px 8px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    <div className="user-management-actions">
+                      {pendingRequest && pendingSelection ? (
+                        <>
+                          <button
+                            className="primary-action"
+                            disabled={requestBusy === pendingRequest.uid || !pendingSelection.farmKey}
+                            onClick={() => void approveRequest(pendingRequest)}
+                            style={{ fontSize: '0.78rem', minHeight: '28px', padding: '2px 10px', whiteSpace: 'nowrap' }}
+                            type="button"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="secondary-action"
+                            disabled={requestBusy === pendingRequest.uid}
+                            onClick={() => void rejectRequest(pendingRequest)}
+                            style={{ color: '#e11d48', fontSize: '0.78rem', minHeight: '28px', padding: '2px 10px', whiteSpace: 'nowrap' }}
+                            type="button"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="secondary-action"
+                            disabled={requestBusy === u.uid}
+                            onClick={() => startEditingProfile(u)}
+                            style={{ fontSize: '0.78rem', minHeight: '28px', padding: '2px 8px', whiteSpace: 'nowrap' }}
+                            type="button"
+                            title="แก้ไขชื่อ-นามสกุลและเบอร์โทร"
+                          >
+                            แก้ไขชื่อ
+                          </button>
+                          {u.status === 'approved' ? (
+                            <button
+                              className="secondary-action"
+                              disabled={requestBusy === u.uid}
+                              onClick={() => startEditing(u)}
+                              style={{ fontSize: '0.78rem', minHeight: '28px', padding: '2px 8px', whiteSpace: 'nowrap' }}
+                              type="button"
+                            >
+                              {u.role?.includes('MasterAdmin') ? 'แก้ไข/ปลดสิทธิ์' : 'แก้ไขสิทธิ์'}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => void deleteUser(u.docId, `${u.firstName} ${u.lastName}`)}
+                            style={{
+                              padding: '2px 8px',
+                              minHeight: '28px',
+                              fontSize: '0.78rem',
+                              background: '#fff1f2',
+                              color: '#e11d48',
+                              border: '1px solid #fecdd3',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              lineHeight: '1.4',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title="ลบรายการนี้ออกจากระบบ"
+                          >
+                            ลบ
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+            {pendingRequestsWithoutProfile.map((request) => {
+              const selection = selectionFor(request.uid)
+              const displayTitle = request.displayName || formatPhoneNumber(request.maskedPhone) || 'ผู้ใช้ไม่มีชื่อ'
+              return (
+                <tr className="user-management-row--pending" key={request.requestId} style={{ borderBottom: '1px solid #f1f5f9', height: '36px' }}>
+                  <td data-label="รูป" style={{ padding: '4px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    {request.photoURL ? (
+                      <img src={request.photoURL} alt="Profile" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle' }} />
+                    ) : (
+                      <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#cbd5e1', display: 'inline-block', verticalAlign: 'middle' }} />
+                    )}
+                  </td>
+                  <td data-label="ผู้ใช้งาน" style={{ padding: '4px 12px', verticalAlign: 'middle' }}>
+                    <strong style={{ color: '#1e293b' }}>{displayTitle}</strong>
+                    <span style={{ color: '#64748b', fontSize: '0.82rem', marginLeft: '6px' }}>
+                      ({request.email || request.maskedPhone || request.uid})
+                    </span>
+                  </td>
+                  <td data-label="ตำแหน่ง" style={{ padding: '4px 12px', verticalAlign: 'middle' }}>ผู้ขอเข้าใช้งาน</td>
+                  <td data-label="สถานะ" style={{ padding: '4px 8px', verticalAlign: 'middle' }}>รออนุมัติ</td>
+                  <td data-label="สิทธิ์" style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
+                    <select
+                      aria-label={`สิทธิ์ของ ${displayTitle}`}
+                      value={selection.role}
+                      onChange={(event) => updateRequestSelection(request.uid, { role: event.target.value as CanonicalRole })}
+                      style={{ fontSize: '0.78rem', minHeight: '28px', padding: '2px 6px' }}
+                    >
+                      {canonicalRoles.map((role) => <option key={role} value={role}>{role}</option>)}
+                    </select>
+                  </td>
+                  <td data-label="สวนที่รับผิดชอบ" style={{ padding: '4px 8px', verticalAlign: 'middle' }}>
+                    <select
+                      aria-label={`สวนของ ${displayTitle}`}
+                      value={selection.farmKey}
+                      onChange={(event) => updateRequestSelection(request.uid, { farmKey: event.target.value })}
+                      style={{ fontSize: '0.78rem', maxWidth: '260px', minHeight: '28px', padding: '2px 6px' }}
+                    >
+                      <option value="">เลือกสวน</option>
+                      {farms.map((farm) => (
+                        <option key={`${farm.organizationId}/${farm.farmId}`} value={`${farm.organizationId}/${farm.farmId}`}>
+                          {farm.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td data-label="จัดการ" style={{ padding: '3px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <div className="user-management-actions">
                       <button
-                        className="secondary-action"
-                        disabled={requestBusy === u.uid}
-                        onClick={() => startEditing(u)}
-                        style={{ fontSize: '0.78rem', marginRight: '0.35rem', padding: '2px 8px' }}
+                        className="primary-action"
+                        disabled={requestBusy === request.uid || !selection.farmKey}
+                        onClick={() => void approveRequest(request)}
+                        style={{ fontSize: '0.78rem', minHeight: '28px', padding: '2px 10px' }}
                         type="button"
                       >
-                        แก้ไขสิทธิ์
+                        Approve
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => void deleteUser(u.docId, `${u.firstName} ${u.lastName}`)}
-                      style={{
-                        padding: '2px 8px',
-                        fontSize: '0.78rem',
-                        background: '#fff1f2',
-                        color: '#e11d48',
-                        border: '1px solid #fecdd3',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        lineHeight: '1.4',
-                      }}
-                      title="ลบรายการนี้ออกจากระบบ"
-                    >
-                      ลบ
-                    </button>
+                      <button
+                        className="secondary-action"
+                        disabled={requestBusy === request.uid}
+                        onClick={() => void rejectRequest(request)}
+                        style={{ color: '#e11d48', fontSize: '0.78rem', minHeight: '28px', padding: '2px 10px' }}
+                        type="button"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

@@ -1,8 +1,48 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function rootDocument() {
+      return firestore.get(/databases/(default)/documents/durian-smartfarm/root);
+    }
+
+    function isSystemAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.masterAdmin == true
+          || rootDocument().data.seedOwnerUid == request.auth.uid
+        );
+    }
+
+    function isActiveFarmOwner(organizationId, farmId) {
+      return signedIn()
+        && firestore.get(
+          /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/members/$(request.auth.uid)
+        ).data.status == 'ACTIVE'
+        && firestore.get(
+          /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/members/$(request.auth.uid)
+        ).data.isOwner == true
+        && firestore.get(
+          /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)/members/$(request.auth.uid)
+        ).data.status == 'ACTIVE'
+        && firestore.get(
+          /databases/(default)/documents/durian-smartfarm/root/organizations/$(organizationId)/farms/$(farmId)
+        ).data.status == 'ACTIVE';
+    }
+
+    match /organizations/{organizationId}/farms/{farmId}/treeQr/{positionId}/{fileName} {
+      allow delete: if isSystemAdmin() || isActiveFarmOwner(organizationId, farmId);
+    }
+
+    // Preserve the current compatibility behavior for non-delete operations.
+    // Deletion is fail-closed except for the authorized QR path above.
     match /{allPaths=**} {
-      allow read, write: if true;
+      allow read, create, update: if true;
+      allow delete: if false;
     }
   }
 }

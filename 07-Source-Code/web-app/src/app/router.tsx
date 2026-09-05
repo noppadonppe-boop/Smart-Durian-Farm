@@ -68,6 +68,7 @@ export const routes: RouteObject[] = [
           { path: 'trees/new', lazy: async () => ({ Component: (await import('../pages/TreeCreatePage')).TreeCreatePage }) },
           { path: 'trees/import', lazy: async () => ({ Component: (await import('../pages/TreeImportPage')).TreeImportPage }) },
           { path: 'trees/:positionId', lazy: async () => ({ Component: (await import('../pages/TreeDetailPage')).TreeDetailPage }) },
+          { path: 'profile', lazy: async () => ({ Component: (await import('../pages/ProfilePage')).ProfilePage }) },
           { path: 'more', lazy: async () => ({ Component: (await import('../pages/MorePage')).MorePage }) },
           { path: 'farm-management', lazy: async () => ({ Component: (await import('../pages/FarmManagementPage')).FarmManagementPage }) },
           { path: 'farm-management/new', lazy: async () => ({ Component: (await import('../pages/FarmCreatePage')).FarmCreatePage }) },
@@ -79,10 +80,6 @@ export const routes: RouteObject[] = [
           { path: 'user-management', lazy: async () => ({ Component: (await import('../pages/UserManagementPage')).UserManagementPage }) },
           { path: 'farms/:farmId', lazy: async () => ({ Component: (await import('../pages/FarmAccessPage')).FarmAccessPage }) },
           { path: 't/:positionId', lazy: async () => ({ Component: (await import('../pages/QrRoutePage')).QrRoutePage }) },
-          ...(import.meta.env.DEV ? [{
-            path: 'dev/scenarios',
-            lazy: async () => ({ Component: (await import('../pages/DevelopmentMockScenarioPage')).DevelopmentMockScenarioPage }),
-          }] : []),
           { path: '*', lazy: async () => ({ Component: (await import('../pages/NotFoundPage')).NotFoundPage }) },
         ],
       },

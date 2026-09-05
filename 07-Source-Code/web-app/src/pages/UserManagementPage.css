@@ -1,0 +1,154 @@
+.user-management-table-shell {
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+}
+
+.user-management-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.875rem;
+}
+
+.user-management-table th,
+.user-management-table td {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-management-table th:nth-child(1) { width: 5%; }
+.user-management-table th:nth-child(2) { width: 27%; }
+.user-management-table th:nth-child(3) { width: 12%; }
+.user-management-table th:nth-child(4) { width: 8%; }
+.user-management-table th:nth-child(5) { width: 11%; }
+.user-management-table th:nth-child(6) { width: 18%; }
+.user-management-table th:nth-child(7) { width: 19%; }
+
+.user-management-table select {
+  width: 100%;
+  max-width: 100% !important;
+  min-width: 0;
+}
+
+.user-management-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.user-management-table tbody td {
+  height: 36px;
+  padding-block: 2px !important;
+}
+
+.user-management-table tbody button {
+  min-height: 26px !important;
+  padding-block: 1px !important;
+}
+
+.user-management-row--pending > td {
+  color: #9f1239;
+  background: #fff1f2;
+  border-block-color: #fecdd3;
+}
+
+.user-management-row--pending > td:first-child {
+  box-shadow: inset 4px 0 0 #e11d48;
+}
+
+.user-management-row--pending strong,
+.user-management-row--pending td > span:not([aria-hidden]) {
+  color: #9f1239 !important;
+}
+
+.user-management-row--pending td[data-label="สถานะ"] {
+  font-weight: 800;
+}
+
+@media (max-width: 64rem) {
+  .user-management-table-shell {
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .user-management-table,
+  .user-management-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .user-management-table thead {
+    display: none;
+  }
+
+  .user-management-table tr {
+    width: 100%;
+    margin-bottom: 0.75rem;
+    display: grid;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  }
+
+  .user-management-table td {
+    width: 100% !important;
+    padding: 0.55rem 0.75rem !important;
+    display: grid;
+    grid-template-columns: minmax(7rem, 32%) minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: center;
+    text-align: start !important;
+    overflow: visible;
+    white-space: normal;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .user-management-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .user-management-table td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 750;
+  }
+
+  .user-management-table td:first-child {
+    display: none;
+  }
+
+  .user-management-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .user-management-row--pending > td:nth-child(2) {
+    box-shadow: inset 4px 0 0 #e11d48;
+  }
+}
+
+@media (max-width: 30rem) {
+  .user-management-table td {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .user-management-actions > button {
+    flex: 1 1 auto;
+  }
+}

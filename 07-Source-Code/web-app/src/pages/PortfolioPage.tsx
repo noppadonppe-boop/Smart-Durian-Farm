@@ -27,8 +27,8 @@ export function PortfolioPage() {
   </section>
 
   return <section className="page-stack dashboard-page">
-    <PageHeader eyebrow="Organization-scoped · Owner only" title="ภาพรวมหลายสวน" description="รวมเฉพาะสวนที่บัญชีนี้มี membership; fixture สวนซ่อนต้องไม่ปรากฏ" backTo="/more" />
-    <div className="field-validation-banner" role="note"><strong>SIMULATED/TEST ONLY</strong><span>ไม่มี Cross-Farm transfer และไม่มีข้อมูลจริง</span></div>
+    <PageHeader eyebrow="Organization-scoped · Owner only" title="ภาพรวมหลายสวน" description="รวมเฉพาะสวนใช้งานจริงที่บัญชีนี้มี membership" backTo="/more" />
+    <div className="operational-data-banner" role="note"><strong>Firebase Production</strong><span>รวมข้อมูลตามสิทธิ์และไม่โอนข้ามสวน</span></div>
     {error ? <div className="form-error" role="alert">{error}</div> : null}
     {!portfolio && !error ? <div className="loading-inline" role="status">กำลังรวมข้อมูลเฉพาะสวนที่ได้รับสิทธิ์…</div> : null}
     {portfolio ? <>
@@ -45,7 +45,7 @@ export function PortfolioPage() {
           <small>ยอดขาย {financial.salesGrossBaht.toLocaleString('th-TH')} · ค้าง {financial.salesOutstandingBaht.toLocaleString('th-TH')} บาท · Owner only</small>
         </article>)}
       </div>
-      <p className="security-evidence">Security evidence: unauthorized fixture และตัวระบุของสวนที่ไม่มีสิทธิ์ไม่ปรากฏในผลลัพธ์</p>
+      <p className="security-evidence">สวนที่ไม่มีสิทธิ์จะไม่ปรากฏในผลลัพธ์</p>
     </> : null}
   </section>
 }
