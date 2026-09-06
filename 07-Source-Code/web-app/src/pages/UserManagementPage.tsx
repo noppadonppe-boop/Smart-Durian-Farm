@@ -42,7 +42,7 @@ interface EditSelection {
 }
 
 export function UserManagementPage() {
-  const { isSystemAdmin } = useAuth()
+  const { isSystemAdmin, firebaseUser } = useAuth()
   const { currentFarm } = usePhase2()
   const [users, setUsers] = useState<UserProfileWithDoc[]>([])
   const [accessRequests, setAccessRequests] = useState<AccessRequestRecord[]>([])
@@ -54,6 +54,9 @@ export function UserManagementPage() {
   const [editingUser, setEditingUser] = useState<UserProfileWithDoc>()
   const [editingProfileUser, setEditingProfileUser] = useState<UserProfileWithDoc>()
   const [hideDuplicates, setHideDuplicates] = useState(true)
+  const [refreshVersion, setRefreshVersion] = useState(0)
+  const [directoryStatus, setDirectoryStatus] = useState({ users: 'loading', requests: 'loading' })
+  const [directoryErrors, setDirectoryErrors] = useState({ users: '', requests: '' })
   const [profileForm, setProfileForm] = useState({
     firstName: '',
     lastName: '',
@@ -66,8 +69,9 @@ export function UserManagementPage() {
   const { firestore } = createFirebaseLiveClients()
 
   useEffect(() => {
+    if (!isSystemAdmin) return
     const q = query(rootCollection(firestore, 'users'))
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, { includeMetadataChanges: true }, (snapshot) => {
       const usersData: UserProfileWithDoc[] = snapshot.docs.map(d => {
         const data = d.data() as UserProfile
         return {
@@ -77,20 +81,32 @@ export function UserManagementPage() {
         }
       })
       setUsers(usersData)
+      setDirectoryStatus((current) => ({ ...current, users: snapshot.metadata.fromCache ? 'cache' : 'synced' }))
+      setDirectoryErrors((current) => ({ ...current, users: '' }))
+    }, (error) => {
+      setDirectoryStatus((current) => ({ ...current, users: 'error' }))
+      setDirectoryErrors((current) => ({ ...current, users: `โหลดรายชื่อสมาชิกไม่สำเร็จ: ${error.message}` }))
     })
     return () => unsubscribe()
-  }, [firestore])
+  }, [firestore, isSystemAdmin, firebaseUser?.uid, refreshVersion])
 
   useEffect(() => {
+    if (!isSystemAdmin) return
     const unsubscribe = onSnapshot(
       query(rootCollection(firestore, 'accessRequests')),
+      { includeMetadataChanges: true },
       (snapshot) => {
         setAccessRequests(snapshot.docs.map((item) => item.data() as AccessRequestRecord))
+        setDirectoryStatus((current) => ({ ...current, requests: snapshot.metadata.fromCache ? 'cache' : 'synced' }))
+        setDirectoryErrors((current) => ({ ...current, requests: '' }))
       },
-      (error) => setRequestError(`โหลดคำขออนุมัติไม่สำเร็จ: ${error.message}`),
+      (error) => {
+        setDirectoryStatus((current) => ({ ...current, requests: 'error' }))
+        setDirectoryErrors((current) => ({ ...current, requests: `โหลดคำขออนุมัติไม่สำเร็จ: ${error.message}` }))
+      },
     )
     return () => unsubscribe()
-  }, [firestore])
+  }, [firestore, isSystemAdmin, firebaseUser?.uid, refreshVersion])
 
   useEffect(() => {
     const fetchFarms = async () => {
@@ -335,10 +351,25 @@ export function UserManagementPage() {
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#1b4332' }}>จัดการผู้ใช้งาน (MasterAdmin)</h1>
           <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.9rem' }}>
-            ทั้งหมด {users.length + pendingRequestsWithoutProfile.length} รายการ
+            แสดง {displayedUsers.length + pendingRequestsWithoutProfile.length} รายการ
+            {' '}· ซ่อนรายการซ้ำ {users.length - displayedUsers.length} รายการ
             {' '}· รออนุมัติ {pendingRequests.length} รายการ
           </p>
+          <p role="status">
+            {Object.values(directoryStatus).includes('error')
+              ? 'อัปเดตข้อมูลไม่สำเร็จ รายการที่แสดงอาจไม่ครบหรือยังไม่เป็นปัจจุบัน'
+              : Object.values(directoryStatus).includes('loading')
+                ? 'กำลังอัปเดตรายชื่อสมาชิกและคำขออนุมัติ…'
+                : Object.values(directoryStatus).includes('cache')
+                  ? 'แสดงข้อมูลที่บันทึกไว้ในเครื่อง กำลังรอข้อมูลล่าสุดจากเซิร์ฟเวอร์'
+                  : 'รายชื่อสมาชิกและคำขออนุมัติอัปเดตจากเซิร์ฟเวอร์แล้ว'}
+          </p>
         </div>
+        <button className="secondary-action" type="button" onClick={() => {
+          setDirectoryStatus({ users: 'loading', requests: 'loading' })
+          setDirectoryErrors({ users: '', requests: '' })
+          setRefreshVersion((version) => version + 1)
+        }}>อัปเดตรายชื่อ</button>
 
         {hasDuplicateEmails && (
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', cursor: 'pointer', background: '#fef3c7', padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid #fde68a' }}>
@@ -353,6 +384,8 @@ export function UserManagementPage() {
       </div>
 
       {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
+      {Object.entries(directoryErrors).map(([source, error]) => error
+        ? <p className="form-error" role="alert" key={source}>{error}</p> : null)}
 
       {editingUser ? (
         <section
@@ -548,7 +581,6 @@ export function UserManagementPage() {
                   style={{
                     backgroundColor: isDuplicate && !hideDuplicates && !pendingRequest ? '#fffdf7' : undefined,
                     borderBottom: '1px solid #f1f5f9',
-                    height: '36px',
                   }}
                 >
                   <td data-label="รูป" style={{ padding: '4px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
@@ -697,7 +729,7 @@ export function UserManagementPage() {
               const selection = selectionFor(request.uid)
               const displayTitle = request.displayName || formatPhoneNumber(request.maskedPhone) || 'ผู้ใช้ไม่มีชื่อ'
               return (
-                <tr className="user-management-row--pending" key={request.requestId} style={{ borderBottom: '1px solid #f1f5f9', height: '36px' }}>
+                <tr className="user-management-row--pending" key={request.requestId} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td data-label="รูป" style={{ padding: '4px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
                     {request.photoURL ? (
                       <img src={request.photoURL} alt="Profile" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle' }} />

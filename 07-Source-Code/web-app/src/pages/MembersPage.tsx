@@ -110,28 +110,52 @@ export function MembersPage() {
     changeFarmMembership,
   } = usePhase2()
   const [members, setMembers] = useState<readonly FarmMember[]>([])
-  const [loadedFarmId, setLoadedFarmId] = useState<string>()
+  const [loadedScope, setLoadedScope] = useState<string>()
+  const [refreshVersion, setRefreshVersion] = useState(0)
+  const [updatedAt, setUpdatedAt] = useState<Date>()
   const [message, setMessage] = useState<string>()
   const [error, setError] = useState<string>()
 
   const canManage = currentFarm ? permissionsFor(currentFarm).canManageMemberships : false
+  const scope = `${identity?.userId}/${currentFarm?.organizationId}/${currentFarm?.farmId}`
 
   useEffect(() => {
+    if (!identity || !currentFarm || !canManage) return
     let active = true
-    void listFarmMembers()
+    let inFlight = false
+    const refresh = () => {
+      if (inFlight) return
+      inFlight = true
+      void listFarmMembers()
       .then((nextMembers) => {
         if (active) {
           setMembers(nextMembers)
-          setLoadedFarmId(currentFarm?.farmId)
+          setLoadedScope(scope)
+          setUpdatedAt(new Date())
+          setError(undefined)
         }
       })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : 'อ่านสมาชิกไม่สำเร็จ')
       })
+      .finally(() => { inFlight = false })
+    }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    refresh()
+    const interval = window.setInterval(refreshWhenVisible, 30_000)
+    window.addEventListener('focus', refreshWhenVisible)
+    window.addEventListener('online', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
     return () => {
       active = false
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshWhenVisible)
+      window.removeEventListener('online', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
     }
-  }, [currentFarm?.farmId, listFarmMembers])
+  }, [identity, currentFarm, canManage, scope, listFarmMembers, refreshVersion])
 
   if (!identity || !currentFarm || !canManage) {
     return (
@@ -160,13 +184,13 @@ export function MembersPage() {
     try {
       const event = await changeFarmMembership({ targetUserId, nextRole, nextStatus })
       setMessage(`บันทึกแล้ว · Audit ${event.eventType} · Version ${event.membershipVersion}`)
-      setMembers(await listFarmMembers())
+      setRefreshVersion((version) => version + 1)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'บันทึกสิทธิ์ไม่สำเร็จ')
     }
   }
 
-  const loading = loadedFarmId !== currentFarm.farmId
+  const loading = loadedScope !== scope
 
   return (
     <section className="page-stack">
@@ -180,6 +204,18 @@ export function MembersPage() {
       </div>
       {message ? <div className="success-notice" role="status">{message}</div> : null}
       {error ? <div className="form-error" role="alert">{error}</div> : null}
+      <div className="member-directory-status">
+        <p role="status">
+          {loading ? 'กำลังอ่านรายชื่อจากเซิร์ฟเวอร์…' : `สมาชิกทั้งหมด ${members.length} คน · ใช้งาน ${members.filter((member) => member.status === 'ACTIVE').length} คน · ยกเลิกสิทธิ์ ${members.filter((member) => member.status === 'REVOKED').length} คน`}
+          {error ? ' · อัปเดตไม่สำเร็จ ข้อมูลอาจไม่เป็นปัจจุบัน กรุณาลองใหม่'
+            : !loading && updatedAt ? ` · อัปเดตล่าสุด ${updatedAt.toLocaleTimeString('th-TH')}` : ''}
+        </p>
+        <button className="secondary-action" type="button" onClick={() => {
+          setLoadedScope(undefined)
+          setError(undefined)
+          setRefreshVersion((version) => version + 1)
+        }}>อัปเดตสมาชิก</button>
+      </div>
       {loading ? (
         <p>กำลังอ่านสมาชิก…</p>
       ) : (
@@ -187,7 +223,7 @@ export function MembersPage() {
           {members.map((member) => (
             <MemberEditor
               currentUserId={identity.userId}
-              key={member.userId}
+              key={`${scope}/${member.userId}/${member.version}`}
               member={member}
               onSave={saveMember}
             />

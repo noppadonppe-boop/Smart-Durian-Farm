@@ -2,6 +2,7 @@ import {
   collectionGroup,
   getDoc,
   getDocs,
+  getDocsFromServer,
   limit,
   orderBy,
   query,
@@ -886,7 +887,7 @@ export class FirebasePhase2Repository implements Phase2Repository {
     organizationId: string,
     farmId: string,
   ): Promise<readonly FarmMember[]> {
-    const snapshot = await getDocs(
+    const snapshot = await getDocsFromServer(
       rootCollection(
         this.firestore,
         'organizations',
