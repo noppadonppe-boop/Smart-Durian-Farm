@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { onSnapshot, query, deleteDoc } from 'firebase/firestore'
 import { createFirebaseLiveClients } from '../infrastructure/firebase/firebaseClient'
 import { listOperationalFarmProfiles } from '../infrastructure/firebase/firebasePhase2Repository'
@@ -52,6 +52,8 @@ export function UserManagementPage() {
   const [requestBusy, setRequestBusy] = useState<string>()
   const [requestError, setRequestError] = useState<string>()
   const [editingUser, setEditingUser] = useState<UserProfileWithDoc>()
+  const accessDialog = useRef<HTMLDialogElement>(null)
+  const requestErrorElement = useRef<HTMLParagraphElement>(null)
   const [editingProfileUser, setEditingProfileUser] = useState<UserProfileWithDoc>()
   const [hideDuplicates, setHideDuplicates] = useState(true)
   const [refreshVersion, setRefreshVersion] = useState(0)
@@ -67,6 +69,19 @@ export function UserManagementPage() {
     role: 'WORKER',
   })
   const { firestore } = createFirebaseLiveClients()
+
+  useEffect(() => {
+    const dialog = accessDialog.current
+    if (!editingUser || !dialog) return
+    dialog.showModal()
+    return () => dialog.close()
+  }, [editingUser])
+
+  useEffect(() => {
+    if (!requestError || editingUser) return
+    requestErrorElement.current?.focus()
+    requestErrorElement.current?.scrollIntoView({ block: 'center' })
+  }, [requestError, editingUser])
 
   useEffect(() => {
     if (!isSystemAdmin) return
@@ -218,6 +233,8 @@ export function UserManagementPage() {
     )
     if (!request) {
       setRequestError('ไม่พบ Access Request ที่อนุมัติแล้วสำหรับผู้ใช้นี้')
+      requestErrorElement.current?.focus()
+      requestErrorElement.current?.scrollIntoView({ block: 'center' })
       return
     }
     const profileRole = user.role.find((role): role is CanonicalRole => (
@@ -383,11 +400,20 @@ export function UserManagementPage() {
         )}
       </div>
 
-      {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
+      {requestError && !editingUser ? <p ref={requestErrorElement} tabIndex={-1} className="form-error" role="alert">{requestError}</p> : null}
       {Object.entries(directoryErrors).map(([source, error]) => error
         ? <p className="form-error" role="alert" key={source}>{error}</p> : null)}
 
       {editingUser ? (
+        <dialog
+          ref={accessDialog}
+          className="user-access-dialog"
+          aria-labelledby="edit-user-access-title"
+          onCancel={(event) => {
+            event.preventDefault()
+            if (requestBusy !== editingUser.uid) setEditingUser(undefined)
+          }}
+        >
         <section
           aria-labelledby="edit-user-access-title"
           style={{
@@ -406,7 +432,8 @@ export function UserManagementPage() {
               {editingUser.firstName} {editingUser.lastName} · {editingUser.email || editingUser.uid}
             </p>
           </div>
-          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+          {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))' }}>
             <label>
               สวนปลายทาง (เฉพาะ ACTIVE)
               <select
@@ -462,6 +489,7 @@ export function UserManagementPage() {
             </button>
           </div>
         </section>
+        </dialog>
       ) : null}
 
       {editingProfileUser ? (

@@ -1,3 +1,27 @@
+.user-access-dialog {
+  width: min(640px, calc(100% - 24px));
+  max-width: calc(100% - 24px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.user-access-dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.user-access-dialog > section {
+  margin-bottom: 0 !important;
+}
+
+.user-access-dialog button,
+.user-access-dialog select {
+  min-height: 44px;
+}
+
 .user-management-table-shell {
   width: 100%;
   overflow: hidden;
@@ -75,6 +99,11 @@
 }
 
 @media (max-width: 64rem) {
+  .user-management-table tbody button {
+    min-height: 44px !important;
+    padding-block: 6px !important;
+  }
+
   .user-management-table-shell {
     overflow: visible;
     background: transparent;

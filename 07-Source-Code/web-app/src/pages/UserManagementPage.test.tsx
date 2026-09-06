@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   firestore: {},
   listeners: new Map<string, { next: (snapshot: unknown) => void; error: (error: Error) => void }>(),
   unsubscribe: vi.fn(),
+  scrollIntoView: vi.fn(),
+  showModal: vi.fn(function (this: HTMLDialogElement) { this.open = true }),
+  closeDialog: vi.fn(function (this: HTMLDialogElement) { this.open = false }),
 }))
 
 vi.mock('../security/AuthContext', () => ({ useAuth: () => ({ isSystemAdmin: mocks.admin, firebaseUser: { uid: 'SIM-admin' } }) }))
@@ -52,7 +55,12 @@ function loadDirectory() {
 }
 
 describe('UserManagementPage directory consistency', () => {
-  beforeEach(() => { mocks.admin = true; mocks.listeners.clear(); vi.clearAllMocks() })
+  beforeEach(() => {
+    mocks.admin = true; mocks.listeners.clear(); vi.clearAllMocks()
+    Element.prototype.scrollIntoView = mocks.scrollIntoView
+    HTMLDialogElement.prototype.showModal = mocks.showModal
+    HTMLDialogElement.prototype.close = mocks.closeDialog
+  })
   afterEach(cleanup)
 
   it('counts rendered rows, includes profile-less requests and explains hidden duplicates', () => {
@@ -104,5 +112,34 @@ describe('UserManagementPage directory consistency', () => {
     render(<UserManagementPage />)
     expect(screen.getByText('ไม่มีสิทธิ์เข้าถึง')).toBeInTheDocument()
     expect(mocks.listeners.size).toBe(0)
+  })
+
+  it('opens the access editor as a modal and closes it on cancel', () => {
+    const { container } = render(<UserManagementPage />)
+    emit('users', users)
+    emit('accessRequests', [{ id: 'SIM-a', data: () => ({ uid: 'SIM-a', status: 'APPROVED', assignedRole: 'WORKER' }) }])
+    fireEvent.click(screen.getAllByRole('button', { name: 'แก้ไขสิทธิ์' })[0]!)
+    const dialog = screen.getByRole('dialog', { name: 'แก้ไขสิทธิ์และย้ายสวน' })
+    expect(dialog).toHaveAttribute('open')
+    expect(mocks.showModal).toHaveBeenCalledOnce()
+    expect(screen.getByLabelText('Role ใหม่')).toHaveValue('WORKER')
+    if (process.env.KDOMS_RESPONSIVE_FIXTURE === '1') {
+      mkdirSync('outputs', { recursive: true })
+      writeFileSync('outputs/user-access-dialog-fixture.html', container.innerHTML)
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'ยกเลิก' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mocks.closeDialog).toHaveBeenCalled()
+  })
+
+  it('brings the rejection into view when no approved request exists', () => {
+    render(<UserManagementPage />)
+    loadDirectory()
+    fireEvent.click(screen.getByRole('button', { name: 'แก้ไขสิทธิ์' }))
+    const error = screen.getByRole('alert')
+    expect(error).toHaveTextContent('ไม่พบ Access Request ที่อนุมัติแล้ว')
+    expect(error).toHaveFocus()
+    expect(mocks.scrollIntoView).toHaveBeenCalledWith({ block: 'center' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })
