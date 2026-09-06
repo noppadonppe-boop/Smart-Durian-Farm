@@ -3,12 +3,14 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-do
 import { AppLayout } from './AppLayout'
 import { LazyPhase2Provider } from './LazyPhase2Provider'
 import { RouteLoading } from './RouteLoading'
+import { RouteErrorPage } from './RouteErrorPage'
 import { AuthProvider } from '../security/AuthContext'
 import { ProtectedRoute } from '../security/ProtectedRoute'
 
 export const routes: RouteObject[] = [
   {
     path: '/',
+    ErrorBoundary: RouteErrorPage,
     element: (
       <AuthProvider>
         <LazyPhase2Provider />
